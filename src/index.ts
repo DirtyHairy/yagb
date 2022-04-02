@@ -1,6 +1,7 @@
-import $ from 'jquery';
 import 'jquery.terminal';
 import 'jquery.terminal/css/jquery.terminal.min.css';
+
+import $ from 'jquery';
 
 $('#terminal').terminal(
     {
