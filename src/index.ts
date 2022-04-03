@@ -4,8 +4,8 @@ import 'jquery.terminal/css/jquery.terminal.min.css';
 import { decodeBase64, encodeBase64 } from './base64';
 
 import $ from 'jquery';
-import { Emulator } from './emulator/Emulator';
-import { FileHandler } from './FileHandler';
+import { Emulator } from './emulator/emulator';
+import { FileHandler } from './fileHandler';
 
 const CARTRIDGE_FILE_SIZE_LIMIT = 512 * 1024 * 1024;
 const STORAGE_KEY_YAGB_CARTERIDGE_DATA = 'yagb-cartridge-data';
@@ -19,10 +19,14 @@ function print(msg: string): void {
 }
 
 function loadCartridge(data: Uint8Array, name: string) {
-    print(`loaded cartridge image: ${name}`);
-
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    emulator = new Emulator(data);
+    try {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        emulator = new Emulator(data, print);
+        print(`loaded cartridge image: ${name}`);
+    } catch (e) {
+        print((e as Error).message);
+        print('failed to initialize emulator');
+    }
 }
 
 async function onInit(): Promise<void> {
