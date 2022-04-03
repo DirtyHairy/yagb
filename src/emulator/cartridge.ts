@@ -1,9 +1,11 @@
 import { Bus, ReadHandler, WriteHandler } from './bus';
 
 import { SystemInterface } from './system';
+import { hex16 } from '../helper/format';
 
 export interface Cartridge {
     install(bus: Bus): void;
+    reset(): void;
 }
 
 export function createCartridge(image: Uint8Array, system: SystemInterface): Cartridge | undefined {
@@ -17,11 +19,7 @@ export function createCartridge(image: Uint8Array, system: SystemInterface): Car
     const checksumReference = (image[0x14e] << 8) | image[0x14f];
 
     if (checksum !== checksumReference) {
-        system.warning(
-            `ROM checksum mismatch: expected 0x${checksumReference.toString(16).padStart(4, '0')}, got 0x${checksum
-                .toString(16)
-                .padStart(4, '0')}`
-        );
+        system.warning(`ROM checksum mismatch: expected ${hex16(checksumReference)}, got ${hex16(checksum)}`);
     }
 
     return new CartridgeNoMbc(image, system);
@@ -39,9 +37,10 @@ class CartridgeNoMbc implements Cartridge {
         }
     }
 
+    reset() {}
+
     private readHandler: ReadHandler = (address) => this.rom[address];
-    private writeHandler: WriteHandler = (address) =>
-        this.system.break(`attempt to write ROM at 0x${address.toString(16).padStart(4, '0')}`);
+    private writeHandler: WriteHandler = (address) => this.system.break(`attempt to write ROM at ${hex16(address)}`);
 
     private rom = new Uint8Array(0x8000);
 }

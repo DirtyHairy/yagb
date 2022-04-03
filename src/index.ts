@@ -1,11 +1,11 @@
 import 'jquery.terminal';
 import 'jquery.terminal/css/jquery.terminal.min.css';
 
-import { decodeBase64, encodeBase64 } from './base64';
+import { decodeBase64, encodeBase64 } from './helper/base64';
 
 import $ from 'jquery';
 import { Emulator } from './emulator/emulator';
-import { FileHandler } from './fileHandler';
+import { FileHandler } from './helper/fileHandler';
 
 const CARTRIDGE_FILE_SIZE_LIMIT = 512 * 1024 * 1024;
 const STORAGE_KEY_YAGB_CARTERIDGE_DATA = 'yagb-cartridge-data';
@@ -45,17 +45,18 @@ async function onInit(): Promise<void> {
 
 const terminal = $('#terminal').terminal(
     {
-        help(this: JQueryTerminal): void {
-            this.echo(`
-help                        Show help
-clear                       Clear screen
-load                        Load cartridge
-disassemble [count=10]      Disassemble next count bytes
-step [count=1]              Step count instructions
-state                       Print state
-            `);
+        help(): void {
+            print(`Available commands:
+
+help                                    Show help
+clear                                   Clear screen
+load                                    Load cartridge
+disassemble [count=15] [address=p]      Disassemble count bytes at address
+step [count=1]                          Step count instructions
+state                                   Print state
+reset                                   Reset system`);
         },
-        load(this: JQueryTerminal): void {
+        load(): void {
             fileHandler.openFile(async (data, name) => {
                 if (data.length > CARTRIDGE_FILE_SIZE_LIMIT) {
                     print(`${name} is not a cartridge image`);
@@ -67,15 +68,35 @@ state                       Print state
                 loadCartridge(data, name);
             });
         },
-        disassemble(this: JQueryTerminal): void {
-            this.echo('TODO');
+        disassemble(): void {
+            print('TODO');
         },
-        step(this: JQueryTerminal): void {
-            this.echo('TODO');
+        step(): void {
+            print('TODO');
         },
-        state(this: JQueryTerminal): void {
-            this.echo('TODO');
+        state(): void {
+            if (!emulator) {
+                print('emulator not initialized');
+                return;
+            }
+
+            print(emulator.printState());
+        },
+        reset(): void {
+            if (!emulator) {
+                print('emulator not initialized');
+                return;
+            }
+
+            emulator.reset();
+            print('system reset');
         },
     },
-    { greetings: " ___\n|[_]|\n|+ ;|\n`---'\n", completion: true, exit: false, onInit: () => void onInit() }
+    {
+        greetings: " ___\n|[_]|\n|+ ;|\n`---'\n",
+        completion: true,
+        exit: false,
+        onInit: () => void onInit(),
+        prompt: '\n> ',
+    }
 );

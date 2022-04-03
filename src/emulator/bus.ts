@@ -1,4 +1,5 @@
 import { SystemInterface } from './system';
+import { hex16 } from '../helper/format';
 
 export type ReadHandler = (address: number) => number;
 export type WriteHandler = (address: number, value: number) => void;
@@ -12,13 +13,13 @@ export class Bus {
     }
 
     private invalidRead: ReadHandler = (address) => {
-        this.system.break(`invalid read from 0x${address.toString(16).padStart(4, '0')}`);
+        this.system.break(`invalid read from ${hex16(address)}`);
 
         return 0;
     };
 
     private invalidWrite: WriteHandler = (address) => {
-        this.system.break(`invalid write to 0x${address.toString(16).padStart(4, '0')}`);
+        this.system.break(`invalid write to ${hex16(address)}`);
     };
 
     public readonly readMap = new Array<ReadHandler>(0x10000);
