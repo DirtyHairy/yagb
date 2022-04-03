@@ -43,7 +43,9 @@
             "plugin:@typescript-eslint/recommended"
         ],
         "rules": {
-            "eqeqeq": "error"
+            "eqeqeq": "error",
+            "no-empty-function": "off",
+            "@typescript-eslint/no-empty-function": "off"
         }
     },
     "prettier": {

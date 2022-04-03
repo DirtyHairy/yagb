@@ -1,9 +1,45 @@
 import 'jquery.terminal';
 import 'jquery.terminal/css/jquery.terminal.min.css';
 
-import $ from 'jquery';
+import { decodeBase64, encodeBase64 } from './base64';
 
-$('#terminal').terminal(
+import $ from 'jquery';
+import { Emulator } from './emulator/Emulator';
+import { FileHandler } from './FileHandler';
+
+const CARTRIDGE_FILE_SIZE_LIMIT = 512 * 1024 * 1024;
+const STORAGE_KEY_YAGB_CARTERIDGE_DATA = 'yagb-cartridge-data';
+const STORAGE_KEY_YAGB_CARTERIDGE_NAME = 'yagb-cartridge-name';
+
+const fileHandler = new FileHandler();
+let emulator: Emulator;
+
+function print(msg: string): void {
+    terminal.echo(msg);
+}
+
+function loadCartridge(data: Uint8Array, name: string) {
+    print(`loaded cartridge image: ${name}`);
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    emulator = new Emulator(data);
+}
+
+async function onInit(): Promise<void> {
+    const cartridgeData = localStorage.getItem(STORAGE_KEY_YAGB_CARTERIDGE_DATA);
+    const cartridgeName = localStorage.getItem(STORAGE_KEY_YAGB_CARTERIDGE_NAME);
+
+    if (cartridgeData === null || cartridgeName === null) return;
+
+    try {
+        loadCartridge(await decodeBase64(cartridgeData), cartridgeName);
+    } catch (e) {
+        print('failed to load cartridge data');
+        console.error(e);
+    }
+}
+
+const terminal = $('#terminal').terminal(
     {
         help(this: JQueryTerminal): void {
             this.echo(`
@@ -16,7 +52,16 @@ state                       Print state
             `);
         },
         load(this: JQueryTerminal): void {
-            this.echo('TODO');
+            fileHandler.openFile(async (data, name) => {
+                if (data.length > CARTRIDGE_FILE_SIZE_LIMIT) {
+                    print(`${name} is not a cartridge image`);
+                }
+
+                localStorage.setItem(STORAGE_KEY_YAGB_CARTERIDGE_DATA, await encodeBase64(data));
+                localStorage.setItem(STORAGE_KEY_YAGB_CARTERIDGE_NAME, name);
+
+                loadCartridge(data, name);
+            });
         },
         disassemble(this: JQueryTerminal): void {
             this.echo('TODO');
@@ -28,5 +73,5 @@ state                       Print state
             this.echo('TODO');
         },
     },
-    { greetings: " ___\n|[_]|\n|+ ;|\n`---'\n", completion: true }
+    { greetings: " ___\n|[_]|\n|+ ;|\n`---'\n", completion: true, exit: false, onInit: () => void onInit() }
 );
