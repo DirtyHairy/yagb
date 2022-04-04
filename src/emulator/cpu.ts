@@ -1,3 +1,8 @@
+import { AddressingMode, Instruction, Operation, decodeInstruction } from './instruction';
+
+import { Bus } from './bus';
+import { Clock } from './clock';
+import { SystemInterface } from './system';
 import { hex16 } from '../helper/format';
 
 export const enum r8 {
@@ -33,7 +38,7 @@ export interface CpuState {
 }
 
 export class Cpu {
-    constructor() {
+    constructor(private bus: Bus, private clock: Clock, private system: SystemInterface) {
         const r8 = new Uint8Array(8);
         const r16 = new Uint16Array(r8.buffer);
 
@@ -54,10 +59,44 @@ export class Cpu {
         this.state.s = 0xfffe;
     }
 
+    step(count: number): void {
+        for (let i = 0; i < count; i++) this.dispatch(decodeInstruction(this.bus, this.state.p));
+    }
+
     printState(): string {
         return `af=${hex16(this.state.r16[r16.af])} bc=${hex16(this.state.r16[r16.bc])} de=${hex16(
             this.state.r16[r16.de]
         )} hl=${hex16(this.state.r16[r16.hl])} s=${hex16(this.state.s)} p=${hex16(this.state.p)}`;
+    }
+
+    private dispatch(instruction: Instruction): number {
+        switch (instruction.operation) {
+            case Operation.nop:
+                this.clock.increment(instruction.cycles);
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
+
+                return instruction.cycles;
+
+            case Operation.jp:
+                this.clock.increment(instruction.cycles);
+                this.state.p = this.getArg1(instruction);
+
+                return instruction.cycles;
+
+            default:
+                this.system.break('invalid instruction');
+                return 0;
+        }
+    }
+
+    private getArg1(instruction: Instruction) {
+        switch (instruction.addressingMode) {
+            case AddressingMode.immediate16:
+                return this.bus.read16((this.state.p + instruction.par1) & 0xffff);
+
+            default:
+                throw new Error('bad addressing mode');
+        }
     }
 
     readonly state: CpuState;

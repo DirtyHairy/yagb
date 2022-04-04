@@ -87,8 +87,15 @@ reset                                   Reset system`);
 
             print(emulator.disassemble(intval(count, 15), intval(address)).join('\n'));
         },
-        step(): void {
-            print('TODO');
+        step(count): void {
+            if (!emulator) {
+                print('emulator not initialized');
+                return;
+            }
+
+            if (!emulator.step(intval(count, 1))) print(emulator.lastBreakMessage());
+
+            print(emulator.disassemble(1).join('\n'));
         },
         state(): void {
             if (!emulator) {

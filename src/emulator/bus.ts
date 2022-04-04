@@ -20,6 +20,10 @@ export class Bus {
         this.writeMap[address](address, value);
     }
 
+    read16(address: number): number {
+        return this.read(address) | (this.read((address + 1) & 0xffff) << 8);
+    }
+
     private invalidRead: ReadHandler = (address) => {
         this.system.break(`invalid read from ${hex16(address)}`);
 

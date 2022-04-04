@@ -1,16 +1,18 @@
 import { Cartridge, createCartridge } from './cartridge';
-import { System, SystemInterface } from './system';
 import { decodeInstruction, disassemleInstruction } from './instruction';
 
 import { Bus } from './bus';
+import { Clock } from './clock';
 import { Cpu } from './cpu';
+import { System } from './system';
 import { hex16 } from '../helper/format';
 
 export class Emulator {
     constructor(cartridgeImage: Uint8Array, printCb: (message: string) => void) {
         this.system = new System(printCb);
         this.bus = new Bus(this.system);
-        this.cpu = new Cpu();
+        this.clock = new Clock();
+        this.cpu = new Cpu(this.bus, this.clock, this.system);
 
         const cartridge = createCartridge(cartridgeImage, this.system);
         if (!cartridge) {
@@ -20,7 +22,20 @@ export class Emulator {
         this.cartridge = cartridge;
         this.cartridge.install(this.bus);
 
+        this.system.onBreak.addHandler((message) => {
+            this.break = true;
+            this.breakMessage = message;
+        });
+
         this.reset();
+    }
+
+    step(count: number): boolean {
+        this.break = false;
+
+        this.cpu.step(count);
+
+        return !this.break;
     }
 
     reset(): void {
@@ -40,7 +55,9 @@ export class Emulator {
             const disassembleAddress = (address + disassembledCount) & 0xffff;
             const instruction = decodeInstruction(this.bus, disassembleAddress);
 
-            disassembledInstructions.push(`${hex16(disassembleAddress)}: ${disassemleInstruction(instruction)}`);
+            disassembledInstructions.push(
+                `${hex16(disassembleAddress)}: ${disassemleInstruction(this.bus, disassembleAddress)}`
+            );
 
             disassembledCount += instruction.len;
         }
@@ -48,9 +65,17 @@ export class Emulator {
         return disassembledInstructions;
     }
 
-    private system: SystemInterface;
+    lastBreakMessage(): string {
+        return this.breakMessage;
+    }
+
+    private system: System;
 
     private bus: Bus;
     private cartridge: Cartridge;
     private cpu: Cpu;
+    private clock: Clock;
+
+    private break = false;
+    private breakMessage = '';
 }
