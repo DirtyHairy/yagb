@@ -1,8 +1,10 @@
 import { Cartridge, createCartridge } from './cartridge';
 import { System, SystemInterface } from './system';
+import { decodeInstruction, disassemleInstruction } from './instruction';
 
 import { Bus } from './bus';
 import { Cpu } from './cpu';
+import { hex16 } from '../helper/format';
 
 export class Emulator {
     constructor(cartridgeImage: Uint8Array, printCb: (message: string) => void) {
@@ -28,6 +30,22 @@ export class Emulator {
 
     printState(): string {
         return `CPU:\n${this.cpu.printState()}`;
+    }
+
+    disassemble(count: number, address = this.cpu.state.p): Array<string> {
+        const disassembledInstructions: Array<string> = [];
+        let disassembledCount = 0;
+
+        while (disassembledCount < count) {
+            const disassembleAddress = (address + disassembledCount) & 0xffff;
+            const instruction = decodeInstruction(this.bus, disassembleAddress);
+
+            disassembledInstructions.push(`${hex16(disassembleAddress)}: ${disassemleInstruction(instruction)}`);
+
+            disassembledCount += instruction.len;
+        }
+
+        return disassembledInstructions;
     }
 
     private system: SystemInterface;

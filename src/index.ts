@@ -18,6 +18,17 @@ function print(msg: string): void {
     terminal.echo(msg);
 }
 
+function intval<T>(value: T): number | undefined;
+function intval<T>(value: T, defaultValue: number): number;
+function intval<T>(value: T, defaultValue?: number | undefined): number | undefined {
+    if (typeof value === 'number') return value;
+    if (typeof value !== 'string') return defaultValue;
+
+    const parsed = value.startsWith('0x') ? parseInt(value.substring(2), 16) : parseInt(value, 10);
+
+    return isNaN(parsed) ? defaultValue : parsed;
+}
+
 function loadCartridge(data: Uint8Array, name: string) {
     try {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -68,8 +79,13 @@ reset                                   Reset system`);
                 loadCartridge(data, name);
             });
         },
-        disassemble(): void {
-            print('TODO');
+        disassemble(count, address): void {
+            if (!emulator) {
+                print('emulator not initialized');
+                return;
+            }
+
+            print(emulator.disassemble(intval(count, 15), intval(address)).join('\n'));
         },
         step(): void {
             print('TODO');
@@ -98,5 +114,6 @@ reset                                   Reset system`);
         exit: false,
         onInit: () => void onInit(),
         prompt: '\n> ',
+        checkArity: false,
     }
 );

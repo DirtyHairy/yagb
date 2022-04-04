@@ -12,6 +12,14 @@ export class Bus {
         }
     }
 
+    read(address: number): number {
+        return this.readMap[address](address);
+    }
+
+    write(address: number, value: number): void {
+        this.writeMap[address](address, value);
+    }
+
     private invalidRead: ReadHandler = (address) => {
         this.system.break(`invalid read from ${hex16(address)}`);
 
