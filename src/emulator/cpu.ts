@@ -21,6 +21,7 @@ export const enum r16 {
     bc = 1,
     de = 2,
     hl = 3,
+    sp = 4,
 }
 
 export const enum flag {
@@ -34,19 +35,17 @@ export interface CpuState {
     r8: Uint8Array;
     r16: Uint16Array;
     p: number;
-    s: number;
 }
 
 export class Cpu {
     constructor(private bus: Bus, private clock: Clock, private system: SystemInterface) {
-        const r8 = new Uint8Array(8);
-        const r16 = new Uint16Array(r8.buffer);
+        const r16 = new Uint16Array(5);
+        const r8 = new Uint8Array(r16.buffer);
 
         this.state = {
             r8,
             r16,
             p: 0,
-            s: 0,
         };
     }
 
@@ -56,7 +55,7 @@ export class Cpu {
         this.state.r16[r16.de] = 0x00d8;
         this.state.r16[r16.hl] = 0x014d;
         this.state.p = 0x0100;
-        this.state.s = 0xfffe;
+        this.state.r16[r16.sp] = 0xfffe;
     }
 
     step(count: number): void {
@@ -64,23 +63,61 @@ export class Cpu {
     }
 
     printState(): string {
-        return `af=${hex16(this.state.r16[r16.af])} bc=${hex16(this.state.r16[r16.bc])} de=${hex16(
-            this.state.r16[r16.de]
-        )} hl=${hex16(this.state.r16[r16.hl])} s=${hex16(this.state.s)} p=${hex16(this.state.p)}`;
+        return `af=${hex16(this.state.r16[r16.af])} bc=${hex16(this.state.r16[r16.bc])} de=${hex16(this.state.r16[r16.de])} hl=${hex16(
+            this.state.r16[r16.hl]
+        )} s=${hex16(this.state.r16[r16.sp])} p=${hex16(this.state.p)}`;
     }
 
     private dispatch(instruction: Instruction): number {
         switch (instruction.operation) {
-            case Operation.nop:
-                this.clock.increment(instruction.cycles);
-                this.state.p = (this.state.p + instruction.len) & 0xffff;
-
-                return instruction.cycles;
-
             case Operation.jp:
                 this.clock.increment(instruction.cycles);
-                this.state.p = this.getArg1(instruction);
 
+                this.state.p = this.getArg1(instruction);
+                return instruction.cycles;
+
+            case Operation.ld: {
+                this.clock.increment(instruction.cycles);
+
+                this.setArg1(instruction, this.getArg2(instruction));
+
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
+                return instruction.cycles;
+            }
+
+            case Operation.ldd: {
+                this.clock.increment(instruction.cycles);
+
+                this.setArg1(instruction, this.getArg2(instruction));
+                this.state.r16[r16.hl] = (this.state.r16[r16.hl] - 1) & 0xffff;
+
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
+                return instruction.cycles;
+            }
+
+            case Operation.ldi: {
+                this.clock.increment(instruction.cycles);
+
+                this.setArg1(instruction, this.getArg2(instruction));
+                this.state.r16[r16.hl] = (this.state.r16[r16.hl] + 1) & 0xffff;
+
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
+                return instruction.cycles;
+            }
+
+            case Operation.nop:
+                this.clock.increment(instruction.cycles);
+
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
+                return instruction.cycles;
+
+            case Operation.xor:
+                this.clock.increment(instruction.cycles);
+
+                this.state.r8[r8.a] = this.state.r8[r8.a] ^ this.getArg1(instruction);
+                this.state.r8[r8.f] = this.state.r8[r8.a] ? 0 : flag.z;
+
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
                 return instruction.cycles;
 
             default:
@@ -91,8 +128,59 @@ export class Cpu {
 
     private getArg1(instruction: Instruction) {
         switch (instruction.addressingMode) {
-            case AddressingMode.immediate16:
+            case AddressingMode.imm16:
                 return this.bus.read16((this.state.p + instruction.par1) & 0xffff);
+
+            case AddressingMode.reg8:
+                return this.state.r8[instruction.par1];
+
+            case AddressingMode.reg16_imm16:
+                return this.state.r16[instruction.par1];
+
+            case AddressingMode.reg8_imm8:
+                return this.state.r8[instruction.par1];
+
+            case AddressingMode.ind_reg8:
+                return this.bus.read(this.state.r16[instruction.par1]);
+
+            default:
+                throw new Error('bad addressing mode');
+        }
+    }
+
+    private setArg1(instruction: Instruction, value: number) {
+        switch (instruction.addressingMode) {
+            case AddressingMode.reg8:
+                this.state.r8[instruction.par1] = value;
+                break;
+
+            case AddressingMode.reg16_imm16:
+                this.state.r16[instruction.par1] = value;
+                break;
+
+            case AddressingMode.reg8_imm8:
+                this.state.r8[instruction.par1] = value;
+                break;
+
+            case AddressingMode.ind_reg8:
+                this.bus.write(this.state.r16[instruction.par1], value);
+                break;
+
+            default:
+                throw new Error('bad addressing mode');
+        }
+    }
+
+    private getArg2(instruction: Instruction) {
+        switch (instruction.addressingMode) {
+            case AddressingMode.reg16_imm16:
+                return this.bus.read16((this.state.p + instruction.par2) & 0xffff);
+
+            case AddressingMode.reg8_imm8:
+                return this.bus.read((this.state.p + instruction.par2) & 0xffff);
+
+            case AddressingMode.ind_reg8:
+                return this.state.r8[instruction.par2];
 
             default:
                 throw new Error('bad addressing mode');
