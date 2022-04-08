@@ -34,10 +34,38 @@ export class Emulator {
         this.reset();
     }
 
+    addBreakpoint(address: number): void {
+        this.breakpoints.add(address);
+    }
+
+    clearBreakpoint(address: number): void {
+        this.breakpoints.delete(address);
+    }
+
+    clearBreakpoints(): void {
+        this.breakpoints.clear();
+    }
+
+    getBreakpoints(): Array<number> {
+        return Array.from(this.breakpoints).sort();
+    }
+
     step(count: number): boolean {
         this.break = false;
 
-        this.cpu.step(count);
+        if (this.breakpoints.size > 0) {
+            for (let i = 0; i < count; i++) {
+                this.cpu.step(1);
+
+                if (this.breakpoints.has(this.cpu.state.p)) {
+                    this.system.break(`breakpoint at ${hex16(this.cpu.state.p)}`);
+                }
+
+                if (this.break) break;
+            }
+        } else {
+            this.cpu.step(count);
+        }
 
         return !this.break;
     }
@@ -60,7 +88,12 @@ export class Emulator {
             const disassembleAddress = (address + disassembledCount) & 0xffff;
             const instruction = decodeInstruction(this.bus, disassembleAddress);
 
-            disassembledInstructions.push(`${hex16(disassembleAddress)}: ${disassemleInstruction(this.bus, disassembleAddress)}`);
+            disassembledInstructions.push(
+                `${this.breakpoints.has(disassembleAddress) ? ' *' : '  '} ${hex16(disassembleAddress)}: ${disassemleInstruction(
+                    this.bus,
+                    disassembleAddress
+                )}`
+            );
 
             disassembledCount += instruction.len;
         }
@@ -70,6 +103,10 @@ export class Emulator {
 
     lastBreakMessage(): string {
         return this.breakMessage;
+    }
+
+    getCpu(): Cpu {
+        return this.cpu;
     }
 
     private system: System;
@@ -82,4 +119,6 @@ export class Emulator {
 
     private break = false;
     private breakMessage = '';
+
+    private breakpoints = new Set<number>();
 }

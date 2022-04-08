@@ -6,6 +6,7 @@ import { decodeBase64, encodeBase64 } from './helper/base64';
 import $ from 'jquery';
 import { Emulator } from './emulator/emulator';
 import { FileHandler } from './helper/fileHandler';
+import { hex16 } from './helper/format';
 
 const CARTRIDGE_FILE_SIZE_LIMIT = 512 * 1024 * 1024;
 const STORAGE_KEY_YAGB_CARTERIDGE_DATA = 'yagb-cartridge-data';
@@ -54,6 +55,15 @@ async function onInit(): Promise<void> {
     }
 }
 
+function assertEmulator(): boolean {
+    if (!emulator) {
+        print('emulator not initialized');
+        return false;
+    }
+
+    return true;
+}
+
 const terminal = $('#terminal').terminal(
     {
         help(): void {
@@ -65,7 +75,11 @@ load                                    Load cartridge
 disassemble [count=15] [address=p]      Disassemble count bytes at address
 step [count=1]                          Step count instructions
 state                                   Print state
-reset                                   Reset system`);
+reset                                   Reset system
+breakpoint-add <address, ...>           Add a breakpoint
+breakpoint-clear <address>              Clear a breakpoint
+breakpoint-clear-all                    Clear all breakpoints
+breakpoint-list                         List breakpoints`);
         },
         load(): void {
             fileHandler.openFile(async (data, name) => {
@@ -80,39 +94,66 @@ reset                                   Reset system`);
             });
         },
         disassemble(count, address): void {
-            if (!emulator) {
-                print('emulator not initialized');
-                return;
-            }
+            if (!assertEmulator()) return;
 
             print(emulator.disassemble(intval(count, 15), intval(address)).join('\n'));
         },
         step(count): void {
-            if (!emulator) {
-                print('emulator not initialized');
-                return;
-            }
+            if (!assertEmulator()) return;
 
             if (!emulator.step(intval(count, 1))) print(emulator.lastBreakMessage());
-
             print(emulator.disassemble(1).join('\n'));
         },
         state(): void {
-            if (!emulator) {
-                print('emulator not initialized');
-                return;
-            }
+            if (!assertEmulator()) return;
 
             print(emulator.printState());
         },
         reset(): void {
-            if (!emulator) {
-                print('emulator not initialized');
-                return;
-            }
+            if (!assertEmulator()) return;
 
             emulator.reset();
             print('system reset');
+        },
+        'breakpoint-add': function (...args) {
+            if (!assertEmulator()) return;
+
+            if (args.length === 0) {
+                args = [emulator.getCpu().state.p];
+            }
+
+            args.forEach((address) => {
+                const addressInt = intval(address);
+                if (addressInt === undefined) {
+                    print(`invalid address ${address}`);
+                    return;
+                }
+
+                emulator.addBreakpoint(addressInt);
+            });
+        },
+        'breakpoint-clear': function (address) {
+            if (!assertEmulator()) return;
+
+            const addressInt = intval(address);
+            if (addressInt === undefined) {
+                print('invalid address');
+                return;
+            }
+
+            emulator.clearBreakpoint(addressInt);
+        },
+        'breakpoint-clear-all': function () {
+            if (!assertEmulator()) return;
+
+            emulator.clearBreakpoints();
+        },
+        'breakpoint-list': function () {
+            if (!assertEmulator()) return;
+
+            const breakpoints = emulator.getBreakpoints();
+
+            print(breakpoints.length === 0 ? 'no breakpoints' : breakpoints.map((x) => `* ${hex16(x)}`).join('\n'));
         },
     },
     {
