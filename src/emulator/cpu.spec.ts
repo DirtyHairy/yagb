@@ -1,6 +1,7 @@
 import { Bus, ReadHandler, WriteHandler } from './bus';
 import { Cpu, flag, r8 } from './cpu';
 
+import { Ppu } from './ppu';
 import { Clock } from './clock';
 import { System } from './system';
 
@@ -17,7 +18,9 @@ function newEnvironment(code: ArrayLike<number>): Environment {
         throw new Error(msg);
     });
 
-    const clock = new Clock();
+    const ppu = new Ppu(system);
+
+    const clock = new Clock(ppu);
 
     const bus = new Bus(system);
     const cpu = new Cpu(bus, clock, system);
@@ -27,8 +30,7 @@ function newEnvironment(code: ArrayLike<number>): Environment {
     const write: WriteHandler = (address, value) => (memory[address] = value);
 
     for (let i = 0; i < 0x10000; i++) {
-        bus.readMap[i] = read;
-        bus.writeMap[i] = write;
+        bus.map(i, read, write);
     }
 
     memory.subarray(0x100).set(code);
