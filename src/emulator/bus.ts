@@ -25,6 +25,11 @@ export class Bus {
         return this.read(address) | (this.read((address + 1) & 0xffff) << 8);
     }
 
+    map(address: number, read: ReadHandler, write: WriteHandler): void {
+        this.readMap[address] = read;
+        this.writeMap[address] = write;
+    }
+
     private invalidRead: ReadHandler = (address) => {
         this.system.break(`invalid read from ${hex16(address)}`);
 
@@ -35,6 +40,6 @@ export class Bus {
         this.system.break(`invalid write of ${hex8(value)} to ${hex16(address)}`);
     };
 
-    public readonly readMap = new Array<ReadHandler>(0x10000);
-    public readonly writeMap = new Array<WriteHandler>(0x10000);
+    private readonly readMap = new Array<ReadHandler>(0x10000);
+    private readonly writeMap = new Array<WriteHandler>(0x10000);
 }

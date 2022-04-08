@@ -32,8 +32,7 @@ class CartridgeNoMbc implements Cartridge {
 
     install(bus: Bus): void {
         for (let i = 0; i < 0x8000; i++) {
-            bus.readMap[i] = this.readHandler;
-            bus.writeMap[i] = this.writeHandler;
+            bus.map(i, this.readHandler, this.writeHandler);
         }
     }
 

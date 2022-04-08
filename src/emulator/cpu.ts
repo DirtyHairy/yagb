@@ -181,7 +181,18 @@ export class Cpu {
             case Operation.ldh:
                 this.clock.increment(instruction.cycles);
 
-                this.bus.write((0xff00 + this.getArg1(instruction)) & 0xffff, this.getArg2(instruction));
+                switch (instruction.addressingMode) {
+                    case AddressingMode.imm8_reg8:
+                        this.bus.write((0xff00 + this.getArg1(instruction)) & 0xffff, this.getArg2(instruction));
+                        break;
+
+                    case AddressingMode.reg8_imm8:
+                        this.setArg1(instruction, this.bus.read((this.getArg2(instruction) + 0xff00) & 0xffff));
+                        break;
+
+                    default:
+                        throw new Error('invalid addressing mode for LDH');
+                }
 
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
                 return instruction.cycles;

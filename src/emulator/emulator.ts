@@ -1,6 +1,7 @@
 import { Cartridge, createCartridge } from './cartridge';
 import { decodeInstruction, disassemleInstruction } from './instruction';
 
+import { Audio } from './audio';
 import { Bus } from './bus';
 import { Clock } from './clock';
 import { Cpu } from './cpu';
@@ -15,12 +16,13 @@ export class Emulator {
     constructor(cartridgeImage: Uint8Array, printCb: (message: string) => void) {
         this.system = new System(printCb);
         this.bus = new Bus(this.system);
-        this.clock = new Clock();
+        this.ppu = new Ppu(this.system);
+        this.audio = new Audio();
+        this.clock = new Clock(this.ppu);
         this.cpu = new Cpu(this.bus, this.clock, this.system);
         this.ram = new Ram();
         this.interrupt = new Interrupt();
         this.serial = new Serial();
-        this.ppu = new Ppu();
 
         const cartridge = createCartridge(cartridgeImage, this.system);
         if (!cartridge) {
@@ -34,6 +36,7 @@ export class Emulator {
         this.interrupt.install(this.bus);
         this.serial.install(this.bus);
         this.ppu.install(this.bus);
+        this.audio.install(this.bus);
 
         this.system.onBreak.addHandler((message) => {
             this.break = true;
@@ -63,18 +66,14 @@ export class Emulator {
         this.break = false;
         let cycles = 0;
 
-        if (this.breakpoints.size > 0) {
-            for (let i = 0; i < count; i++) {
-                cycles += this.cpu.step(1);
+        for (let i = 0; i < count; i++) {
+            cycles += this.cpu.step(1);
 
-                if (this.breakpoints.has(this.cpu.state.p)) {
-                    this.system.break(`breakpoint at ${hex16(this.cpu.state.p)}`);
-                }
-
-                if (this.break) break;
+            if (this.breakpoints.has(this.cpu.state.p)) {
+                this.system.break(`breakpoint at ${hex16(this.cpu.state.p)}`);
             }
-        } else {
-            cycles += this.cpu.step(count);
+
+            if (this.break) break;
         }
 
         return [!this.break, cycles];
@@ -84,6 +83,7 @@ export class Emulator {
         this.cartridge.reset();
         this.cpu.reset();
         this.ram.reset();
+        this.ppu.reset();
     }
 
     printState(): string {
@@ -129,6 +129,7 @@ export class Emulator {
     private interrupt: Interrupt;
     private serial: Serial;
     private ppu: Ppu;
+    private audio: Audio;
 
     private break = false;
     private breakMessage = '';

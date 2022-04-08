@@ -3,13 +3,11 @@ import { Bus, ReadHandler, WriteHandler } from './bus';
 export class Ram {
     install(bus: Bus): void {
         for (let i = 0xc000; i < 0xfe00; i++) {
-            bus.readMap[i] = this.wramRead;
-            bus.writeMap[i] = this.wramWrite;
+            bus.map(i, this.wramRead, this.wramWrite);
         }
 
         for (let i = 0xff80; i < 0xffff; i++) {
-            bus.readMap[i] = this.hiramRead;
-            bus.writeMap[i] = this.hiramWrite;
+            bus.map(i, this.hiramRead, this.hiramWrite);
         }
     }
 

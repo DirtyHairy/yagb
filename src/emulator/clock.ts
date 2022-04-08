@@ -1,4 +1,8 @@
+import { Ppu } from './ppu';
 export class Clock {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    increment(cpuCycles: number) {}
+    constructor(private ppu: Ppu) {}
+
+    increment(cpuCycles: number) {
+        this.ppu.cycle(4 * cpuCycles);
+    }
 }
