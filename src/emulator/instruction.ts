@@ -8,6 +8,7 @@ export const enum Operation {
     dec,
     inc,
     jp,
+    jrnz,
     ld,
     ldd,
     ldi,
@@ -18,6 +19,7 @@ export const enum Operation {
 export const enum AddressingMode {
     implicit,
     imm16,
+    imm8,
     reg8,
     reg16_imm16,
     reg8_imm8,
@@ -47,6 +49,9 @@ export function disassemleInstruction(bus: Bus, address: number): string {
     switch (instruction.addressingMode) {
         case AddressingMode.implicit:
             return op;
+
+        case AddressingMode.imm8:
+            return `${op} ${hex8(bus.read((address + instruction.par1) & 0xffff))}`;
 
         case AddressingMode.imm16:
             return `${op} ${hex16(bus.read16((address + instruction.par1) & 0xffff))}`;
@@ -80,6 +85,9 @@ function disassembleOperation(operation: Operation): string {
 
         case Operation.jp:
             return 'JP';
+
+        case Operation.jrnz:
+            return 'JR NZ,';
 
         case Operation.ld:
             return 'LD';
@@ -165,3 +173,5 @@ apply(0x32, { operation: Operation.ldd, addressingMode: AddressingMode.ind_reg8,
 
 applySeriesR8_1(0x04, 0x0c, { operation: Operation.inc, addressingMode: AddressingMode.reg8, cycles: 1, len: 1 });
 applySeriesR8_1(0x05, 0x0d, { operation: Operation.dec, addressingMode: AddressingMode.reg8, cycles: 1, len: 1 });
+
+apply(0x20, { operation: Operation.jrnz, addressingMode: AddressingMode.imm8, par1: 1, cycles: 2, len: 2 });

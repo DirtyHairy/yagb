@@ -37,6 +37,10 @@ export interface CpuState {
     p: number;
 }
 
+function extendSign8(x: number): number {
+    return x & 0x80 ? -((~x + 1) & 0xff) : x;
+}
+
 export class Cpu {
     constructor(private bus: Bus, private clock: Clock, private system: SystemInterface) {
         const r16 = new Uint16Array(5);
@@ -109,6 +113,21 @@ export class Cpu {
                 this.state.p = this.getArg1(instruction);
                 return instruction.cycles;
 
+            case Operation.jrnz: {
+                const condition = (this.state.r8[r8.f] & flag.z) === 0;
+                const cycles = instruction.cycles + (condition ? 1 : 0);
+                this.clock.increment(cycles);
+
+                const displacement = extendSign8(this.getArg1(instruction));
+
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
+                if (condition) {
+                    this.state.p = (this.state.p + displacement) & 0xffff;
+                }
+
+                return cycles;
+            }
+
             case Operation.ld: {
                 this.clock.increment(instruction.cycles);
 
@@ -161,6 +180,9 @@ export class Cpu {
 
     private getArg1(instruction: Instruction) {
         switch (instruction.addressingMode) {
+            case AddressingMode.imm8:
+                return this.bus.read((this.state.p + instruction.par1) & 0xffff);
+
             case AddressingMode.imm16:
                 return this.bus.read16((this.state.p + instruction.par1) & 0xffff);
 
