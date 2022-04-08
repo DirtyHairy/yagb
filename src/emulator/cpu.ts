@@ -238,15 +238,15 @@ export class Cpu {
                 return this.bus.read16((this.state.p + instruction.par1) & 0xffff);
 
             case AddressingMode.reg8:
+            case AddressingMode.reg8_imm8:
                 return this.state.r8[instruction.par1];
 
             case AddressingMode.reg16_imm16:
                 return this.state.r16[instruction.par1];
 
-            case AddressingMode.reg8_imm8:
-                return this.state.r8[instruction.par1];
 
             case AddressingMode.ind_reg8:
+            case AddressingMode.ind_imm8:
                 return this.bus.read(this.state.r16[instruction.par1]);
 
             default:
@@ -269,6 +269,7 @@ export class Cpu {
                 break;
 
             case AddressingMode.ind_reg8:
+            case AddressingMode.ind_imm8:
                 this.bus.write(this.state.r16[instruction.par1], value & 0xff);
                 break;
 
@@ -282,6 +283,7 @@ export class Cpu {
             case AddressingMode.reg16_imm16:
                 return this.bus.read16((this.state.p + instruction.par2) & 0xffff);
 
+            case AddressingMode.ind_imm8:
             case AddressingMode.reg8_imm8:
                 return this.bus.read((this.state.p + instruction.par2) & 0xffff);
 

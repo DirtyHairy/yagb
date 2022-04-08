@@ -28,6 +28,7 @@ export const enum AddressingMode {
     reg8_imm8,
     imm8_reg8,
     ind_reg8,
+    ind_imm8,
 }
 
 export interface Instruction {
@@ -73,7 +74,10 @@ export function disassemleInstruction(bus: Bus, address: number): string {
             return `${op} ${hex8(bus.read((address + instruction.par1) & 0xffff))}, ${disassembleR8(instruction.par2)}`;
 
         case AddressingMode.ind_reg8:
-            return `${op} (${disassembleR16(instruction.par1)}),${disassembleR8(instruction.par2)}`;
+            return `${op} (${disassembleR16(instruction.par1)}), ${disassembleR8(instruction.par2)}`;
+
+        case AddressingMode.ind_imm8:
+            return `${op} (${disassembleR16(instruction.par1)}), ${hex8(bus.read((address + instruction.par2) & 0xffff))}`;
     }
 }
 
@@ -198,3 +202,5 @@ apply(0xf0, { operation: Operation.ldh, addressingMode: AddressingMode.reg8_imm8
 apply(0xe0, { operation: Operation.ldh, addressingMode: AddressingMode.imm8_reg8, par1: 1, par2: r8.a, cycles: 3, len: 2 });
 
 apply(0xfe, { operation: Operation.cp, addressingMode: AddressingMode.imm8, par1: 1, cycles: 2, len: 2 });
+
+apply(0x36, { operation: Operation.ld, addressingMode: AddressingMode.ind_imm8, par1: r16.hl, par2: 1, cycles: 3, len: 2 });
