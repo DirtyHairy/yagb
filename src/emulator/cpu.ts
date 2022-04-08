@@ -79,6 +79,7 @@ export class Cpu {
                 this.setArg1(instruction, result);
                 this.state.r8[r8.f] =
                     (this.state.r8[r8.f] & flag.c) |
+                    flag.n |
                     ((result & 0xff) === 0 ? flag.z : 0) |
                     ((((operand & 0x0f) - 1) & 0xf0) > 0 ? flag.h : 0);
 
