@@ -45,6 +45,7 @@ export class Emulator {
     reset(): void {
         this.cartridge.reset();
         this.cpu.reset();
+        this.ram.reset();
     }
 
     printState(): string {

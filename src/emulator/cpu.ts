@@ -70,6 +70,38 @@ export class Cpu {
 
     private dispatch(instruction: Instruction): number {
         switch (instruction.operation) {
+            case Operation.dec: {
+                this.clock.increment(instruction.cycles);
+
+                const operand = this.getArg1(instruction);
+                const result = operand - 1;
+
+                this.setArg1(instruction, result);
+                this.state.r8[r8.f] =
+                    (this.state.r8[r8.f] & flag.c) |
+                    ((result & 0xff) === 0 ? flag.z : 0) |
+                    ((((operand & 0x0f) - 1) & 0xf0) > 0 ? flag.h : 0);
+
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
+                return instruction.cycles;
+            }
+
+            case Operation.inc: {
+                this.clock.increment(instruction.cycles);
+
+                const operand = this.getArg1(instruction);
+                const result = operand + 1;
+
+                this.setArg1(instruction, result);
+                this.state.r8[r8.f] =
+                    (this.state.r8[r8.f] & flag.c) |
+                    ((result & 0xff) === 0 ? flag.z : 0) |
+                    ((((operand & 0x0f) + 1) & 0xf0) > 0 ? flag.h : 0);
+
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
+                return instruction.cycles;
+            }
+
             case Operation.jp:
                 this.clock.increment(instruction.cycles);
 
@@ -163,7 +195,7 @@ export class Cpu {
                 break;
 
             case AddressingMode.ind_reg8:
-                this.bus.write(this.state.r16[instruction.par1], value);
+                this.bus.write(this.state.r16[instruction.par1], value & 0xff);
                 break;
 
             default:

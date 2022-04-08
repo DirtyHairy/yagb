@@ -24,6 +24,6 @@ export class Ram {
     private hiramRead: ReadHandler = (address) => this.hiram[address & 0x7f];
     private hiramWrite: WriteHandler = (address, value) => (this.hiram[address & 0x7f] = value);
 
-    private wram = new Uint8Array(0x1fff);
+    private wram = new Uint8Array(0x2000);
     private hiram = new Uint8Array(0x7f);
 }
