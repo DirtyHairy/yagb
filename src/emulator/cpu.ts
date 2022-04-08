@@ -244,10 +244,14 @@ export class Cpu {
             case AddressingMode.reg16_imm16:
                 return this.state.r16[instruction.par1];
 
-
             case AddressingMode.ind_reg8:
             case AddressingMode.ind_imm8:
                 return this.bus.read(this.state.r16[instruction.par1]);
+
+            case AddressingMode.ind_address: {
+                const address = this.bus.read16((this.state.p + instruction.par1) & 0xffff);
+                return this.bus.read16(address & 0xffff);
+            }
 
             default:
                 throw new Error('bad addressing mode');
@@ -273,6 +277,10 @@ export class Cpu {
                 this.bus.write(this.state.r16[instruction.par1], value & 0xff);
                 break;
 
+            case AddressingMode.ind_address:
+                this.bus.write(this.getArg1(instruction), value & 0xff);
+                break;
+
             default:
                 throw new Error('bad addressing mode');
         }
@@ -289,6 +297,7 @@ export class Cpu {
 
             case AddressingMode.ind_reg8:
             case AddressingMode.imm8_reg8:
+            case AddressingMode.ind_address:
                 return this.state.r8[instruction.par2];
 
             default:
