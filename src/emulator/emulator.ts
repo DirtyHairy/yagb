@@ -5,7 +5,9 @@ import { Bus } from './bus';
 import { Clock } from './clock';
 import { Cpu } from './cpu';
 import { Interrupt } from './interrupt';
+import { Ppu } from './ppu';
 import { Ram } from './ram';
+import { Serial } from './serial';
 import { System } from './system';
 import { hex16 } from '../helper/format';
 
@@ -17,6 +19,8 @@ export class Emulator {
         this.cpu = new Cpu(this.bus, this.clock, this.system);
         this.ram = new Ram();
         this.interrupt = new Interrupt();
+        this.serial = new Serial();
+        this.ppu = new Ppu();
 
         const cartridge = createCartridge(cartridgeImage, this.system);
         if (!cartridge) {
@@ -28,6 +32,8 @@ export class Emulator {
         this.cartridge.install(this.bus);
         this.ram.install(this.bus);
         this.interrupt.install(this.bus);
+        this.serial.install(this.bus);
+        this.ppu.install(this.bus);
 
         this.system.onBreak.addHandler((message) => {
             this.break = true;
@@ -53,12 +59,13 @@ export class Emulator {
         return Array.from(this.breakpoints).sort();
     }
 
-    step(count: number): boolean {
+    step(count: number): [boolean, number] {
         this.break = false;
+        let cycles = 0;
 
         if (this.breakpoints.size > 0) {
             for (let i = 0; i < count; i++) {
-                this.cpu.step(1);
+                cycles += this.cpu.step(1);
 
                 if (this.breakpoints.has(this.cpu.state.p)) {
                     this.system.break(`breakpoint at ${hex16(this.cpu.state.p)}`);
@@ -67,10 +74,10 @@ export class Emulator {
                 if (this.break) break;
             }
         } else {
-            this.cpu.step(count);
+            cycles += this.cpu.step(count);
         }
 
-        return !this.break;
+        return [!this.break, cycles];
     }
 
     reset(): void {
@@ -120,6 +127,8 @@ export class Emulator {
     private clock: Clock;
     private ram: Ram;
     private interrupt: Interrupt;
+    private serial: Serial;
+    private ppu: Ppu;
 
     private break = false;
     private breakMessage = '';

@@ -8,9 +8,9 @@ export class Interrupt {
         bus.writeMap[0xffff] = this.writeIE;
     }
 
-    readIE: ReadHandler = () => 0;
-    writeIE: WriteHandler = () => undefined;
+    private readIE: ReadHandler = () => 0;
+    private writeIE: WriteHandler = () => undefined;
 
-    readIF: ReadHandler = () => 0;
-    writeIF: WriteHandler = () => undefined;
+    private readIF: ReadHandler = () => 0;
+    private writeIF: WriteHandler = () => undefined;
 }

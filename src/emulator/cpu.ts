@@ -65,8 +65,12 @@ export class Cpu {
         this.state.enableInterrupts = false;
     }
 
-    step(count: number): void {
-        for (let i = 0; i < count; i++) this.dispatch(decodeInstruction(this.bus, this.state.p));
+    step(count: number): number {
+        let cycles = 0;
+
+        for (let i = 0; i < count; i++) cycles += this.dispatch(decodeInstruction(this.bus, this.state.p));
+
+        return cycles;
     }
 
     printState(): string {
@@ -77,6 +81,22 @@ export class Cpu {
 
     private dispatch(instruction: Instruction): number {
         switch (instruction.operation) {
+            case Operation.cp: {
+                this.clock.increment(instruction.cycles);
+
+                const operand = this.getArg1(instruction);
+                const result = this.state.r8[r8.a] - operand;
+
+                this.state.r8[r8.f] =
+                    flag.n |
+                    ((result & 0xff) === 0 ? flag.z : 0) |
+                    ((((this.state.r8[r8.a] & 0x0f) - (operand & 0x0f)) & 0xf0) !== 0 ? flag.h : 0) |
+                    ((result & ~0xff) !== 0 ? flag.c : 0);
+
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
+                return instruction.cycles;
+            }
+
             case Operation.dec: {
                 this.clock.increment(instruction.cycles);
 
@@ -88,7 +108,7 @@ export class Cpu {
                     (this.state.r8[r8.f] & flag.c) |
                     flag.n |
                     ((result & 0xff) === 0 ? flag.z : 0) |
-                    ((((operand & 0x0f) - 1) & 0xf0) > 0 ? flag.h : 0);
+                    ((((operand & 0x0f) - 1) & 0xf0) !== 0 ? flag.h : 0);
 
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
                 return instruction.cycles;
@@ -112,7 +132,7 @@ export class Cpu {
                 this.state.r8[r8.f] =
                     (this.state.r8[r8.f] & flag.c) |
                     ((result & 0xff) === 0 ? flag.z : 0) |
-                    ((((operand & 0x0f) + 1) & 0xf0) > 0 ? flag.h : 0);
+                    ((((operand & 0x0f) + 1) & 0xf0) !== 0 ? flag.h : 0);
 
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
                 return instruction.cycles;

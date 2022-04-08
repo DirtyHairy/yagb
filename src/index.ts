@@ -101,7 +101,11 @@ breakpoint-list                         List breakpoints`);
         step(count): void {
             if (!assertEmulator()) return;
 
-            if (!emulator.step(intval(count, 1))) print(emulator.lastBreakMessage());
+            const [isBreak, cycles] = emulator.step(intval(count, 1));
+
+            if (!isBreak) print(emulator.lastBreakMessage());
+            print(`done in ${cycles} cycles\n`);
+
             print(emulator.disassemble(1).join('\n'));
         },
         state(): void {
