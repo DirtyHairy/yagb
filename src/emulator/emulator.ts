@@ -4,6 +4,7 @@ import { decodeInstruction, disassemleInstruction } from './instruction';
 import { Bus } from './bus';
 import { Clock } from './clock';
 import { Cpu } from './cpu';
+import { Interrupt } from './interrupt';
 import { Ram } from './ram';
 import { System } from './system';
 import { hex16 } from '../helper/format';
@@ -15,6 +16,7 @@ export class Emulator {
         this.clock = new Clock();
         this.cpu = new Cpu(this.bus, this.clock, this.system);
         this.ram = new Ram();
+        this.interrupt = new Interrupt();
 
         const cartridge = createCartridge(cartridgeImage, this.system);
         if (!cartridge) {
@@ -25,6 +27,7 @@ export class Emulator {
 
         this.cartridge.install(this.bus);
         this.ram.install(this.bus);
+        this.interrupt.install(this.bus);
 
         this.system.onBreak.addHandler((message) => {
             this.break = true;
@@ -116,6 +119,7 @@ export class Emulator {
     private cpu: Cpu;
     private clock: Clock;
     private ram: Ram;
+    private interrupt: Interrupt;
 
     private break = false;
     private breakMessage = '';

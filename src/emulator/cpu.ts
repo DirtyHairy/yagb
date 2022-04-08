@@ -35,6 +35,7 @@ export interface CpuState {
     r8: Uint8Array;
     r16: Uint16Array;
     p: number;
+    enableInterrupts: boolean;
 }
 
 function extendSign8(x: number): number {
@@ -50,6 +51,7 @@ export class Cpu {
             r8,
             r16,
             p: 0,
+            enableInterrupts: false,
         };
     }
 
@@ -60,6 +62,7 @@ export class Cpu {
         this.state.r16[r16.hl] = 0x014d;
         this.state.p = 0x0100;
         this.state.r16[r16.sp] = 0xfffe;
+        this.state.enableInterrupts = false;
     }
 
     step(count: number): void {
@@ -69,7 +72,7 @@ export class Cpu {
     printState(): string {
         return `af=${hex16(this.state.r16[r16.af])} bc=${hex16(this.state.r16[r16.bc])} de=${hex16(this.state.r16[r16.de])} hl=${hex16(
             this.state.r16[r16.hl]
-        )} s=${hex16(this.state.r16[r16.sp])} p=${hex16(this.state.p)}`;
+        )} s=${hex16(this.state.r16[r16.sp])} p=${hex16(this.state.p)} interrupts=${this.state.enableInterrupts ? 'on' : 'off'}`;
     }
 
     private dispatch(instruction: Instruction): number {
@@ -90,6 +93,14 @@ export class Cpu {
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
                 return instruction.cycles;
             }
+
+            case Operation.di:
+                this.clock.increment(instruction.cycles);
+
+                this.state.enableInterrupts = false;
+
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
+                return instruction.cycles;
 
             case Operation.inc: {
                 this.clock.increment(instruction.cycles);
@@ -147,6 +158,14 @@ export class Cpu {
                 return instruction.cycles;
             }
 
+            case Operation.ldh:
+                this.clock.increment(instruction.cycles);
+
+                this.bus.write((0xff00 + this.getArg1(instruction)) & 0xffff, this.getArg2(instruction));
+
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
+                return instruction.cycles;
+
             case Operation.ldi: {
                 this.clock.increment(instruction.cycles);
 
@@ -181,6 +200,7 @@ export class Cpu {
     private getArg1(instruction: Instruction) {
         switch (instruction.addressingMode) {
             case AddressingMode.imm8:
+            case AddressingMode.imm8_reg8:
                 return this.bus.read((this.state.p + instruction.par1) & 0xffff);
 
             case AddressingMode.imm16:
@@ -235,6 +255,7 @@ export class Cpu {
                 return this.bus.read((this.state.p + instruction.par2) & 0xffff);
 
             case AddressingMode.ind_reg8:
+            case AddressingMode.imm8_reg8:
                 return this.state.r8[instruction.par2];
 
             default:

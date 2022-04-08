@@ -6,11 +6,13 @@ import { Bus } from './bus';
 export const enum Operation {
     invalid,
     dec,
+    di,
     inc,
     jp,
     jrnz,
     ld,
     ldd,
+    ldh,
     ldi,
     nop,
     xor,
@@ -23,6 +25,7 @@ export const enum AddressingMode {
     reg8,
     reg16_imm16,
     reg8_imm8,
+    imm8_reg8,
     ind_reg8,
 }
 
@@ -65,6 +68,9 @@ export function disassemleInstruction(bus: Bus, address: number): string {
         case AddressingMode.reg8_imm8:
             return `${op} ${disassembleR8(instruction.par1)}, ${hex8(bus.read((address + instruction.par2) & 0xffff))}`;
 
+        case AddressingMode.imm8_reg8:
+            return `${op} ${hex8(bus.read((address + instruction.par1) & 0xffff))}, ${disassembleR8(instruction.par2)}`;
+
         case AddressingMode.ind_reg8:
             return `${op} (${disassembleR16(instruction.par1)}),${disassembleR8(instruction.par2)}`;
     }
@@ -80,6 +86,9 @@ function disassembleOperation(operation: Operation): string {
         case Operation.dec:
             return 'DEC';
 
+        case Operation.di:
+            return 'DI';
+
         case Operation.inc:
             return 'INC';
 
@@ -94,6 +103,9 @@ function disassembleOperation(operation: Operation): string {
 
         case Operation.ldd:
             return 'LDD';
+
+        case Operation.ldh:
+            return 'LDH';
 
         case Operation.ldi:
             return 'LDI';
@@ -175,3 +187,8 @@ applySeriesR8_1(0x04, 0x0c, { operation: Operation.inc, addressingMode: Addressi
 applySeriesR8_1(0x05, 0x0d, { operation: Operation.dec, addressingMode: AddressingMode.reg8, cycles: 1, len: 1 });
 
 apply(0x20, { operation: Operation.jrnz, addressingMode: AddressingMode.imm8, par1: 1, cycles: 2, len: 2 });
+
+apply(0xf3, { operation: Operation.di, addressingMode: AddressingMode.implicit, cycles: 1, len: 1 });
+
+apply(0xf0, { operation: Operation.ldh, addressingMode: AddressingMode.reg8_imm8, par1: r8.a, par2: 1, cycles: 3, len: 2 });
+apply(0xe0, { operation: Operation.ldh, addressingMode: AddressingMode.imm8_reg8, par1: 1, par2: r8.a, cycles: 3, len: 2 });

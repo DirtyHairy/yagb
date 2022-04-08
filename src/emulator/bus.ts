@@ -1,5 +1,6 @@
+import { hex16, hex8 } from '../helper/format';
+
 import { SystemInterface } from './system';
-import { hex16 } from '../helper/format';
 
 export type ReadHandler = (address: number) => number;
 export type WriteHandler = (address: number, value: number) => void;
@@ -30,8 +31,8 @@ export class Bus {
         return 0;
     };
 
-    private invalidWrite: WriteHandler = (address) => {
-        this.system.break(`invalid write to ${hex16(address)}`);
+    private invalidWrite: WriteHandler = (address, value) => {
+        this.system.break(`invalid write of ${hex8(value)} to ${hex16(address)}`);
     };
 
     public readonly readMap = new Array<ReadHandler>(0x10000);
