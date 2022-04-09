@@ -1,7 +1,7 @@
 import { Bus, ReadHandler, WriteHandler } from './bus';
+import { hex16, hex8 } from '../helper/format';
 
 import { SystemInterface } from './system';
-import { hex16 } from '../helper/format';
 
 export interface Cartridge {
     install(bus: Bus): void;
@@ -22,6 +22,12 @@ export function createCartridge(image: Uint8Array, system: SystemInterface): Car
         system.warning(`ROM checksum mismatch: expected ${hex16(checksumReference)}, got ${hex16(checksum)}`);
     }
 
+    const mapper = image[0x147];
+    if (mapper !== 0) {
+        system.warning(`unsupported mapper type ${hex8(mapper)}`);
+        return undefined;
+    }
+
     return new CartridgeNoMbc(image, system);
 }
 
@@ -39,7 +45,7 @@ class CartridgeNoMbc implements Cartridge {
     reset() {}
 
     private readHandler: ReadHandler = (address) => this.rom[address];
-    private writeHandler: WriteHandler = (address) => this.system.break(`attempt to write ROM at ${hex16(address)}`);
+    private writeHandler: WriteHandler = (address) => this.system.warning(`attempt to write ROM at ${hex16(address)}`);
 
     private rom = new Uint8Array(0x8000);
 }
