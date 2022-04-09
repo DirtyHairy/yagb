@@ -63,25 +63,25 @@ export function disassemleInstruction(bus: Bus, address: number): string {
             return op;
 
         case AddressingMode.imm8:
-            return `${op} ${hex8(bus.read((address + instruction.par1) & 0xffff))}`;
+            return `${op} ${hex8(bus.read((address + 1) & 0xffff))}`;
 
         case AddressingMode.imm16:
-            return `${op} ${hex16(bus.read16((address + instruction.par1) & 0xffff))}`;
+            return `${op} ${hex16(bus.read16((address + 1) & 0xffff))}`;
 
         case AddressingMode.reg8:
             return `${op} ${disassembleR8(instruction.par1)}`;
 
         case AddressingMode.reg16_imm16:
-            return `${op} ${disassembleR16(instruction.par1)}, ${hex16(bus.read16((address + instruction.par2) & 0xffff))}`;
+            return `${op} ${disassembleR16(instruction.par1)}, ${hex16(bus.read16((address + 1) & 0xffff))}`;
 
         case AddressingMode.reg8_imm8:
-            return `${op} ${disassembleR8(instruction.par1)}, ${hex8(bus.read((address + instruction.par2) & 0xffff))}`;
+            return `${op} ${disassembleR8(instruction.par1)}, ${hex8(bus.read((address + 1) & 0xffff))}`;
 
         case AddressingMode.imm8_reg8:
-            return `${op} ${hex8(bus.read((address + instruction.par1) & 0xffff))}, ${disassembleR8(instruction.par2)}`;
+            return `${op} ${hex8(bus.read((address + 1) & 0xffff))}, ${disassembleR8(instruction.par2)}`;
 
         case AddressingMode.immind8_reg8:
-            return `${op} (${hex8(bus.read16((address + instruction.par1) & 0xffff))}), ${disassembleR8(instruction.par2)}`;
+            return `${op} (${hex8(bus.read16((address + 1) & 0xffff))}), ${disassembleR8(instruction.par2)}`;
 
         case AddressingMode.ind8_reg8:
             return `${op} (${disassembleR16(instruction.par1)}), ${disassembleR8(instruction.par2)}`;
@@ -90,16 +90,16 @@ export function disassemleInstruction(bus: Bus, address: number): string {
             return `${op} ${disassembleR8(instruction.par1)}, (${disassembleR16(instruction.par2)})`;
 
         case AddressingMode.ind8_imm8:
-            return `${op} (${disassembleR16(instruction.par1)}), ${hex8(bus.read((address + instruction.par2) & 0xffff))}`;
+            return `${op} (${disassembleR16(instruction.par1)}), ${hex8(bus.read((address + 1) & 0xffff))}`;
 
         case AddressingMode.reg8_reg8:
             return `${op} ${disassembleR8(instruction.par1)}, ${disassembleR8(instruction.par2)}`;
 
         case AddressingMode.imm8io_reg8:
-            return `${op} (${hex8(bus.read((address + instruction.par1) & 0xffff))}), ${disassembleR8(instruction.par2)}`;
+            return `${op} (${hex8(bus.read((address + 1) & 0xffff))}), ${disassembleR8(instruction.par2)}`;
 
         case AddressingMode.reg8_imm8io:
-            return `${op} ${disassembleR8(instruction.par1)}, (${hex8(bus.read((address + instruction.par2) & 0xffff))})`;
+            return `${op} ${disassembleR8(instruction.par1)}, (${hex8(bus.read((address + 1) & 0xffff))})`;
 
         case AddressingMode.reg8io_reg8:
             return `${op} (${disassembleR8(instruction.par1)}), ${disassembleR8(instruction.par2)}`;
