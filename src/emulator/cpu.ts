@@ -81,6 +81,21 @@ export class Cpu {
 
     private dispatch(instruction: Instruction): number {
         switch (instruction.operation) {
+            case Operation.call: {
+                this.clock.increment(instruction.cycles);
+
+                const returnTo = (this.state.p + instruction.len) & 0xffff;
+
+                this.state.r16[r16.sp] = (this.state.r16[r16.sp] - 1) & 0xffff;
+                this.bus.write(this.state.r16[r16.sp], returnTo >>> 8);
+                this.state.r16[r16.sp] = (this.state.r16[r16.sp] - 1) & 0xffff;
+                this.bus.write(this.state.r16[r16.sp], returnTo & 0xff);
+
+                this.state.p = this.getArg1(instruction);
+
+                return instruction.cycles;
+            }
+
             case Operation.cp: {
                 this.clock.increment(instruction.cycles);
 
