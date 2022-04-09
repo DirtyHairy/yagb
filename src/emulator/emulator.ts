@@ -11,6 +11,7 @@ import { Ram } from './ram';
 import { Serial } from './serial';
 import { System } from './system';
 import { hex16 } from '../helper/format';
+import { TraceEntry } from './trace';
 
 export class Emulator {
     constructor(cartridgeImage: Uint8Array, printCb: (message: string) => void) {
@@ -62,11 +63,28 @@ export class Emulator {
         return Array.from(this.breakpoints).sort();
     }
 
+    getTraces(): Array<TraceEntry> {
+        return this.traces
+    }
+
     step(count: number): [boolean, number] {
         this.break = false;
         let cycles = 0;
 
         for (let i = 0; i < count; i++) {
+            this.traces.unshift(new TraceEntry(
+                this.bus,
+                {
+                    ...this.cpu.state,
+                    r16: new Uint16Array(this.cpu.state.r16),
+                    r8: new Uint8Array(this.cpu.state.r8)
+                }
+            ))
+
+            if(this.traces.length > 30) {
+                this.traces.pop()
+            }
+
             cycles += this.cpu.step(1);
 
             if (this.breakpoints.has(this.cpu.state.p)) {
@@ -135,4 +153,6 @@ export class Emulator {
     private breakMessage = '';
 
     private breakpoints = new Set<number>();
+
+    private traces = new Array<TraceEntry>()
 }

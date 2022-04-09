@@ -79,7 +79,8 @@ reset                                   Reset system
 breakpoint-add <address, ...>           Add a breakpoint
 breakpoint-clear <address>              Clear a breakpoint
 breakpoint-clear-all                    Clear all breakpoints
-breakpoint-list                         List breakpoints`);
+breakpoint-list                         List breakpoints
+trace                                   Prints last 30 executed operations`);
         },
         load(): void {
             fileHandler.openFile(async (data, name) => {
@@ -159,6 +160,13 @@ breakpoint-list                         List breakpoints`);
 
             print(breakpoints.length === 0 ? 'no breakpoints' : breakpoints.map((x) => `* ${hex16(x)}`).join('\n'));
         },
+        trace(): void {
+            if (!assertEmulator()) return;
+
+            const traces = emulator.getTraces()
+
+            print(traces.length === 0 ? 'no trace entries' : traces.map((x) => x.print()).join('\n'));
+        }
     },
     {
         greetings: " ___\n|[_]|\n|+ ;|\n`---'\n",
