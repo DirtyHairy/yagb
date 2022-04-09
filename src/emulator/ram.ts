@@ -6,13 +6,12 @@ export class Ram {
             bus.map(i, this.wramRead, this.wramWrite);
         }
 
-        for (let i = 0x8000; i < 0xA000; i++) {
-            bus.map(i, this.vramRead, this.vramWrite);
-        }
-
         for (let i = 0xff80; i < 0xffff; i++) {
             bus.map(i, this.hiramRead, this.hiramWrite);
         }
+
+        // TODO: remove this once we don't break on bad reads / writes anymore
+        bus.map(0xff7f, this.stubRead, this.stubWrite);
     }
 
     reset(): void {
@@ -20,16 +19,15 @@ export class Ram {
         this.hiram.fill(0);
     }
 
+    private stubRead: ReadHandler = () => 0;
+    private stubWrite: WriteHandler = () => undefined;
+
     private wramRead: ReadHandler = (address) => this.wram[address & 0x1fff];
     private wramWrite: WriteHandler = (address, value) => (this.wram[address & 0x1fff] = value);
 
     private hiramRead: ReadHandler = (address) => this.hiram[address & 0x7f];
     private hiramWrite: WriteHandler = (address, value) => (this.hiram[address & 0x7f] = value);
 
-    private vramRead: ReadHandler = (address) => this.vram[address & 0x1fff];
-    private vramWrite: WriteHandler = (address, value) => (this.vram[address & 0x1fff] = value);
-
     private wram = new Uint8Array(0x2000);
     private hiram = new Uint8Array(0x7f);
-    private vram = new Uint8Array(0x2000);
 }

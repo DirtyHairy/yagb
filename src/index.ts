@@ -163,10 +163,17 @@ trace                                   Prints last 30 executed operations`);
         trace(): void {
             if (!assertEmulator()) return;
 
-            const traces = emulator.getTraces()
+            const traces = emulator.getTraces();
 
-            print(traces.length === 0 ? 'no trace entries' : traces.map((x) => x.print()).join('\n'));
-        }
+            print(
+                traces.length === 0
+                    ? 'no trace entries'
+                    : [...traces]
+                          .reverse()
+                          .map((x) => x.print())
+                          .join('\n')
+            );
+        },
     },
     {
         greetings: " ___\n|[_]|\n|+ ;|\n`---'\n",
