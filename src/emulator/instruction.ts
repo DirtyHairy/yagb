@@ -213,8 +213,8 @@ apply(0x36, { operation: Operation.ld, addressingMode: AddressingMode.ind8_imm8,
 apply(0xea, { operation: Operation.ld, addressingMode: AddressingMode.addr_reg8, par1: 1, par2: r8.a, cycles: 4, len: 3 });
 apply(0xf0, { operation: Operation.ld, addressingMode: AddressingMode.reg8_imm8io, par1: r8.a, par2: 1, cycles: 3, len: 2 });
 apply(0xe0, { operation: Operation.ld, addressingMode: AddressingMode.imm8io_reg8, par1: 1, par2: r8.a, cycles: 3, len: 2 });
-apply(0xf2, { operation: Operation.ld, addressingMode: AddressingMode.reg8io_reg8, par1: r8.a, par2: 1, cycles: 2, len: 1 });
-apply(0xe2, { operation: Operation.ld, addressingMode: AddressingMode.reg8_reg8io, par1: 1, par2: r8.a, cycles: 2, len: 1 });
+apply(0xe2, { operation: Operation.ld, addressingMode: AddressingMode.reg8io_reg8, par1: r8.c, par2: 1, cycles: 2, len: 1 });
+apply(0xf2, { operation: Operation.ld, addressingMode: AddressingMode.reg8_reg8io, par1: 1, par2: r8.c, cycles: 2, len: 1 });
 
 applySeriesR8_1(0x06, 0x0e, { operation: Operation.ld, addressingMode: AddressingMode.reg8_imm8, par2: 1, cycles: 2, len: 2 });
 
