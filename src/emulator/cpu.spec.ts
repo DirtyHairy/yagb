@@ -1,8 +1,8 @@
 import { Bus, ReadHandler, WriteHandler } from './bus';
 import { Cpu, flag, r8 } from './cpu';
 
-import { Ppu } from './ppu';
 import { Clock } from './clock';
+import { Ppu } from './ppu';
 import { System } from './system';
 
 interface Environment {
@@ -269,6 +269,50 @@ describe('The glorious CPU', () => {
 
                 expect(cpu.state.r8[r8.f] & flag.h).toBe(0);
             });
+        });
+    });
+
+    describe('OR D', () => {
+        let cpu: Cpu;
+        beforeEach(() => {
+            cpu = newEnvironment([0xb2]).cpu;
+        });
+
+        it('calculates A | C', () => {
+            cpu.state.r8[r8.a] = 0x15;
+            cpu.state.r8[r8.d] = 0x32;
+
+            cpu.step(1);
+
+            expect(cpu.state.r8[r8.a]).toBe(0x37);
+        });
+
+        it('sets Z if zero', () => {
+            cpu.state.r8[r8.a] = 0x00;
+            cpu.state.r8[r8.d] = 0x00;
+
+            cpu.step(1);
+
+            expect(cpu.state.r8[r8.f] & flag.z).toBe(flag.z);
+        });
+
+        it('does not set Z if zero', () => {
+            cpu.state.r8[r8.a] = 0x00;
+            cpu.state.r8[r8.d] = 0x10;
+
+            cpu.step(1);
+
+            expect(cpu.state.r8[r8.f] & flag.z).toBe(0);
+        });
+
+        it('preserves N, C, and H', () => {
+            cpu.state.r8[r8.a] = 0x01;
+            cpu.state.r8[r8.d] = 0x10;
+            cpu.state.r8[r8.f] = flag.n | flag.c | flag.h;
+
+            cpu.step(1);
+
+            expect(cpu.state.r8[r8.f] & ~flag.z).toBe(flag.n | flag.c | flag.h);
         });
     });
 });

@@ -9,6 +9,7 @@ export const enum Operation {
     cp,
     dec,
     di,
+    ei,
     inc,
     jp,
     jrnz,
@@ -16,6 +17,8 @@ export const enum Operation {
     ldd,
     ldi,
     nop,
+    or,
+    ret,
     xor,
 }
 
@@ -132,6 +135,9 @@ function disassembleOperation(operation: Operation): string {
         case Operation.di:
             return 'DI';
 
+        case Operation.ei:
+            return 'EI';
+
         case Operation.inc:
             return 'INC';
 
@@ -152,6 +158,12 @@ function disassembleOperation(operation: Operation): string {
 
         case Operation.nop:
             return 'NOP';
+
+        case Operation.or:
+            return 'OR';
+
+        case Operation.ret:
+            return 'RET';
 
         case Operation.xor:
             return 'XOR';
@@ -182,13 +194,8 @@ function apply(opcode: number, instruction: Partial<Instruction>): void {
 }
 
 function applySeriesR8_1(baseB: number, baseC: number, instruction: Partial<Instruction>): void {
-    apply(baseB, { ...instruction, par1: r8.b });
-    apply(baseB + 0x10, { ...instruction, par1: r8.d });
-    apply(baseB + 0x20, { ...instruction, par1: r8.h });
-    apply(baseC, { ...instruction, par1: r8.c });
-    apply(baseC + 0x10, { ...instruction, par1: r8.e });
-    apply(baseC + 0x20, { ...instruction, par1: r8.l });
-    apply(baseC + 0x30, { ...instruction, par1: r8.a });
+    [r8.b, r8.d, r8.h].forEach((reg, i) => apply(baseB + (i << 4), { ...instruction, par1: reg }));
+    [r8.c, r8.e, r8.l, r8.a].forEach((reg, i) => apply(baseC + (i << 4), { ...instruction, par1: reg }));
 }
 
 for (let i = 0; i < 0x100; i++)
@@ -255,7 +262,14 @@ applySeriesR8_1(0x05, 0x0d, { operation: Operation.dec, addressingMode: Addressi
 apply(0x20, { operation: Operation.jrnz, addressingMode: AddressingMode.imm8, cycles: 2, len: 2 });
 
 apply(0xf3, { operation: Operation.di, addressingMode: AddressingMode.implicit, cycles: 1, len: 1 });
+apply(0xfb, { operation: Operation.ei, addressingMode: AddressingMode.implicit, cycles: 1, len: 1 });
 
 apply(0xfe, { operation: Operation.cp, addressingMode: AddressingMode.imm8, cycles: 2, len: 2 });
 
 apply(0xcd, { operation: Operation.call, addressingMode: AddressingMode.imm16, cycles: 8, len: 3 });
+
+[r8.b, r8.c, r8.d, r8.e, r8.h, r8.l].forEach((reg, i) =>
+    apply(0xb0 + i, { operation: Operation.or, addressingMode: AddressingMode.reg8, par1: reg, cycles: 1, len: 1 })
+);
+
+apply(0xc9, { operation: Operation.ret, addressingMode: AddressingMode.implicit, cycles: 4, len: 1 });

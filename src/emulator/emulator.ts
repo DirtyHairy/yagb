@@ -10,8 +10,8 @@ import { Ppu } from './ppu';
 import { Ram } from './ram';
 import { Serial } from './serial';
 import { System } from './system';
-import { hex16 } from '../helper/format';
 import { TraceEntry } from './trace';
+import { hex16 } from '../helper/format';
 
 export class Emulator {
     constructor(cartridgeImage: Uint8Array, printCb: (message: string) => void) {
@@ -64,7 +64,7 @@ export class Emulator {
     }
 
     getTraces(): Array<TraceEntry> {
-        return this.traces
+        return this.traces;
     }
 
     step(count: number): [boolean, number] {
@@ -72,17 +72,16 @@ export class Emulator {
         let cycles = 0;
 
         for (let i = 0; i < count; i++) {
-            this.traces.unshift(new TraceEntry(
-                this.bus,
-                {
+            this.traces.unshift(
+                new TraceEntry(this.bus, {
                     ...this.cpu.state,
                     r16: new Uint16Array(this.cpu.state.r16),
-                    r8: new Uint8Array(this.cpu.state.r8)
-                }
-            ))
+                    r8: new Uint8Array(this.cpu.state.r8),
+                })
+            );
 
-            if(this.traces.length > 30) {
-                this.traces.pop()
+            if (this.traces.length > 30) {
+                this.traces.pop();
             }
 
             cycles += this.cpu.step(1);
@@ -137,6 +136,10 @@ export class Emulator {
         return this.cpu;
     }
 
+    getBus(): Bus {
+        return this.bus;
+    }
+
     private system: System;
 
     private bus: Bus;
@@ -154,5 +157,5 @@ export class Emulator {
 
     private breakpoints = new Set<number>();
 
-    private traces = new Array<TraceEntry>()
+    private traces = new Array<TraceEntry>();
 }

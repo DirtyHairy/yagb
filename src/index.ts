@@ -2,11 +2,11 @@ import 'jquery.terminal';
 import 'jquery.terminal/css/jquery.terminal.min.css';
 
 import { decodeBase64, encodeBase64 } from './helper/base64';
+import { hex16, hex8 } from './helper/format';
 
 import $ from 'jquery';
 import { Emulator } from './emulator/emulator';
 import { FileHandler } from './helper/fileHandler';
-import { hex16 } from './helper/format';
 
 const CARTRIDGE_FILE_SIZE_LIMIT = 512 * 1024 * 1024;
 const STORAGE_KEY_YAGB_CARTERIDGE_DATA = 'yagb-cartridge-data';
@@ -80,7 +80,8 @@ breakpoint-add <address, ...>           Add a breakpoint
 breakpoint-clear <address>              Clear a breakpoint
 breakpoint-clear-all                    Clear all breakpoints
 breakpoint-list                         List breakpoints
-trace                                   Prints last 30 executed operations`);
+trace                                   Prints last 30 executed operations
+dump address [cout=16]                  Dump bus`);
         },
         load(): void {
             fileHandler.openFile(async (data, name) => {
@@ -173,6 +174,22 @@ trace                                   Prints last 30 executed operations`);
                           .map((x) => x.print())
                           .join('\n')
             );
+        },
+        dump(address, count): void {
+            const addr = intval(address);
+            if (addr === undefined) {
+                print('invalid address');
+                return;
+            }
+
+            const cnt = intval(count, 16);
+            const bus = emulator.getBus();
+
+            for (let i = 0; i < cnt; i++) {
+                const a = (addr + i) & 0xffff;
+
+                print(`${hex16(a)}: ${hex8(bus.read(a))}`);
+            }
         },
     },
     {

@@ -137,6 +137,14 @@ export class Cpu {
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
                 return instruction.cycles;
 
+            case Operation.ei:
+                this.clock.increment(instruction.cycles);
+
+                this.state.enableInterrupts = true;
+
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
+                return instruction.cycles;
+
             case Operation.inc: {
                 this.clock.increment(instruction.cycles);
 
@@ -207,6 +215,23 @@ export class Cpu {
                 this.clock.increment(instruction.cycles);
 
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
+                return instruction.cycles;
+
+            case Operation.or:
+                this.clock.increment(instruction.cycles);
+
+                this.state.r8[r8.a] |= this.getArg1(instruction);
+                this.state.r8[r8.f] = (this.state.r8[r8.f] & ~flag.z) | (this.state.r8[r8.a] === 0 ? flag.z : 0);
+
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
+                return instruction.cycles;
+
+            case Operation.ret:
+                this.clock.increment(instruction.cycles);
+
+                this.state.p = this.bus.read16(this.state.r16[r16.sp]);
+                this.state.r16[r16.sp] = (this.state.r16[r16.sp] + 2) & 0xffff;
+
                 return instruction.cycles;
 
             case Operation.xor:
