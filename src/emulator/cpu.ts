@@ -228,10 +228,10 @@ export class Cpu {
         switch (instruction.addressingMode) {
             case AddressingMode.imm8:
             case AddressingMode.imm8_reg8:
-                return this.bus.read((this.state.p + instruction.par1) & 0xffff);
+                return this.bus.read((this.state.p + 1) & 0xffff);
 
             case AddressingMode.imm16:
-                return this.bus.read16((this.state.p + instruction.par1) & 0xffff);
+                return this.bus.read16((this.state.p + 1) & 0xffff);
 
             case AddressingMode.reg8:
             case AddressingMode.reg8_imm8:
@@ -252,7 +252,7 @@ export class Cpu {
                 return this.bus.read(0xff00 + this.state.r8[instruction.par1]);
 
             case AddressingMode.imm8io_reg8: {
-                const index = this.bus.read((this.state.p + instruction.par1) & 0xffff);
+                const index = this.bus.read((this.state.p + 1) & 0xffff);
                 return this.bus.read(0xff00 + index);
             }
 
@@ -281,8 +281,8 @@ export class Cpu {
                 this.bus.write(this.state.r16[instruction.par1], value & 0xff);
                 break;
 
-            case AddressingMode.addr_reg8:
-                this.bus.write(this.bus.read16((this.state.p + instruction.par1) & 0xffff), value & 0xff);
+            case AddressingMode.immind8_reg8:
+                this.bus.write(this.bus.read16((this.state.p + 1) & 0xffff), value & 0xff);
                 break;
 
             case AddressingMode.reg8io_reg8:
@@ -290,7 +290,7 @@ export class Cpu {
                 break;
 
             case AddressingMode.imm8io_reg8: {
-                const index = this.bus.read((this.state.p + instruction.par1) & 0xffff);
+                const index = this.bus.read((this.state.p + 1) & 0xffff);
                 this.bus.write(0xff00 + index, value);
                 break;
             }
@@ -303,15 +303,15 @@ export class Cpu {
     private getArg2(instruction: Instruction) {
         switch (instruction.addressingMode) {
             case AddressingMode.reg16_imm16:
-                return this.bus.read16((this.state.p + instruction.par2) & 0xffff);
+                return this.bus.read16((this.state.p + 1) & 0xffff);
 
             case AddressingMode.ind8_imm8:
             case AddressingMode.reg8_imm8:
-                return this.bus.read((this.state.p + instruction.par2) & 0xffff);
+                return this.bus.read((this.state.p + 1) & 0xffff);
 
             case AddressingMode.ind8_reg8:
             case AddressingMode.imm8_reg8:
-            case AddressingMode.addr_reg8:
+            case AddressingMode.immind8_reg8:
             case AddressingMode.reg8_reg8:
             case AddressingMode.imm8io_reg8:
             case AddressingMode.reg8io_reg8:
@@ -324,7 +324,7 @@ export class Cpu {
                 return this.bus.read(0xff00 + this.state.r8[instruction.par2]);
 
             case AddressingMode.reg8_imm8io: {
-                const index = this.bus.read((this.state.p + instruction.par2) & 0xffff);
+                const index = this.bus.read((this.state.p + 1) & 0xffff);
                 return this.bus.read(0xff00 + index);
             }
 
