@@ -242,6 +242,7 @@ export class Cpu {
                 return this.state.r8[instruction.par1];
 
             case AddressingMode.reg16_imm16:
+            case AddressingMode.reg16:
                 return this.state.r16[instruction.par1];
 
             case AddressingMode.ind8_reg8:
@@ -273,6 +274,7 @@ export class Cpu {
                 break;
 
             case AddressingMode.reg16_imm16:
+            case AddressingMode.reg16:
                 this.state.r16[instruction.par1] = value & 0xffff;
                 break;
 
