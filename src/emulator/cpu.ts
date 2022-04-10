@@ -124,6 +124,16 @@ export class Cpu {
         if (instruction.operation !== Operation.invalid) this.onExecute.dispatch(this.state.p);
 
         switch (instruction.operation) {
+            case Operation.and:
+                this.clock.increment(instruction.cycles);
+
+                this.state.r8[r8.a] &= this.getArg1(instruction);
+                this.state.r8[r8.f] =
+                    (this.state.r8[r8.f] & ~flag.z & ~flag.n & ~flag.h & ~flag.c) | flag.h | (this.state.r8[r8.a] === 0 ? flag.z : 0);
+
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
+                return instruction.cycles;
+
             case Operation.call: {
                 this.clock.increment(instruction.cycles);
 

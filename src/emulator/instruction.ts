@@ -5,6 +5,7 @@ import { Bus } from './bus';
 
 export const enum Operation {
     invalid,
+    and,
     call,
     cp,
     cpl,
@@ -125,6 +126,9 @@ function disassembleOperation(operation: Operation): string {
     switch (operation) {
         case Operation.invalid:
             return 'INVALID';
+
+        case Operation.and:
+            return 'AND';
 
         case Operation.call:
             return 'CALL';
@@ -280,9 +284,10 @@ apply(0xfe, { operation: Operation.cp, addressingMode: AddressingMode.imm8, cycl
 
 apply(0xcd, { operation: Operation.call, addressingMode: AddressingMode.imm16, cycles: 8, len: 3 });
 
-[r8.b, r8.c, r8.d, r8.e, r8.h, r8.l].forEach((reg, i) =>
-    apply(0xb0 + i, { operation: Operation.or, addressingMode: AddressingMode.reg8, par1: reg, cycles: 1, len: 1 })
-);
+[r8.b, r8.c, r8.d, r8.e, r8.h, r8.l].forEach((reg, i) => {
+    apply(0xb0 + i, { operation: Operation.or, addressingMode: AddressingMode.reg8, par1: reg, cycles: 1, len: 1 });
+    apply(0xa0 + i, { operation: Operation.and, addressingMode: AddressingMode.reg8, par1: reg, cycles: 1, len: 1 });
+});
 
 apply(0xc9, { operation: Operation.ret, addressingMode: AddressingMode.implicit, cycles: 4, len: 1 });
 
