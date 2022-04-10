@@ -19,10 +19,10 @@ export class Emulator {
         this.bus = new Bus(this.system);
         this.ppu = new Ppu(this.system);
         this.audio = new Audio();
-        this.clock = new Clock(this.ppu);
-        this.cpu = new Cpu(this.bus, this.clock, this.system);
-        this.ram = new Ram();
         this.interrupt = new Interrupt();
+        this.clock = new Clock(this.ppu);
+        this.cpu = new Cpu(this.bus, this.clock, this.interrupt, this.system);
+        this.ram = new Ram();
         this.serial = new Serial();
 
         const cartridge = createCartridge(cartridgeImage, this.system);
@@ -101,10 +101,11 @@ export class Emulator {
         this.cpu.reset();
         this.ram.reset();
         this.ppu.reset();
+        this.interrupt.reset();
     }
 
     printState(): string {
-        return `CPU:\n${this.cpu.printState()}`;
+        return `CPU:\n${this.cpu.printState()}\n\n` + `IRQ:\n${this.interrupt.printState()}`;
     }
 
     disassemble(count: number, address = this.cpu.state.p): Array<string> {

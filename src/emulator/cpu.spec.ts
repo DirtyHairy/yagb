@@ -2,6 +2,7 @@ import { Bus, ReadHandler, WriteHandler } from './bus';
 import { Cpu, flag, r8 } from './cpu';
 
 import { Clock } from './clock';
+import { Interrupt } from './interrupt';
 import { Ppu } from './ppu';
 import { System } from './system';
 
@@ -23,18 +24,22 @@ function newEnvironment(code: ArrayLike<number>): Environment {
     const clock = new Clock(ppu);
 
     const bus = new Bus(system);
-    const cpu = new Cpu(bus, clock, system);
+    const interrupt = new Interrupt();
+    const cpu = new Cpu(bus, clock, interrupt, system);
     const memory = new Uint8Array(0x10000);
 
     const read: ReadHandler = (address) => memory[address];
     const write: WriteHandler = (address, value) => (memory[address] = value);
 
-    for (let i = 0; i < 0x10000; i++) {
+    for (let i = 0; i < 0x8000; i++) {
         bus.map(i, read, write);
     }
 
+    interrupt.install(bus);
+
     memory.subarray(0x100).set(code);
     cpu.reset();
+    interrupt.reset();
 
     return { bus, cpu, system, clock };
 }
