@@ -95,6 +95,7 @@ export class Emulator {
         this.ram.reset();
         this.ppu.reset();
         this.interrupt.reset();
+        this.trace.reset();
     }
 
     printState(): string {
