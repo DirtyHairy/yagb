@@ -7,6 +7,7 @@ export const enum Operation {
     invalid,
     call,
     cp,
+    cpl,
     dec,
     di,
     ei,
@@ -128,6 +129,9 @@ function disassembleOperation(operation: Operation): string {
 
         case Operation.cp:
             return 'CP';
+
+        case Operation.cpl:
+            return 'CPL';
 
         case Operation.dec:
             return 'DEC';
@@ -273,3 +277,5 @@ apply(0xcd, { operation: Operation.call, addressingMode: AddressingMode.imm16, c
 );
 
 apply(0xc9, { operation: Operation.ret, addressingMode: AddressingMode.implicit, cycles: 4, len: 1 });
+
+apply(0x2f, { operation: Operation.cpl, addressingMode: AddressingMode.implicit, cycles: 1, len: 1 });
