@@ -1,5 +1,5 @@
 import { Cartridge, createCartridge } from './cartridge';
-import { decodeInstruction, disassemleInstruction } from './instruction';
+import { decodeInstruction, disassembleInstruction } from './instruction';
 
 import { Audio } from './audio';
 import { Bus } from './bus';
@@ -10,7 +10,7 @@ import { Ppu } from './ppu';
 import { Ram } from './ram';
 import { Serial } from './serial';
 import { System } from './system';
-import { TraceEntry } from './trace';
+import { Trace } from './trace';
 import { hex16 } from '../helper/format';
 import { Timer } from './timer';
 import { Joypad } from './joypad';
@@ -21,10 +21,10 @@ export class Emulator {
         this.bus = new Bus(this.system);
         this.ppu = new Ppu(this.system);
         this.audio = new Audio();
-        this.clock = new Clock(this.ppu);
-        this.cpu = new Cpu(this.bus, this.clock, this.system);
-        this.ram = new Ram();
         this.interrupt = new Interrupt();
+        this.clock = new Clock(this.ppu);
+        this.cpu = new Cpu(this.bus, this.clock, this.interrupt, this.system);
+        this.ram = new Ram();
         this.serial = new Serial();
         this.timer = new Timer();
         this.joypad = new Joypad();
@@ -50,6 +50,8 @@ export class Emulator {
             this.breakMessage = message;
         });
 
+        this.cpu.onExecute.addHandler((address) => this.trace.add(address));
+
         this.reset();
     }
 
@@ -69,8 +71,11 @@ export class Emulator {
         return Array.from(this.breakpoints).sort();
     }
 
-    getTraces(): Array<TraceEntry> {
-        return this.traces;
+    getTrace(): string {
+        return this.trace
+            .getTrace()
+            .map((address) => this.disassemblyLineAt(address))
+            .join('\n');
     }
 
     step(count: number): [boolean, number] {
@@ -78,18 +83,6 @@ export class Emulator {
         let cycles = 0;
 
         for (let i = 0; i < count; i++) {
-            this.traces.unshift(
-                new TraceEntry(this.bus, {
-                    ...this.cpu.state,
-                    r16: new Uint16Array(this.cpu.state.r16),
-                    r8: new Uint8Array(this.cpu.state.r8),
-                })
-            );
-
-            if (this.traces.length > 30) {
-                this.traces.pop();
-            }
-
             cycles += this.cpu.step(1);
 
             if (this.breakpoints.has(this.cpu.state.p)) {
@@ -109,10 +102,12 @@ export class Emulator {
         this.ppu.reset();
         this.timer.reset();
         this.joypad.reset();
+        this.interrupt.reset();
+        this.trace.reset();
     }
 
     printState(): string {
-        return `CPU:\n${this.cpu.printState()}`;
+        return `CPU:\n${this.cpu.printState()}\n\n` + `IRQ:\n${this.interrupt.printState()}`;
     }
 
     disassemble(count: number, address = this.cpu.state.p): Array<string> {
@@ -123,12 +118,7 @@ export class Emulator {
             const disassembleAddress = (address + disassembledCount) & 0xffff;
             const instruction = decodeInstruction(this.bus, disassembleAddress);
 
-            disassembledInstructions.push(
-                `${this.breakpoints.has(disassembleAddress) ? ' *' : '  '} ${hex16(disassembleAddress)}: ${disassemleInstruction(
-                    this.bus,
-                    disassembleAddress
-                )}`
-            );
+            disassembledInstructions.push(this.disassemblyLineAt(disassembleAddress));
 
             disassembledCount += instruction.len;
         }
@@ -148,6 +138,10 @@ export class Emulator {
         return this.bus;
     }
 
+    private disassemblyLineAt(address: number): string {
+        return `${this.breakpoints.has(address) ? ' *' : '  '} ${hex16(address)}: ${disassembleInstruction(this.bus, address)}`;
+    }
+
     private system: System;
 
     private bus: Bus;
@@ -162,10 +156,10 @@ export class Emulator {
     private timer: Timer;
     private joypad: Joypad;
 
+    private trace: Trace = new Trace();
+
     private break = false;
     private breakMessage = '';
 
     private breakpoints = new Set<number>();
-
-    private traces = new Array<TraceEntry>();
 }

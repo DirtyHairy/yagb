@@ -1,9 +1,11 @@
 import { AddressingMode, Instruction, Operation, decodeInstruction } from './instruction';
+import { Interrupt, irq } from './interrupt';
+import { hex16, hex8 } from '../helper/format';
 
 import { Bus } from './bus';
 import { Clock } from './clock';
+import { Event } from 'microevent.ts';
 import { SystemInterface } from './system';
-import { hex16 } from '../helper/format';
 
 export const enum r8 {
     f = 0,
@@ -35,15 +37,26 @@ export interface CpuState {
     r8: Uint8Array;
     r16: Uint16Array;
     p: number;
-    enableInterrupts: boolean;
+    interruptsEnabled: boolean;
 }
 
 function extendSign8(x: number): number {
     return x & 0x80 ? -((~x + 1) & 0xff) : x;
 }
 
+function getIrqVector(interrupt: irq): number {
+    let handler = 0x40;
+
+    for (let i = 1; i <= irq.joypad; i <<= 1) {
+        if (i === interrupt) return handler;
+        handler += 0x08;
+    }
+
+    throw new Error(`invalid irq ${hex8(interrupt)}`);
+}
+
 export class Cpu {
-    constructor(private bus: Bus, private clock: Clock, private system: SystemInterface) {
+    constructor(private bus: Bus, private clock: Clock, private interrupt: Interrupt, private system: SystemInterface) {
         const r16 = new Uint16Array(5);
         const r8 = new Uint8Array(r16.buffer);
 
@@ -51,7 +64,7 @@ export class Cpu {
             r8,
             r16,
             p: 0,
-            enableInterrupts: false,
+            interruptsEnabled: false,
         };
     }
 
@@ -62,13 +75,21 @@ export class Cpu {
         this.state.r16[r16.hl] = 0x014d;
         this.state.p = 0x0100;
         this.state.r16[r16.sp] = 0xfffe;
-        this.state.enableInterrupts = false;
+        this.state.interruptsEnabled = false;
     }
 
     step(count: number): number {
         let cycles = 0;
 
-        for (let i = 0; i < count; i++) cycles += this.dispatch(decodeInstruction(this.bus, this.state.p));
+        for (let i = 0; i < count; i++) {
+            const irqCycles = this.handleInterrupts();
+            if (irqCycles !== 0) {
+                cycles += irqCycles;
+                continue;
+            }
+
+            cycles += this.dispatch(decodeInstruction(this.bus, this.state.p));
+        }
 
         return cycles;
     }
@@ -76,10 +97,32 @@ export class Cpu {
     printState(): string {
         return `af=${hex16(this.state.r16[r16.af])} bc=${hex16(this.state.r16[r16.bc])} de=${hex16(this.state.r16[r16.de])} hl=${hex16(
             this.state.r16[r16.hl]
-        )} s=${hex16(this.state.r16[r16.sp])} p=${hex16(this.state.p)} interrupts=${this.state.enableInterrupts ? 'on' : 'off'}`;
+        )} s=${hex16(this.state.r16[r16.sp])} p=${hex16(this.state.p)} interrupts=${this.state.interruptsEnabled ? 'on' : 'off'}`;
+    }
+
+    private handleInterrupts(): number {
+        if (!this.state.interruptsEnabled) return 0;
+
+        const irq = this.interrupt.getNext();
+        if (!irq) return 0;
+
+        this.interrupt.clear(irq);
+        this.state.interruptsEnabled = false;
+
+        this.state.r16[r16.sp] = (this.state.r16[r16.sp] - 1) & 0xffff;
+        this.bus.write(this.state.r16[r16.sp], this.state.p >>> 8);
+        this.state.r16[r16.sp] = (this.state.r16[r16.sp] - 1) & 0xffff;
+        this.bus.write(this.state.r16[r16.sp], this.state.p & 0xff);
+
+        this.state.p = getIrqVector(irq);
+        this.clock.increment(5);
+
+        return 5;
     }
 
     private dispatch(instruction: Instruction): number {
+        if (instruction.operation !== Operation.invalid) this.onExecute.dispatch(this.state.p);
+
         switch (instruction.operation) {
             case Operation.call: {
                 this.clock.increment(instruction.cycles);
@@ -132,7 +175,7 @@ export class Cpu {
             case Operation.di:
                 this.clock.increment(instruction.cycles);
 
-                this.state.enableInterrupts = false;
+                this.state.interruptsEnabled = false;
 
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
                 return instruction.cycles;
@@ -140,7 +183,7 @@ export class Cpu {
             case Operation.ei:
                 this.clock.increment(instruction.cycles);
 
-                this.state.enableInterrupts = true;
+                this.state.interruptsEnabled = true;
 
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
                 return instruction.cycles;
@@ -359,6 +402,8 @@ export class Cpu {
                 throw new Error('bad addressing mode');
         }
     }
+
+    onExecute = new Event<number>();
 
     readonly state: CpuState;
 }

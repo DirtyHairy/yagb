@@ -1,23 +1,27 @@
-import { disassemleInstruction } from './instruction';
-import { CpuState, r16 } from './cpu';
-import { Bus } from './bus';
-import { hex16 } from '../helper/format';
-
-export class TraceEntry {
-    constructor(private bus: Bus, private state: CpuState) {}
-
-    print(): string {
-        const disassembleAddress = this.state.p & 0xffff;
-        const instruction = disassemleInstruction(this.bus, this.state.p);
-
-        return `${hex16(disassembleAddress)}: ${instruction}\n${this.printState()}\n`;
+export class Trace {
+    constructor(private size = 30) {
+        this.entries = new Uint16Array(size);
     }
 
+    add(address: number): void {
+        this.entries[this.nextEntry] = address;
+        if (this.length < this.size) {
+            this.length++;
+        }
 
-    private printState(): string {
-        return `af=${hex16(this.state.r16[r16.af])} bc=${hex16(this.state.r16[r16.bc])} de=${hex16(this.state.r16[r16.de])} hl=${hex16(
-            this.state.r16[r16.hl]
-        )} s=${hex16(this.state.r16[r16.sp])} p=${hex16(this.state.p)} interrupts=${this.state.enableInterrupts ? 'on' : 'off'}`;
+        this.nextEntry = (this.nextEntry + 1) % this.size;
     }
 
+    getTrace(): Array<number> {
+        return new Array(this.length).fill(0).map((_, i) => this.entries[(this.size + this.nextEntry - this.length + i) % this.size]);
+    }
+
+    reset(): void {
+        this.length = 0;
+        this.nextEntry = 0;
+    }
+
+    private entries: Uint16Array;
+    private length = 0;
+    private nextEntry = 0;
 }

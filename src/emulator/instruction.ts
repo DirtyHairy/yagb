@@ -56,7 +56,7 @@ export function decodeInstruction(bus: Bus, address: number): Instruction {
     return instructions[bus.read(address)];
 }
 
-export function disassemleInstruction(bus: Bus, address: number): string {
+export function disassembleInstruction(bus: Bus, address: number): string {
     const instruction = decodeInstruction(bus, address);
     if (instruction.operation === Operation.invalid) return `DB ${hex8(instruction.opcode)}`;
 
