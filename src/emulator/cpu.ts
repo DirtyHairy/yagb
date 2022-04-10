@@ -158,7 +158,7 @@ export class Cpu {
             case Operation.cpl: {
                 this.clock.increment(instruction.cycles);
 
-                this.state.r8[r8.a] = (~this.state.r8[r8.a] + 0xff + 1) & 0xff;
+                this.state.r8[r8.a] ^= 0xff;
 
                 this.state.r8[r8.f] = this.state.r8[r8.f] | flag.n | flag.h;
 
