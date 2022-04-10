@@ -86,7 +86,7 @@ export class Timer {
     }
 
     private read: ReadHandler = (address) => {
-        // Pandoc / timer obscure behaviour: tima reads 0 for one cycle after overlow.
+        // Pandoc / timer obscure behaviour: tima reads 0 for one cycle after overflow.
         if (this.overflowCycle) return 0x00;
 
         return this.reg[address - 0xff04];
