@@ -1,5 +1,5 @@
 export class Trace {
-    constructor(private size = 30) {
+    constructor(private size = 100) {
         this.entries = new Uint16Array(size);
     }
 
