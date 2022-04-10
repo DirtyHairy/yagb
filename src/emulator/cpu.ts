@@ -155,6 +155,17 @@ export class Cpu {
                 return instruction.cycles;
             }
 
+            case Operation.cpl: {
+                this.clock.increment(instruction.cycles);
+
+                this.state.r8[r8.a] ^= 0xff;
+
+                this.state.r8[r8.f] = this.state.r8[r8.f] | flag.n | flag.h;
+
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
+                return instruction.cycles;
+            }
+
             case Operation.dec: {
                 this.clock.increment(instruction.cycles);
 
@@ -268,6 +279,29 @@ export class Cpu {
 
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
                 return instruction.cycles;
+
+            case Operation.pop:
+                this.clock.increment(instruction.cycles);
+
+                this.setArg1(instruction, this.bus.read16(this.state.r16[r16.sp]));
+                this.state.r16[r16.sp] = (this.state.r16[r16.sp] + 2) & 0xffff;
+
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
+                return instruction.cycles;
+
+            case Operation.push: {
+                this.clock.increment(instruction.cycles);
+
+                const operand = this.getArg1(instruction);
+
+                this.state.r16[r16.sp] = (this.state.r16[r16.sp] - 1) & 0xffff;
+                this.bus.write(this.state.r16[r16.sp], operand >>> 8);
+                this.state.r16[r16.sp] = (this.state.r16[r16.sp] - 1) & 0xffff;
+                this.bus.write(this.state.r16[r16.sp], operand & 0xff);
+
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
+                return instruction.cycles;
+            }
 
             case Operation.ret:
                 this.clock.increment(instruction.cycles);
