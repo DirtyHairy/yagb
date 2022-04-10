@@ -164,16 +164,7 @@ dump address [cout=16]                  Dump bus`);
         trace(): void {
             if (!assertEmulator()) return;
 
-            const traces = emulator.getTraces();
-
-            print(
-                traces.length === 0
-                    ? 'no trace entries'
-                    : [...traces]
-                          .reverse()
-                          .map((x) => x.print())
-                          .join('\n')
-            );
+            print(emulator.getTrace());
         },
         dump(address, count): void {
             const addr = intval(address);

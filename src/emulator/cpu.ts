@@ -4,6 +4,7 @@ import { hex16, hex8 } from '../helper/format';
 
 import { Bus } from './bus';
 import { Clock } from './clock';
+import { Event } from 'microevent.ts';
 import { SystemInterface } from './system';
 
 export const enum r8 {
@@ -120,6 +121,8 @@ export class Cpu {
     }
 
     private dispatch(instruction: Instruction): number {
+        if (instruction.operation !== Operation.invalid) this.onExecute.dispatch(this.state.p);
+
         switch (instruction.operation) {
             case Operation.call: {
                 this.clock.increment(instruction.cycles);
@@ -399,6 +402,8 @@ export class Cpu {
                 throw new Error('bad addressing mode');
         }
     }
+
+    onExecute = new Event<number>();
 
     readonly state: CpuState;
 }

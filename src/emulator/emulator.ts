@@ -1,5 +1,5 @@
 import { Cartridge, createCartridge } from './cartridge';
-import { decodeInstruction, disassemleInstruction } from './instruction';
+import { decodeInstruction, disassembleInstruction } from './instruction';
 
 import { Audio } from './audio';
 import { Bus } from './bus';
@@ -10,7 +10,7 @@ import { Ppu } from './ppu';
 import { Ram } from './ram';
 import { Serial } from './serial';
 import { System } from './system';
-import { TraceEntry } from './trace';
+import { Trace } from './trace';
 import { hex16 } from '../helper/format';
 
 export class Emulator {
@@ -44,6 +44,8 @@ export class Emulator {
             this.breakMessage = message;
         });
 
+        this.cpu.onExecute.addHandler((address) => this.trace.add(address));
+
         this.reset();
     }
 
@@ -63,8 +65,11 @@ export class Emulator {
         return Array.from(this.breakpoints).sort();
     }
 
-    getTraces(): Array<TraceEntry> {
-        return this.traces;
+    getTrace(): string {
+        return this.trace
+            .getTrace()
+            .map((address) => this.disassemblyLineAt(address))
+            .join('\n');
     }
 
     step(count: number): [boolean, number] {
@@ -72,18 +77,6 @@ export class Emulator {
         let cycles = 0;
 
         for (let i = 0; i < count; i++) {
-            this.traces.unshift(
-                new TraceEntry(this.bus, {
-                    ...this.cpu.state,
-                    r16: new Uint16Array(this.cpu.state.r16),
-                    r8: new Uint8Array(this.cpu.state.r8),
-                })
-            );
-
-            if (this.traces.length > 30) {
-                this.traces.pop();
-            }
-
             cycles += this.cpu.step(1);
 
             if (this.breakpoints.has(this.cpu.state.p)) {
@@ -116,12 +109,7 @@ export class Emulator {
             const disassembleAddress = (address + disassembledCount) & 0xffff;
             const instruction = decodeInstruction(this.bus, disassembleAddress);
 
-            disassembledInstructions.push(
-                `${this.breakpoints.has(disassembleAddress) ? ' *' : '  '} ${hex16(disassembleAddress)}: ${disassemleInstruction(
-                    this.bus,
-                    disassembleAddress
-                )}`
-            );
+            disassembledInstructions.push(this.disassemblyLineAt(disassembleAddress));
 
             disassembledCount += instruction.len;
         }
@@ -141,6 +129,10 @@ export class Emulator {
         return this.bus;
     }
 
+    private disassemblyLineAt(address: number): string {
+        return `${this.breakpoints.has(address) ? ' *' : '  '} ${hex16(address)}: ${disassembleInstruction(this.bus, address)}`;
+    }
+
     private system: System;
 
     private bus: Bus;
@@ -153,10 +145,10 @@ export class Emulator {
     private ppu: Ppu;
     private audio: Audio;
 
+    private trace: Trace = new Trace();
+
     private break = false;
     private breakMessage = '';
 
     private breakpoints = new Set<number>();
-
-    private traces = new Array<TraceEntry>();
 }
