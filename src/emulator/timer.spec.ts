@@ -141,12 +141,37 @@ describe('Timer', () => {
             expect(raiseSpy).toBeCalledWith(irq.timer);
         });
 
+        it('does not take one cycle to dispatch the interrupt if the timer wrapped multiple times', () => {
+            const { bus, timer, raiseSpy } = setup();
+            bus.write(0xff07, 0x05);
+            bus.write(0xff06, 0xe0);
+
+            timer.cycle((256 + 0x20) * 16);
+
+            expect(raiseSpy).toHaveBeenCalledTimes(1);
+            expect(raiseSpy).toBeCalledWith(irq.timer);
+        });
+
         it('reads 0 for one cycle after wrapping', () => {
             const { bus, timer } = setup();
             bus.write(0xff07, 0x05);
             bus.write(0xff06, 0xe0);
 
             timer.cycle(256 * 16);
+
+            expect(bus.read(0xff05)).toBe(0);
+
+            timer.cycle(1);
+
+            expect(bus.read(0xff05)).toBe(0xe0);
+        });
+
+        it('reads 0 for one cycle after wrapping, even if the timer wrapped multiple times', () => {
+            const { bus, timer } = setup();
+            bus.write(0xff07, 0x05);
+            bus.write(0xff06, 0xe0);
+
+            timer.cycle((256 + 0x20) * 16);
 
             expect(bus.read(0xff05)).toBe(0);
 
