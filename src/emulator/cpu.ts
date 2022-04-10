@@ -1,4 +1,4 @@
-import { AddressingMode, Instruction, Operation, decodeInstruction } from './instruction';
+import { AddressingMode, Instruction, Operation, OperationParameter, decodeInstruction } from './instruction';
 import { Interrupt, irq } from './interrupt';
 import { hex16, hex8 } from '../helper/format';
 
@@ -336,117 +336,128 @@ export class Cpu {
         }
     }
 
-    private getArg1(instruction: Instruction) {
-        switch (instruction.addressingMode) {
+    private getArg(par: OperationParameter): number {
+        switch (par.addressingMode) {
             case AddressingMode.imm8:
-            case AddressingMode.imm8_reg8:
                 return this.bus.read((this.state.p + 1) & 0xffff);
+
+            case AddressingMode.imm8ind: {
+                const index = this.bus.read16((this.state.p + 1) & 0xffff);
+                return this.bus.read(index);
+            }
+
+            case AddressingMode.imm8io: {
+                const index = this.bus.read((this.state.p + 1) & 0xffff);
+                return this.bus.read(0xff00 + index);
+            }
+
+            case AddressingMode.reg8:
+                if (par.value === undefined) {
+                    throw new Error('missing value for operation parameter');
+                }
+
+                return this.state.r8[par.value];
+
+            case AddressingMode.reg8io:
+                if (par.value === undefined) {
+                    throw new Error('missing value for operation parameter');
+                }
+
+                return this.bus.read(0xff00 + this.state.r8[par.value]);
+
+            case AddressingMode.ind8:
+                if (par.value === undefined) {
+                    throw new Error('missing value for operation parameter');
+                }
+
+                return this.bus.read(this.state.r16[par.value]);
 
             case AddressingMode.imm16:
                 return this.bus.read16((this.state.p + 1) & 0xffff);
 
-            case AddressingMode.reg8:
-            case AddressingMode.reg8_imm8:
-            case AddressingMode.reg8_ind8:
-            case AddressingMode.reg8_reg8:
-            case AddressingMode.reg8_reg8io:
-            case AddressingMode.reg8_imm8io:
-                return this.state.r8[instruction.par1];
-
-            case AddressingMode.reg16_imm16:
             case AddressingMode.reg16:
-                return this.state.r16[instruction.par1];
+                if (par.value === undefined) {
+                    throw new Error('missing value for operation parameter');
+                }
 
-            case AddressingMode.ind8_reg8:
-            case AddressingMode.ind8_imm8:
-            case AddressingMode.ind8:
-                return this.bus.read(this.state.r16[instruction.par1]);
-
-            case AddressingMode.reg8io_reg8:
-                return this.bus.read(0xff00 + this.state.r8[instruction.par1]);
-
-            case AddressingMode.imm8io_reg8: {
-                const index = this.bus.read((this.state.p + 1) & 0xffff);
-                return this.bus.read(0xff00 + index);
-            }
+                return this.state.r16[par.value];
 
             default:
                 throw new Error('bad addressing mode');
         }
     }
 
-    private setArg1(instruction: Instruction, value: number) {
-        switch (instruction.addressingMode) {
-            case AddressingMode.reg8:
-            case AddressingMode.reg8_imm8:
-            case AddressingMode.reg8_ind8:
-            case AddressingMode.reg8_reg8:
-            case AddressingMode.reg8_imm8io:
-            case AddressingMode.reg8_reg8io:
-                this.state.r8[instruction.par1] = value & 0xff;
-                break;
+    private getArg1(instruction: Instruction): number {
+        if (instruction.par1 === undefined) {
+            throw new Error('missing parameter one for operation');
+        }
 
-            case AddressingMode.reg16_imm16:
-            case AddressingMode.reg16:
-                this.state.r16[instruction.par1] = value & 0xffff;
-                break;
+        return this.getArg(instruction.par1);
+    }
 
-            case AddressingMode.ind8_reg8:
-            case AddressingMode.ind8_imm8:
-            case AddressingMode.ind8:
-                this.bus.write(this.state.r16[instruction.par1], value & 0xff);
-                break;
+    private getArg2(instruction: Instruction): number {
+        if (instruction.par2 === undefined) {
+            throw new Error('missing parameter two for operation');
+        }
 
-            case AddressingMode.immind8_reg8:
+        return this.getArg(instruction.par2);
+    }
+
+    private setArg(par: OperationParameter, value: number): void {
+        switch (par.addressingMode) {
+            case AddressingMode.imm8ind:
                 this.bus.write(this.bus.read16((this.state.p + 1) & 0xffff), value & 0xff);
                 break;
 
-            case AddressingMode.reg8io_reg8:
-                this.bus.write(0xff00 + this.state.r8[instruction.par1], value);
-                break;
-
-            case AddressingMode.imm8io_reg8: {
+            case AddressingMode.imm8io: {
                 const index = this.bus.read((this.state.p + 1) & 0xffff);
                 this.bus.write(0xff00 + index, value);
                 break;
             }
 
+            case AddressingMode.reg8:
+                if (par.value === undefined) {
+                    throw new Error('missing value for operation parameter');
+                }
+
+                this.state.r8[par.value] = value & 0xff;
+                break;
+
+            case AddressingMode.reg8io:
+                if (par.value === undefined) {
+                    throw new Error('missing value for operation parameter');
+                }
+
+                this.bus.write(0xff00 + this.state.r8[par.value], value);
+                break;
+
+            case AddressingMode.ind8:
+                if (par.value === undefined) {
+                    throw new Error('missing value for operation parameter');
+                }
+
+                this.bus.write(this.state.r16[par.value], value & 0xff);
+                break;
+
+            case AddressingMode.reg16:
+                if (par.value === undefined) {
+                    throw new Error('missing value for operation parameter');
+                }
+
+                this.state.r16[par.value] = value & 0xffff;
+                break;
+
             default:
                 throw new Error('bad addressing mode');
         }
     }
 
-    private getArg2(instruction: Instruction) {
-        switch (instruction.addressingMode) {
-            case AddressingMode.reg16_imm16:
-                return this.bus.read16((this.state.p + 1) & 0xffff);
-
-            case AddressingMode.ind8_imm8:
-            case AddressingMode.reg8_imm8:
-                return this.bus.read((this.state.p + 1) & 0xffff);
-
-            case AddressingMode.ind8_reg8:
-            case AddressingMode.imm8_reg8:
-            case AddressingMode.immind8_reg8:
-            case AddressingMode.reg8_reg8:
-            case AddressingMode.imm8io_reg8:
-            case AddressingMode.reg8io_reg8:
-                return this.state.r8[instruction.par2];
-
-            case AddressingMode.reg8_ind8:
-                return this.bus.read(this.state.r16[instruction.par2]);
-
-            case AddressingMode.reg8_reg8io:
-                return this.bus.read(0xff00 + this.state.r8[instruction.par2]);
-
-            case AddressingMode.reg8_imm8io: {
-                const index = this.bus.read((this.state.p + 1) & 0xffff);
-                return this.bus.read(0xff00 + index);
-            }
-
-            default:
-                throw new Error('bad addressing mode');
+    private setArg1(instruction: Instruction, value: number): void {
+        if (instruction.par1 === undefined) {
+            throw new Error('missing parameter one for operation');
         }
+
+        this.setArg(instruction.par1, value);
     }
 
     readonly onExecute = new Event<number>();
