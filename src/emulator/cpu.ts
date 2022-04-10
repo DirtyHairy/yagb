@@ -160,6 +160,12 @@ export class Cpu {
 
                 this.state.r8[r8.a] = ((~this.state.r8[r8.a] + 0xff) + 1) & 0xffff
 
+                this.state.r8[r8.f] =
+                    this.state.r8[r8.f] |
+                    flag.n |
+                    flag.h;
+
+
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
                 return instruction.cycles
             }
