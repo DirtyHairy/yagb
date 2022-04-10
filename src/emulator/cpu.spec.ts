@@ -1,10 +1,12 @@
 import { Bus, ReadHandler, WriteHandler } from './bus';
-import { Cpu, flag, r8 } from './cpu';
+import { Cpu, flag, r16, r8 } from './cpu';
 
 import { Clock } from './clock';
 import { Interrupt } from './interrupt';
 import { Ppu } from './ppu';
 import { System } from './system';
+import { Ram } from './ram';
+import { Cartridge } from './cartridge';
 
 interface Environment {
     bus: Bus;
@@ -25,19 +27,21 @@ function newEnvironment(code: ArrayLike<number>): Environment {
 
     const bus = new Bus(system);
     const interrupt = new Interrupt();
+    const ram = new Ram();
     const cpu = new Cpu(bus, clock, interrupt, system);
-    const memory = new Uint8Array(0x10000);
+    const cartridge = new Uint8Array(0x8000);
 
-    const read: ReadHandler = (address) => memory[address];
-    const write: WriteHandler = (address, value) => (memory[address] = value);
+    const read: ReadHandler = (address) => cartridge[address];
+    const write: WriteHandler = (address, value) => (cartridge[address] = value);
 
     for (let i = 0; i < 0x8000; i++) {
         bus.map(i, read, write);
     }
 
+    ram.install(bus)
     interrupt.install(bus);
 
-    memory.subarray(0x100).set(code);
+    cartridge.subarray(0x100).set(code);
     cpu.reset();
     interrupt.reset();
 
@@ -319,5 +323,67 @@ describe('The glorious CPU', () => {
 
             expect(cpu.state.r8[r8.f] & ~flag.z).toBe(flag.n | flag.c | flag.h);
         });
+    });
+
+    describe('PUSH AF', () => {
+        function setup(r16af: number): Environment {
+            const env = newEnvironment([0xf5]);
+
+            env.cpu.state.r8[r8.a] = (r16af >> 8) & 0xff;
+            env.cpu.state.r8[r8.f] = r16af & 0xff;
+
+            return env;
+        }
+
+        it('decreases stack pointer correctly', () => {
+            const { cpu } = setup(0x1532);
+
+            const sp = cpu.state.r16[r16.sp]
+
+            cpu.step(1);
+
+            expect(cpu.state.r16[r16.sp]).toBe(sp - 2);
+        });
+
+        it('pushes the value to the stack', () => {
+            const value = 0x1532;
+            const { bus, cpu } = setup(value);
+
+            cpu.step(1);
+
+            expect(bus.read16(cpu.state.r16[r16.sp])).toBe(value);
+        })
+    });
+
+    describe('POP AF', () => {
+        function setup(r16af: number): Environment {
+            const env = newEnvironment([0xf1]);
+
+            env.cpu.state.r16[r16.sp] = (env.cpu.state.r16[r16.sp] - 1)  & 0xffff;
+            env.bus.write(env.cpu.state.r16[r16.sp], r16af >> 8);
+            env.cpu.state.r16[r16.sp] = (env.cpu.state.r16[r16.sp] - 1) & 0xffff;
+            env.bus.write(env.cpu.state.r16[r16.sp], r16af & 0xff);
+
+            return env;
+        }
+
+        it('increases stack pointer correctly', () => {
+            const { cpu } = setup(0x1532);
+
+            const sp = cpu.state.r16[r16.sp]
+
+            cpu.step(1);
+
+            expect(cpu.state.r16[r16.sp]).toBe(sp + 2);
+        });
+
+        it('pops the value from the stack', () => {
+            const value = 0x1532;
+            const { cpu } = setup(value);
+
+            cpu.step(1);
+
+            expect(cpu.state.r16[r16.af]).toBe(value);
+        })
     });
 });

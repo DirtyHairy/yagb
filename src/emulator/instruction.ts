@@ -19,6 +19,8 @@ export const enum Operation {
     ldi,
     nop,
     or,
+    pop,
+    push,
     ret,
     xor,
 }
@@ -166,6 +168,12 @@ function disassembleOperation(operation: Operation): string {
         case Operation.or:
             return 'OR';
 
+        case Operation.pop:
+            return 'POP';
+
+        case Operation.push:
+            return 'PUSH';
+
         case Operation.ret:
             return 'RET';
 
@@ -279,3 +287,8 @@ apply(0xcd, { operation: Operation.call, addressingMode: AddressingMode.imm16, c
 apply(0xc9, { operation: Operation.ret, addressingMode: AddressingMode.implicit, cycles: 4, len: 1 });
 
 apply(0x2f, { operation: Operation.cpl, addressingMode: AddressingMode.implicit, cycles: 1, len: 1 });
+
+[r16.bc, r16.de, r16.hl, r16.af].forEach((reg, i) => {
+    apply(((i + 0xc) << 4) | 0x05, { operation: Operation.push, addressingMode: AddressingMode.reg16, par1: reg, cycles: 4, len: 1 });
+    apply(((i + 0xc) << 4) | 0x01, { operation: Operation.pop, addressingMode: AddressingMode.reg16, par1: reg, cycles: 3, len: 1 });
+});
