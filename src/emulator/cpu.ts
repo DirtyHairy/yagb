@@ -294,6 +294,7 @@ export class Cpu {
 
                 this.setArg1(instruction, this.bus.read16(this.state.r16[r16.sp]));
                 this.state.r16[r16.sp] = (this.state.r16[r16.sp] + 2) & 0xffff;
+                this.state.r8[r8.f] &= 0xf0;
 
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
                 return instruction.cycles;
@@ -358,7 +359,7 @@ export class Cpu {
 
             case AddressingMode.ind8_reg8:
             case AddressingMode.ind8_imm8:
-            case AddressingMode.regind16:
+            case AddressingMode.ind8:
                 return this.bus.read(this.state.r16[instruction.par1]);
 
             case AddressingMode.reg8io_reg8:
@@ -392,6 +393,7 @@ export class Cpu {
 
             case AddressingMode.ind8_reg8:
             case AddressingMode.ind8_imm8:
+            case AddressingMode.ind8:
                 this.bus.write(this.state.r16[instruction.par1], value & 0xff);
                 break;
 

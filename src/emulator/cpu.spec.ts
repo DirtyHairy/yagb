@@ -459,7 +459,7 @@ describe('The glorious CPU', () => {
         }
 
         it('decreases stack pointer correctly', () => {
-            const { cpu } = setup(0x1532);
+            const { cpu } = setup(0x1530);
 
             const sp = cpu.state.r16[r16.sp];
 
@@ -469,7 +469,7 @@ describe('The glorious CPU', () => {
         });
 
         it('pushes the value to the stack', () => {
-            const value = 0x1532;
+            const value = 0x1530;
             const { bus, cpu } = setup(value);
 
             cpu.step(1);
@@ -506,7 +506,7 @@ describe('The glorious CPU', () => {
 
             cpu.step(1);
 
-            expect(cpu.state.r16[r16.af]).toBe(value);
+            expect(cpu.state.r16[r16.af]).toBe(value & 0xfff0);
         });
     });
 
