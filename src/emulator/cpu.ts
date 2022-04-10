@@ -124,6 +124,15 @@ export class Cpu {
         if (instruction.operation !== Operation.invalid) this.onExecute.dispatch(this.state.p);
 
         switch (instruction.operation) {
+            case Operation.and:
+                this.clock.increment(instruction.cycles);
+
+                this.state.r8[r8.a] &= this.getArg1(instruction);
+                this.state.r8[r8.f] = 0 | flag.h | (this.state.r8[r8.a] === 0 ? flag.z : 0);
+
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
+                return instruction.cycles;
+
             case Operation.call: {
                 this.clock.increment(instruction.cycles);
 
@@ -349,6 +358,7 @@ export class Cpu {
 
             case AddressingMode.ind8_reg8:
             case AddressingMode.ind8_imm8:
+            case AddressingMode.regind16:
                 return this.bus.read(this.state.r16[instruction.par1]);
 
             case AddressingMode.reg8io_reg8:

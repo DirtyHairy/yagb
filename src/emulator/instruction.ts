@@ -5,6 +5,7 @@ import { Bus } from './bus';
 
 export const enum Operation {
     invalid,
+    and,
     call,
     cp,
     cpl,
@@ -31,6 +32,7 @@ export const enum AddressingMode {
     imm8,
     reg8,
     reg16,
+    regind16,
     reg16_imm16,
     reg8_imm8,
     imm8_reg8,
@@ -81,6 +83,9 @@ export function disassembleInstruction(bus: Bus, address: number): string {
         case AddressingMode.reg16:
             return `${op} ${disassembleR16(instruction.par1)}`;
 
+        case AddressingMode.regind16:
+            return `${op} (${disassembleR16(instruction.par1)})`;
+
         case AddressingMode.reg16_imm16:
             return `${op} ${disassembleR16(instruction.par1)}, ${hex16(bus.read16((address + 1) & 0xffff))}`;
 
@@ -125,6 +130,9 @@ function disassembleOperation(operation: Operation): string {
     switch (operation) {
         case Operation.invalid:
             return 'INVALID';
+
+        case Operation.and:
+            return 'AND';
 
         case Operation.call:
             return 'CALL';
@@ -224,13 +232,18 @@ for (let i = 0; i < 0x100; i++)
 apply(0, { operation: Operation.nop, cycles: 1, len: 1 });
 apply(0xc3, { operation: Operation.jp, addressingMode: AddressingMode.imm16, cycles: 4, len: 3 });
 
-apply(0xa8, { operation: Operation.xor, addressingMode: AddressingMode.reg8, par1: r8.b, cycles: 1, len: 1 });
-apply(0xa9, { operation: Operation.xor, addressingMode: AddressingMode.reg8, par1: r8.c, cycles: 1, len: 1 });
-apply(0xaa, { operation: Operation.xor, addressingMode: AddressingMode.reg8, par1: r8.d, cycles: 1, len: 1 });
-apply(0xab, { operation: Operation.xor, addressingMode: AddressingMode.reg8, par1: r8.e, cycles: 1, len: 1 });
-apply(0xac, { operation: Operation.xor, addressingMode: AddressingMode.reg8, par1: r8.h, cycles: 1, len: 1 });
-apply(0xad, { operation: Operation.xor, addressingMode: AddressingMode.reg8, par1: r8.l, cycles: 1, len: 1 });
+[r8.b, r8.c, r8.d, r8.e, r8.h, r8.l].forEach((reg, i) => {
+    apply(0xa0 + i, { operation: Operation.and, addressingMode: AddressingMode.reg8, par1: reg, cycles: 1, len: 1 });
+    apply(0xa0 + i + 8, { operation: Operation.xor, addressingMode: AddressingMode.reg8, par1: reg, cycles: 1, len: 1 });
+    apply(0xb0 + i, { operation: Operation.or, addressingMode: AddressingMode.reg8, par1: reg, cycles: 1, len: 1 });
+});
+apply(0xa7, { operation: Operation.and, addressingMode: AddressingMode.reg8, par1: r8.a, cycles: 1, len: 1 });
 apply(0xaf, { operation: Operation.xor, addressingMode: AddressingMode.reg8, par1: r8.a, cycles: 1, len: 1 });
+apply(0xb7, { operation: Operation.or, addressingMode: AddressingMode.reg8, par1: r8.a, cycles: 1, len: 1 });
+
+apply(0xa6, { operation: Operation.and, addressingMode: AddressingMode.regind16, par1: r16.hl, cycles: 2, len: 1 });
+apply(0xae, { operation: Operation.xor, addressingMode: AddressingMode.regind16, par1: r16.hl, cycles: 2, len: 1 });
+apply(0xb6, { operation: Operation.or, addressingMode: AddressingMode.regind16, par1: r16.hl, cycles: 2, len: 1 });
 
 apply(0x31, { operation: Operation.ld, addressingMode: AddressingMode.reg16_imm16, par1: r16.sp, cycles: 3, len: 3 });
 apply(0x21, { operation: Operation.ld, addressingMode: AddressingMode.reg16_imm16, par1: r16.hl, cycles: 3, len: 3 });
@@ -279,10 +292,6 @@ apply(0xfb, { operation: Operation.ei, addressingMode: AddressingMode.implicit, 
 apply(0xfe, { operation: Operation.cp, addressingMode: AddressingMode.imm8, cycles: 2, len: 2 });
 
 apply(0xcd, { operation: Operation.call, addressingMode: AddressingMode.imm16, cycles: 8, len: 3 });
-
-[r8.b, r8.c, r8.d, r8.e, r8.h, r8.l].forEach((reg, i) =>
-    apply(0xb0 + i, { operation: Operation.or, addressingMode: AddressingMode.reg8, par1: reg, cycles: 1, len: 1 })
-);
 
 apply(0xc9, { operation: Operation.ret, addressingMode: AddressingMode.implicit, cycles: 4, len: 1 });
 
