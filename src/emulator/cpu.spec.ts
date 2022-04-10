@@ -448,18 +448,18 @@ describe('The glorious CPU', () => {
         });
     });
 
-    describe('PUSH AF', () => {
-        function setup(r16af: number): Environment {
-            const env = newEnvironment([0xf5]);
+    describe('PUSH BC', () => {
+        function setup(r16bc: number): Environment {
+            const env = newEnvironment([0xc5]);
 
-            env.cpu.state.r8[r8.a] = (r16af >> 8) & 0xff;
-            env.cpu.state.r8[r8.f] = r16af & 0xff;
+            env.cpu.state.r8[r8.b] = (r16bc >> 8) & 0xff;
+            env.cpu.state.r8[r8.c] = r16bc & 0xff;
 
             return env;
         }
 
         it('decreases stack pointer correctly', () => {
-            const { cpu } = setup(0x1530);
+            const { cpu } = setup(0x1532);
 
             const sp = cpu.state.r16[r16.sp];
 
@@ -469,7 +469,7 @@ describe('The glorious CPU', () => {
         });
 
         it('pushes the value to the stack', () => {
-            const value = 0x1530;
+            const value = 0x1532;
             const { bus, cpu } = setup(value);
 
             cpu.step(1);
@@ -478,14 +478,14 @@ describe('The glorious CPU', () => {
         });
     });
 
-    describe('POP AF', () => {
-        function setup(r16af: number): Environment {
-            const env = newEnvironment([0xf1]);
+    describe('POP BC', () => {
+        function setup(r16bc: number): Environment {
+            const env = newEnvironment([0xc1]);
 
             env.cpu.state.r16[r16.sp] = (env.cpu.state.r16[r16.sp] - 1) & 0xffff;
-            env.bus.write(env.cpu.state.r16[r16.sp], r16af >> 8);
+            env.bus.write(env.cpu.state.r16[r16.sp], r16bc >> 8);
             env.cpu.state.r16[r16.sp] = (env.cpu.state.r16[r16.sp] - 1) & 0xffff;
-            env.bus.write(env.cpu.state.r16[r16.sp], r16af & 0xff);
+            env.bus.write(env.cpu.state.r16[r16.sp], r16bc & 0xff);
 
             return env;
         }
@@ -501,6 +501,28 @@ describe('The glorious CPU', () => {
         });
 
         it('pops the value from the stack', () => {
+            const value = 0x1532;
+            const { cpu } = setup(value);
+
+            cpu.step(1);
+
+            expect(cpu.state.r16[r16.bc]).toBe(value);
+        });
+    });
+
+    describe('POP AF', () => {
+        function setup(r16af: number): Environment {
+            const env = newEnvironment([0xf1]);
+
+            env.cpu.state.r16[r16.sp] = (env.cpu.state.r16[r16.sp] - 1) & 0xffff;
+            env.bus.write(env.cpu.state.r16[r16.sp], r16af >> 8);
+            env.cpu.state.r16[r16.sp] = (env.cpu.state.r16[r16.sp] - 1) & 0xffff;
+            env.bus.write(env.cpu.state.r16[r16.sp], r16af & 0xff);
+
+            return env;
+        }
+
+        it('ignores low nibble of F on pop', () => {
             const value = 0x1532;
             const { cpu } = setup(value);
 
