@@ -1,12 +1,12 @@
 import { Bus, ReadHandler, WriteHandler } from './bus';
 import { Cpu, flag, r16, r8 } from './cpu';
 
+import { Cartridge } from './cartridge';
 import { Clock } from './clock';
 import { Interrupt } from './interrupt';
 import { Ppu } from './ppu';
-import { System } from './system';
 import { Ram } from './ram';
-import { Cartridge } from './cartridge';
+import { System } from './system';
 
 interface Environment {
     bus: Bus;
@@ -38,7 +38,7 @@ function newEnvironment(code: ArrayLike<number>): Environment {
         bus.map(i, read, write);
     }
 
-    ram.install(bus)
+    ram.install(bus);
     interrupt.install(bus);
 
     cartridge.subarray(0x100).set(code);
@@ -325,6 +325,21 @@ describe('The glorious CPU', () => {
         });
     });
 
+    describe('CPL', () => {
+        let cpu: Cpu;
+        beforeEach(() => {
+            cpu = newEnvironment([0x2f]).cpu;
+        });
+
+        it('flips bits in A correctly', () => {
+            cpu.state.r8[r8.a] = 0x20;
+
+            cpu.step(1);
+
+            expect(cpu.state.r8[r8.a]).toBe(0xdf);
+        });
+    });
+
     describe('PUSH AF', () => {
         function setup(r16af: number): Environment {
             const env = newEnvironment([0xf5]);
@@ -338,7 +353,7 @@ describe('The glorious CPU', () => {
         it('decreases stack pointer correctly', () => {
             const { cpu } = setup(0x1532);
 
-            const sp = cpu.state.r16[r16.sp]
+            const sp = cpu.state.r16[r16.sp];
 
             cpu.step(1);
 
@@ -352,14 +367,14 @@ describe('The glorious CPU', () => {
             cpu.step(1);
 
             expect(bus.read16(cpu.state.r16[r16.sp])).toBe(value);
-        })
+        });
     });
 
     describe('POP AF', () => {
         function setup(r16af: number): Environment {
             const env = newEnvironment([0xf1]);
 
-            env.cpu.state.r16[r16.sp] = (env.cpu.state.r16[r16.sp] - 1)  & 0xffff;
+            env.cpu.state.r16[r16.sp] = (env.cpu.state.r16[r16.sp] - 1) & 0xffff;
             env.bus.write(env.cpu.state.r16[r16.sp], r16af >> 8);
             env.cpu.state.r16[r16.sp] = (env.cpu.state.r16[r16.sp] - 1) & 0xffff;
             env.bus.write(env.cpu.state.r16[r16.sp], r16af & 0xff);
@@ -370,7 +385,7 @@ describe('The glorious CPU', () => {
         it('increases stack pointer correctly', () => {
             const { cpu } = setup(0x1532);
 
-            const sp = cpu.state.r16[r16.sp]
+            const sp = cpu.state.r16[r16.sp];
 
             cpu.step(1);
 
@@ -384,6 +399,6 @@ describe('The glorious CPU', () => {
             cpu.step(1);
 
             expect(cpu.state.r16[r16.af]).toBe(value);
-        })
+        });
     });
 });
