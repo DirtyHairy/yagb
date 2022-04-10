@@ -32,6 +32,7 @@ export const enum AddressingMode {
     imm8,
     reg8,
     reg16,
+    regind16,
     reg16_imm16,
     reg8_imm8,
     imm8_reg8,
@@ -81,6 +82,9 @@ export function disassembleInstruction(bus: Bus, address: number): string {
 
         case AddressingMode.reg16:
             return `${op} ${disassembleR16(instruction.par1)}`;
+
+        case AddressingMode.regind16:
+            return `${op} (${disassembleR16(instruction.par1)})`;
 
         case AddressingMode.reg16_imm16:
             return `${op} ${disassembleR16(instruction.par1)}, ${hex16(bus.read16((address + 1) & 0xffff))}`;
@@ -288,6 +292,8 @@ apply(0xcd, { operation: Operation.call, addressingMode: AddressingMode.imm16, c
     apply(0xb0 + i, { operation: Operation.or, addressingMode: AddressingMode.reg8, par1: reg, cycles: 1, len: 1 });
     apply(0xa0 + i, { operation: Operation.and, addressingMode: AddressingMode.reg8, par1: reg, cycles: 1, len: 1 });
 });
+apply(0xb6, { operation: Operation.or, addressingMode: AddressingMode.regind16, par1: r16.hl, cycles: 2, len: 1 });
+apply(0xa6, { operation: Operation.and, addressingMode: AddressingMode.regind16, par1: r16.hl, cycles: 2, len: 1 });
 apply(0xb7, { operation: Operation.or, addressingMode: AddressingMode.reg8, par1: r8.a, cycles: 1, len: 1 });
 apply(0xa7, { operation: Operation.and, addressingMode: AddressingMode.reg8, par1: r8.a, cycles: 1, len: 1 });
 
