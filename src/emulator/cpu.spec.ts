@@ -6,6 +6,7 @@ import { Clock } from './clock';
 import { Ppu } from './ppu';
 import { Ram } from './ram';
 import { System } from './system';
+import { Timer } from './timer';
 
 interface Environment {
     bus: Bus;
@@ -22,11 +23,12 @@ function newEnvironment(code: ArrayLike<number>): Environment {
     });
 
     const ppu = new Ppu(system);
+    const interrupt = new Interrupt();
+    const timer = new Timer(interrupt);
 
-    const clock = new Clock(ppu);
+    const clock = new Clock(ppu, timer);
 
     const bus = new Bus(system);
-    const interrupt = new Interrupt();
     const ram = new Ram();
     const cpu = new Cpu(bus, clock, interrupt, system);
     const cartridge = new Uint8Array(0x8000);
@@ -40,6 +42,7 @@ function newEnvironment(code: ArrayLike<number>): Environment {
 
     ram.install(bus);
     interrupt.install(bus);
+    timer.install(bus);
 
     cartridge.subarray(0x100).set(code);
     cpu.reset();
@@ -380,9 +383,11 @@ describe('The glorious CPU', () => {
 
         it('pushes P to the stack', () => {
             const { cpu, bus } = setup(true, irq.vblank);
+            const sp = cpu.state.r16[r16.sp];
 
             cpu.step(1);
 
+            expect(cpu.state.r16[r16.sp]).toBe(sp - 2);
             expect(bus.read16(cpu.state.r16[r16.sp])).toBe(0x0100);
         });
 

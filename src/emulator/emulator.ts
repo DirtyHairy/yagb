@@ -28,11 +28,11 @@ export class Emulator {
         this.ppu = new Ppu(this.system);
         this.audio = new Audio();
         this.interrupt = new Interrupt();
-        this.clock = new Clock(this.ppu);
+        this.timer = new Timer(this.interrupt);
+        this.clock = new Clock(this.ppu, this.timer);
         this.cpu = new Cpu(this.bus, this.clock, this.interrupt, this.system);
         this.ram = new Ram();
         this.serial = new Serial();
-        this.timer = new Timer();
         this.joypad = new Joypad();
 
         const cartridge = createCartridge(cartridgeImage, this.system);
@@ -138,7 +138,7 @@ export class Emulator {
     }
 
     printState(): string {
-        return `CPU:\n${this.cpu.printState()}\n\n` + `IRQ:\n${this.interrupt.printState()}`;
+        return `CPU:\n${this.cpu.printState()}\n\nIRQ:\n${this.interrupt.printState()}\n\nTimer:\n${this.timer.printState()}`;
     }
 
     disassemble(count: number, address = this.cpu.state.p): Array<string> {
