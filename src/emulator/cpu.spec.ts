@@ -311,14 +311,14 @@ describe('The glorious CPU', () => {
             expect(cpu.state.r8[r8.f] & flag.z).toBe(0);
         });
 
-        it('preserves N, C, and H', () => {
+        it('clears N, C, and H', () => {
             cpu.state.r8[r8.a] = 0x01;
             cpu.state.r8[r8.d] = 0x10;
             cpu.state.r8[r8.f] = flag.n | flag.c | flag.h;
 
             cpu.step(1);
 
-            expect(cpu.state.r8[r8.f] & ~flag.z).toBe(flag.n | flag.c | flag.h);
+            expect(cpu.state.r8[r8.f] & ~flag.z).toBe(0);
         });
     });
 

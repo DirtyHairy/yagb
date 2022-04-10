@@ -264,7 +264,7 @@ export class Cpu {
                 this.clock.increment(instruction.cycles);
 
                 this.state.r8[r8.a] |= this.getArg1(instruction);
-                this.state.r8[r8.f] = (this.state.r8[r8.f] & ~flag.z) | (this.state.r8[r8.a] === 0 ? flag.z : 0);
+                this.state.r8[r8.f] = this.state.r8[r8.a] === 0 ? flag.z : 0;
 
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
                 return instruction.cycles;
