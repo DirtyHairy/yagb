@@ -403,7 +403,7 @@ export class Cpu {
         }
     }
 
-    onExecute = new Event<number>();
+    readonly onExecute = new Event<number>();
 
     readonly state: CpuState;
 }

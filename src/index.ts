@@ -75,10 +75,15 @@ disassemble [count] [address=p]         Disassemble count bytes at address
 step [count=1]                          Step count instructions
 state                                   Print state
 reset                                   Reset system
-breakpoint-add <address, ...>           Add a breakpoint
+breakpoint-add [address, ...]           Add a breakpoint
 breakpoint-clear <address>              Clear a breakpoint
 breakpoint-clear-all                    Clear all breakpoints
 breakpoint-list                         List breakpoints
+trap-add-read <address, ...>            Add a read trap
+trap-add-write <address, ...>           Add a write trap
+trep-clear <address>                    Remove traps at address
+trap-clear-all                          Remove all traps
+trap-list                               List traps
 trace [count]                           Prints trace
 dump address [count=16]                 Dump bus
 context                                 Show context summary (trace + disassembly + state)`);
@@ -160,6 +165,67 @@ context                                 Show context summary (trace + disassembl
         const breakpoints = emulator.getBreakpoints();
 
         print(breakpoints.length === 0 ? 'no breakpoints' : breakpoints.map((x) => `* ${hex16(x)}`).join('\n'));
+    },
+    'trap-read-add': function (...args: Array<string | number | undefined>) {
+        if (!assertEmulator()) return;
+        if (args.length === 0) {
+            print('no trap address given');
+            return;
+        }
+
+        args.forEach((address) => {
+            const addressInt = uintval(address);
+            if (addressInt === undefined) {
+                print(`invalid address ${address}`);
+                return;
+            }
+
+            emulator.addTrapRead(addressInt);
+        });
+    },
+    'trap-write-add': function (...args: Array<string | number | undefined>) {
+        if (!assertEmulator()) return;
+        if (args.length === 0) {
+            print('no trap address given');
+            return;
+        }
+
+        args.forEach((address) => {
+            const addressInt = uintval(address);
+            if (addressInt === undefined) {
+                print(`invalid address ${address}`);
+                return;
+            }
+
+            emulator.addTrapWrite(addressInt);
+        });
+    },
+    'trap-clear': function (address?: string) {
+        if (!assertEmulator()) return;
+
+        const addressInt = uintval(address);
+        if (addressInt === undefined) {
+            print('invalid address');
+            return;
+        }
+
+        emulator.clearTrap(addressInt);
+    },
+    'trap-clear-all': function () {
+        if (!assertEmulator()) return;
+
+        emulator.clearTraps();
+    },
+
+    'trap-list': function () {
+        if (!assertEmulator()) return;
+
+        print(
+            emulator
+                .getTraps()
+                .map(({ address, trapRead, trapWrite }) => ` * ${hex16(address)} [${trapRead ? 'R' : ''}${trapWrite ? 'W' : ''}]`)
+                .join('\n')
+        );
     },
     trace(count?: string): void {
         if (!assertEmulator()) return;

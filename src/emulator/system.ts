@@ -40,7 +40,7 @@ export class System implements SystemInterface {
         this.onBreak.dispatch(message);
     }
 
-    onBreak = new Event<string>();
+    readonly onBreak = new Event<string>();
 
     private logLevel = LogLevel.info;
 }

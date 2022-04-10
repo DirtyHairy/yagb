@@ -15,6 +15,12 @@ import { Timer } from './timer';
 import { Trace } from './trace';
 import { hex16 } from '../helper/format';
 
+export interface Trap {
+    address: number;
+    trapRead: boolean;
+    trapWrite: boolean;
+}
+
 export class Emulator {
     constructor(cartridgeImage: Uint8Array, printCb: (message: string) => void) {
         this.system = new System(printCb);
@@ -51,6 +57,10 @@ export class Emulator {
         });
 
         this.cpu.onExecute.addHandler((address) => this.trace.add(address));
+        this.bus.onRead.addHandler((address) => this.traps.get(address)?.trapRead && this.system.break(`trap read from ${hex16(address)}`));
+        this.bus.onWrite.addHandler(
+            (address) => this.traps.get(address)?.trapWrite && this.system.break(`trap write to ${hex16(address)}`)
+        );
 
         this.reset();
     }
@@ -69,6 +79,26 @@ export class Emulator {
 
     getBreakpoints(): Array<number> {
         return Array.from(this.breakpoints).sort();
+    }
+
+    addTrapWrite(address: number): void {
+        this.traps.set(address, { ...(this.traps.get(address) || { address, trapRead: false, trapWrite: false }), trapWrite: true });
+    }
+
+    addTrapRead(address: number): void {
+        this.traps.set(address, { ...(this.traps.get(address) || { address, trapRead: false, trapWrite: false }), trapRead: true });
+    }
+
+    clearTrap(address: number) {
+        this.traps.delete(address);
+    }
+
+    clearTraps(): void {
+        this.traps.clear();
+    }
+
+    getTraps(): Array<Trap> {
+        return Array.from(this.traps.values()).sort((t1, t2) => t1.address - t2.address);
     }
 
     getTrace(count?: number): string {
@@ -161,4 +191,5 @@ export class Emulator {
     private breakMessage = '';
 
     private breakpoints = new Set<number>();
+    private traps = new Map<number, Trap>();
 }
