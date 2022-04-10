@@ -12,6 +12,8 @@ import { Serial } from './serial';
 import { System } from './system';
 import { Trace } from './trace';
 import { hex16 } from '../helper/format';
+import { Timer } from './timer';
+import { Joypad } from './joypad';
 
 export class Emulator {
     constructor(cartridgeImage: Uint8Array, printCb: (message: string) => void) {
@@ -24,6 +26,8 @@ export class Emulator {
         this.cpu = new Cpu(this.bus, this.clock, this.interrupt, this.system);
         this.ram = new Ram();
         this.serial = new Serial();
+        this.timer = new Timer();
+        this.joypad = new Joypad();
 
         const cartridge = createCartridge(cartridgeImage, this.system);
         if (!cartridge) {
@@ -38,6 +42,8 @@ export class Emulator {
         this.serial.install(this.bus);
         this.ppu.install(this.bus);
         this.audio.install(this.bus);
+        this.timer.install(this.bus);
+        this.joypad.install(this.bus);
 
         this.system.onBreak.addHandler((message) => {
             this.break = true;
@@ -94,6 +100,8 @@ export class Emulator {
         this.cpu.reset();
         this.ram.reset();
         this.ppu.reset();
+        this.timer.reset();
+        this.joypad.reset();
         this.interrupt.reset();
         this.trace.reset();
     }
@@ -145,6 +153,8 @@ export class Emulator {
     private serial: Serial;
     private ppu: Ppu;
     private audio: Audio;
+    private timer: Timer;
+    private joypad: Joypad;
 
     private trace: Trace = new Trace();
 
