@@ -12,6 +12,7 @@ import { Serial } from './serial';
 import { System } from './system';
 import { TraceEntry } from './trace';
 import { hex16 } from '../helper/format';
+import { Timer } from './timer';
 
 export class Emulator {
     constructor(cartridgeImage: Uint8Array, printCb: (message: string) => void) {
@@ -24,6 +25,7 @@ export class Emulator {
         this.ram = new Ram();
         this.interrupt = new Interrupt();
         this.serial = new Serial();
+        this.timer = new Timer();
 
         const cartridge = createCartridge(cartridgeImage, this.system);
         if (!cartridge) {
@@ -38,6 +40,7 @@ export class Emulator {
         this.serial.install(this.bus);
         this.ppu.install(this.bus);
         this.audio.install(this.bus);
+        this.timer.install(this.bus);
 
         this.system.onBreak.addHandler((message) => {
             this.break = true;
@@ -101,6 +104,7 @@ export class Emulator {
         this.cpu.reset();
         this.ram.reset();
         this.ppu.reset();
+        this.timer.reset();
     }
 
     printState(): string {
@@ -151,6 +155,7 @@ export class Emulator {
     private serial: Serial;
     private ppu: Ppu;
     private audio: Audio;
+    private timer: Timer;
 
     private break = false;
     private breakMessage = '';
