@@ -286,7 +286,7 @@ apply(0xe0, {
 
 apply(0xf2, {
     operation: Operation.ld,
-    par1: { addressingMode: AddressingMode.reg8 },
+    par1: { value: r8.a, addressingMode: AddressingMode.reg8 },
     par2: { value: r8.c, addressingMode: AddressingMode.reg8io },
     cycles: 2,
     len: 1,
@@ -294,7 +294,7 @@ apply(0xf2, {
 apply(0xe2, {
     operation: Operation.ld,
     par1: { value: r8.c, addressingMode: AddressingMode.reg8io },
-    par2: { addressingMode: AddressingMode.reg8 },
+    par2: { value: r8.a, addressingMode: AddressingMode.reg8 },
     cycles: 2,
     len: 1,
 });
