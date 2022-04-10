@@ -288,6 +288,8 @@ apply(0xcd, { operation: Operation.call, addressingMode: AddressingMode.imm16, c
     apply(0xb0 + i, { operation: Operation.or, addressingMode: AddressingMode.reg8, par1: reg, cycles: 1, len: 1 });
     apply(0xa0 + i, { operation: Operation.and, addressingMode: AddressingMode.reg8, par1: reg, cycles: 1, len: 1 });
 });
+apply(0xb7, { operation: Operation.or, addressingMode: AddressingMode.reg8, par1: r8.a, cycles: 1, len: 1 });
+apply(0xa7, { operation: Operation.and, addressingMode: AddressingMode.reg8, par1: r8.a, cycles: 1, len: 1 });
 
 apply(0xc9, { operation: Operation.ret, addressingMode: AddressingMode.implicit, cycles: 4, len: 1 });
 
