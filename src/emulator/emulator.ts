@@ -6,14 +6,14 @@ import { Bus } from './bus';
 import { Clock } from './clock';
 import { Cpu } from './cpu';
 import { Interrupt } from './interrupt';
+import { Joypad } from './joypad';
 import { Ppu } from './ppu';
 import { Ram } from './ram';
 import { Serial } from './serial';
 import { System } from './system';
+import { Timer } from './timer';
 import { Trace } from './trace';
 import { hex16 } from '../helper/format';
-import { Timer } from './timer';
-import { Joypad } from './joypad';
 
 export class Emulator {
     constructor(cartridgeImage: Uint8Array, printCb: (message: string) => void) {
@@ -71,9 +71,10 @@ export class Emulator {
         return Array.from(this.breakpoints).sort();
     }
 
-    getTrace(): string {
-        return this.trace
-            .getTrace()
+    getTrace(count?: number): string {
+        const trace = this.trace.getTrace();
+
+        return (count === undefined ? trace : trace.slice(trace.length - count, trace.length))
             .map((address) => this.disassemblyLineAt(address))
             .join('\n');
     }
@@ -112,15 +113,13 @@ export class Emulator {
 
     disassemble(count: number, address = this.cpu.state.p): Array<string> {
         const disassembledInstructions: Array<string> = [];
-        let disassembledCount = 0;
 
-        while (disassembledCount < count) {
-            const disassembleAddress = (address + disassembledCount) & 0xffff;
-            const instruction = decodeInstruction(this.bus, disassembleAddress);
+        for (let i = 0; i < count; i++) {
+            const instruction = decodeInstruction(this.bus, address);
 
-            disassembledInstructions.push(this.disassemblyLineAt(disassembleAddress));
+            disassembledInstructions.push(this.disassemblyLineAt(address));
 
-            disassembledCount += instruction.len;
+            address = (address + instruction.len) & 0xffff;
         }
 
         return disassembledInstructions;
