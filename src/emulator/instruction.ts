@@ -1,5 +1,5 @@
+import { flag, r16, r8 } from './cpu';
 import { hex16, hex8 } from '../helper/format';
-import { r16, r8 } from './cpu';
 
 import { Bus } from './bus';
 
@@ -14,7 +14,7 @@ export const enum Operation {
     ei,
     inc,
     jp,
-    jrnz,
+    jr,
     ld,
     ldd,
     ldi,
@@ -38,6 +38,8 @@ export const enum AddressingMode {
 
     imm16,
     reg16,
+
+    flag,
 }
 
 export interface Instruction {
@@ -73,7 +75,7 @@ export function disassembleInstruction(bus: Bus, address: number): string {
         default: {
             const par1 = disassembleOperationParameter(bus, address, instruction.par1, instruction.mode1);
             const par2 = disassembleOperationParameter(bus, address, instruction.par2, instruction.mode2);
-            return `${op} ${par1}, ${par2}`;
+            return `${op} ${par1}${par1 !== '' ? ', ' : ''}${par2}`;
         }
     }
 }
@@ -107,8 +109,8 @@ function disassembleOperation(operation: Operation): string {
         case Operation.jp:
             return 'JP';
 
-        case Operation.jrnz:
-            return 'JR NZ,';
+        case Operation.jr:
+            return 'JR';
 
         case Operation.ld:
             return 'LD';
@@ -167,6 +169,13 @@ function disassembleOperationParameter(bus: Bus, address: number, par: number, m
 
         case AddressingMode.reg16:
             return `${disassembleR16(par)}`;
+
+        case AddressingMode.flag: {
+            const N = par & flag.not ? 'N' : '';
+            const Z = par & flag.z ? 'Z' : '';
+            const C = par & flag.c ? 'C' : '';
+            return `${N}${Z}${C}`;
+        }
 
         default:
             throw new Error('bad addressing mode');
@@ -285,7 +294,13 @@ apply(0x3a, { op: Operation.ldd, par1: r8.a, mode1: AddressingMode.reg8, par2: r
     apply((i << 4) | 0x0b, { op: Operation.dec, par1: reg, mode1: AddressingMode.reg16, cycles: 2, len: 1 });
 });
 
-apply(0x20, { op: Operation.jrnz, mode1: AddressingMode.imm8, cycles: 2, len: 2 });
+apply(0x18, { op: Operation.jr, mode1: AddressingMode.flag, mode2: AddressingMode.imm8, cycles: 2, len: 2 });
+
+apply(0x20, { op: Operation.jr, par1: flag.z | flag.not, mode1: AddressingMode.flag, mode2: AddressingMode.imm8, cycles: 2, len: 2 });
+apply(0x28, { op: Operation.jr, par1: flag.z, mode1: AddressingMode.flag, mode2: AddressingMode.imm8, cycles: 2, len: 2 });
+
+apply(0x30, { op: Operation.jr, par1: flag.c | flag.not, mode1: AddressingMode.flag, mode2: AddressingMode.imm8, cycles: 2, len: 2 });
+apply(0x38, { op: Operation.jr, par1: flag.c, mode1: AddressingMode.flag, mode2: AddressingMode.imm8, cycles: 2, len: 2 });
 
 apply(0xf3, { op: Operation.di, cycles: 1, len: 1 });
 apply(0xfb, { op: Operation.ei, cycles: 1, len: 1 });
