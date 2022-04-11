@@ -295,10 +295,8 @@ apply(0x3a, { op: Operation.ldd, par1: r8.a, mode1: AddressingMode.reg8, par2: r
 });
 
 apply(0x18, { op: Operation.jr, mode1: AddressingMode.flag, mode2: AddressingMode.imm8, cycles: 2, len: 2 });
-
 apply(0x20, { op: Operation.jr, par1: flag.z | flag.not, mode1: AddressingMode.flag, mode2: AddressingMode.imm8, cycles: 2, len: 2 });
 apply(0x28, { op: Operation.jr, par1: flag.z, mode1: AddressingMode.flag, mode2: AddressingMode.imm8, cycles: 2, len: 2 });
-
 apply(0x30, { op: Operation.jr, par1: flag.c | flag.not, mode1: AddressingMode.flag, mode2: AddressingMode.imm8, cycles: 2, len: 2 });
 apply(0x38, { op: Operation.jr, par1: flag.c, mode1: AddressingMode.flag, mode2: AddressingMode.imm8, cycles: 2, len: 2 });
 

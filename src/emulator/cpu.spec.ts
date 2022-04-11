@@ -794,6 +794,20 @@ describe('The glorious CPU', () => {
             return env;
         }
 
+        it('sets correct cycles if jumping', () => {
+            const jump = 0x16;
+            const { cpu } = setup(jump, 0x0);
+
+            expect(cpu.step(1)).toBe(3);
+        });
+
+        it('sets correct cycles if NOT jumping', () => {
+            const jump = 0x16;
+            const { cpu } = setup(jump, 0x0);
+
+            expect(cpu.step(1)).toBe(2);
+        });
+
         it('jumps forward if Z flag is NOT set', () => {
             const jump = 0x16;
             const { cpu } = setup(jump, 0x0);
@@ -833,6 +847,13 @@ describe('The glorious CPU', () => {
             return env;
         }
 
+        it('sets correct cycles if jumping', () => {
+            const jump = 0x16;
+            const { cpu } = setup(jump);
+
+            expect(cpu.step(1)).toBe(3);
+        });
+
         it('jumps forward', () => {
             const jump = 0x16;
             const { cpu } = setup(jump);
@@ -863,6 +884,20 @@ describe('The glorious CPU', () => {
 
             return env;
         }
+
+        it('sets correct cycles if jumping', () => {
+            const jump = 0x16;
+            const { cpu } = setup(jump, 0x0);
+
+            expect(cpu.step(1)).toBe(3);
+        });
+
+        it('sets correct cycles if NOT jumping', () => {
+            const jump = 0x16;
+            const { cpu } = setup(jump, 0x0);
+
+            expect(cpu.step(1)).toBe(2);
+        });
 
         it('jumps forward if Z flag is set', () => {
             const jump = 0x16;
@@ -903,6 +938,20 @@ describe('The glorious CPU', () => {
             return env;
         }
 
+        it('sets correct cycles if jumping', () => {
+            const jump = 0x16;
+            const { cpu } = setup(jump, 0x0);
+
+            expect(cpu.step(1)).toBe(3);
+        });
+
+        it('sets correct cycles if NOT jumping', () => {
+            const jump = 0x16;
+            const { cpu } = setup(jump, 0x0);
+
+            expect(cpu.step(1)).toBe(2);
+        });
+
         it('jumps forward if C flag is NOT set', () => {
             const jump = 0x16;
             const { cpu } = setup(jump, 0x0);
@@ -941,6 +990,20 @@ describe('The glorious CPU', () => {
 
             return env;
         }
+
+        it('sets correct cycles if jumping', () => {
+            const jump = 0x16;
+            const { cpu } = setup(jump, 0x0);
+
+            expect(cpu.step(1)).toBe(3);
+        });
+
+        it('sets correct cycles if NOT jumping', () => {
+            const jump = 0x16;
+            const { cpu } = setup(jump, 0x0);
+
+            expect(cpu.step(1)).toBe(2);
+        });
 
         it('jumps forward if C flag is set', () => {
             const jump = 0x16;
