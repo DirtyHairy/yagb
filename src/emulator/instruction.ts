@@ -253,8 +253,8 @@ apply(0x36, { operation: Operation.ld, addressingMode: AddressingMode.ind8_imm8,
 apply(0xea, { operation: Operation.ld, addressingMode: AddressingMode.immind8_reg8, par2: r8.a, cycles: 4, len: 3 });
 apply(0xf0, { operation: Operation.ld, addressingMode: AddressingMode.reg8_imm8io, par1: r8.a, cycles: 3, len: 2 });
 apply(0xe0, { operation: Operation.ld, addressingMode: AddressingMode.imm8io_reg8, par2: r8.a, cycles: 3, len: 2 });
-apply(0xe2, { operation: Operation.ld, addressingMode: AddressingMode.reg8io_reg8, par1: r8.c, cycles: 2, len: 1 });
-apply(0xf2, { operation: Operation.ld, addressingMode: AddressingMode.reg8_reg8io, par2: r8.c, cycles: 2, len: 1 });
+apply(0xe2, { operation: Operation.ld, addressingMode: AddressingMode.reg8io_reg8, par1: r8.c, par2: r8.a, cycles: 2, len: 1 });
+apply(0xf2, { operation: Operation.ld, addressingMode: AddressingMode.reg8_reg8io, par1: r8.a, par2: r8.c, cycles: 2, len: 1 });
 
 [r8.c, r8.e, r8.l, r8.a].forEach((reg1, i1) =>
     [r8.a, r8.b, r8.c, r8.d, r8.e, r8.h, r8.l].forEach((reg2, i2) => {
