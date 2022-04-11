@@ -76,7 +76,7 @@ export function disassembleInstruction(bus: Bus, address: number): string {
 
         case instruction.mode2 === AddressingMode.implicit: {
             const par1 = disassembleOperationParameter(bus, address, instruction.par1, instruction.mode1);
-            return `${op} ${par1}`;
+            return `${op}${par1 !== '' ? ' ' : ''}${par1}`;
         }
 
         default: {
@@ -327,7 +327,11 @@ apply(0xfe, { op: Operation.cp, mode1: AddressingMode.imm8, cycles: 2, len: 2 })
 
 apply(0xcd, { op: Operation.call, mode1: AddressingMode.imm16, cycles: 8, len: 3 });
 
-apply(0xc9, { op: Operation.ret, cycles: 4, len: 1 });
+apply(0xc9, { op: Operation.ret, mode1: AddressingMode.flag, cycles: 4, len: 1 });
+apply(0xc0, { op: Operation.ret, par1: flag.z | flag.not, mode1: AddressingMode.flag, cycles: 4, len: 1 });
+apply(0xc8, { op: Operation.ret, par1: flag.z, mode1: AddressingMode.flag, cycles: 4, len: 1 });
+apply(0xd0, { op: Operation.ret, par1: flag.c | flag.not, mode1: AddressingMode.flag, cycles: 4, len: 1 });
+apply(0xd8, { op: Operation.ret, par1: flag.c, mode1: AddressingMode.flag, cycles: 4, len: 1 });
 
 apply(0x2f, { op: Operation.cpl, cycles: 1, len: 1 });
 

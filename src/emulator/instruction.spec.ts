@@ -126,13 +126,35 @@ describe('The opcode instructions', () => {
                 const { bus, address } = setup([0x0b]);
                 expect(disassembleInstruction(bus, address)).toBe('DEC BC');
             });
-            it('PUSH BC', () => {
+            it('returns PUSH BC', () => {
                 const { bus, address } = setup([0xc5]);
                 expect(disassembleInstruction(bus, address)).toBe('PUSH BC');
             });
-            it('POP BC', () => {
+            it('returns POP BC', () => {
                 const { bus, address } = setup([0xc1]);
                 expect(disassembleInstruction(bus, address)).toBe('POP BC');
+            });
+        });
+        describe('with one flag value', () => {
+            it('returns RET', () => {
+                const { bus, address } = setup([0xc9]);
+                expect(disassembleInstruction(bus, address)).toBe('RET');
+            });
+            it('returns RET NZ', () => {
+                const { bus, address } = setup([0xc0]);
+                expect(disassembleInstruction(bus, address)).toBe('RET NZ');
+            });
+            it('returns RET Z', () => {
+                const { bus, address } = setup([0xc8]);
+                expect(disassembleInstruction(bus, address)).toBe('RET Z');
+            });
+            it('returns RET NC', () => {
+                const { bus, address } = setup([0xd0]);
+                expect(disassembleInstruction(bus, address)).toBe('RET NC');
+            });
+            it('returns RET C', () => {
+                const { bus, address } = setup([0xd8]);
+                expect(disassembleInstruction(bus, address)).toBe('RET C');
             });
         });
         describe('with first imm8ind value and second reg8 value', () => {
