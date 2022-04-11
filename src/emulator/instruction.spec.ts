@@ -1,7 +1,7 @@
+import { AddressingMode, Operation, decodeInstruction, disassembleInstruction } from './instruction';
 import { Bus, ReadHandler, WriteHandler } from './bus';
 
 import { System } from './system';
-import { disassembleInstruction } from './instruction';
 
 describe('The opcode instructions', () => {
     function setup(code: ArrayLike<number>) {
@@ -214,6 +214,34 @@ describe('The opcode instructions', () => {
             it('returns LD BC, d16', () => {
                 const { bus, address } = setup([0x01, 0xff, 0xff]);
                 expect(disassembleInstruction(bus, address)).toBe('LD BC, 0xffff');
+            });
+        });
+    });
+
+    describe('consistency checks', () => {
+        const opcodes = Array.from({ length: 255 }, (_, i) => i);
+        const { bus, address } = setup(opcodes);
+
+        opcodes.forEach((opcode) => {
+            const instruction = decodeInstruction(bus, address + opcode);
+
+            // skip not defined (invalid) operations
+            if (instruction.op === Operation.invalid) return;
+
+            describe(`0x${opcode.toString(16)}`, () => {
+                it('has cycles set', () => {
+                    expect(instruction.cycles).toBeGreaterThan(0);
+                });
+                it('has len set', () => {
+                    expect(instruction.len).toBeGreaterThan(0);
+                });
+                it('does not load from memory for both parameters', () => {
+                    const modes = [AddressingMode.imm8, AddressingMode.imm8ind, AddressingMode.imm8io, AddressingMode.imm16];
+
+                    const result = modes.includes(instruction.mode1) && modes.includes(instruction.mode2);
+
+                    expect(result).toBe(false);
+                });
             });
         });
     });
