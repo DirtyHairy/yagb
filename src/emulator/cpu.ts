@@ -121,9 +121,9 @@ export class Cpu {
     }
 
     private dispatch(instruction: Instruction): number {
-        if (instruction.operation !== Operation.invalid) this.onExecute.dispatch(this.state.p);
+        if (instruction.op !== Operation.invalid) this.onExecute.dispatch(this.state.p);
 
-        switch (instruction.operation) {
+        switch (instruction.op) {
             case Operation.and:
                 this.clock.increment(instruction.cycles);
 
@@ -336,117 +336,84 @@ export class Cpu {
         }
     }
 
-    private getArg1(instruction: Instruction) {
-        switch (instruction.addressingMode) {
+    private getArg(par: number, mode: AddressingMode): number {
+        switch (mode) {
             case AddressingMode.imm8:
-            case AddressingMode.imm8_reg8:
                 return this.bus.read((this.state.p + 1) & 0xffff);
+
+            case AddressingMode.imm8ind: {
+                const index = this.bus.read16((this.state.p + 1) & 0xffff);
+                return this.bus.read(index);
+            }
+
+            case AddressingMode.imm8io: {
+                const index = this.bus.read((this.state.p + 1) & 0xffff);
+                return this.bus.read(0xff00 + index);
+            }
+
+            case AddressingMode.reg8:
+                return this.state.r8[par];
+
+            case AddressingMode.reg8io:
+                return this.bus.read(0xff00 + this.state.r8[par]);
+
+            case AddressingMode.ind8:
+                return this.bus.read(this.state.r16[par]);
 
             case AddressingMode.imm16:
                 return this.bus.read16((this.state.p + 1) & 0xffff);
 
-            case AddressingMode.reg8:
-            case AddressingMode.reg8_imm8:
-            case AddressingMode.reg8_ind8:
-            case AddressingMode.reg8_reg8:
-            case AddressingMode.reg8_reg8io:
-            case AddressingMode.reg8_imm8io:
-                return this.state.r8[instruction.par1];
-
-            case AddressingMode.reg16_imm16:
             case AddressingMode.reg16:
-                return this.state.r16[instruction.par1];
-
-            case AddressingMode.ind8_reg8:
-            case AddressingMode.ind8_imm8:
-            case AddressingMode.ind8:
-                return this.bus.read(this.state.r16[instruction.par1]);
-
-            case AddressingMode.reg8io_reg8:
-                return this.bus.read(0xff00 + this.state.r8[instruction.par1]);
-
-            case AddressingMode.imm8io_reg8: {
-                const index = this.bus.read((this.state.p + 1) & 0xffff);
-                return this.bus.read(0xff00 + index);
-            }
+                return this.state.r16[par];
 
             default:
                 throw new Error('bad addressing mode');
         }
     }
 
-    private setArg1(instruction: Instruction, value: number) {
-        switch (instruction.addressingMode) {
-            case AddressingMode.reg8:
-            case AddressingMode.reg8_imm8:
-            case AddressingMode.reg8_ind8:
-            case AddressingMode.reg8_reg8:
-            case AddressingMode.reg8_imm8io:
-            case AddressingMode.reg8_reg8io:
-                this.state.r8[instruction.par1] = value & 0xff;
-                break;
+    private getArg1(instruction: Instruction): number {
+        return this.getArg(instruction.par1, instruction.mode1);
+    }
 
-            case AddressingMode.reg16_imm16:
-            case AddressingMode.reg16:
-                this.state.r16[instruction.par1] = value & 0xffff;
-                break;
+    private getArg2(instruction: Instruction): number {
+        return this.getArg(instruction.par2, instruction.mode2);
+    }
 
-            case AddressingMode.ind8_reg8:
-            case AddressingMode.ind8_imm8:
-            case AddressingMode.ind8:
-                this.bus.write(this.state.r16[instruction.par1], value & 0xff);
-                break;
-
-            case AddressingMode.immind8_reg8:
+    private setArg(par: number, mode: AddressingMode, value: number): void {
+        switch (mode) {
+            case AddressingMode.imm8ind:
                 this.bus.write(this.bus.read16((this.state.p + 1) & 0xffff), value & 0xff);
                 break;
 
-            case AddressingMode.reg8io_reg8:
-                this.bus.write(0xff00 + this.state.r8[instruction.par1], value);
-                break;
-
-            case AddressingMode.imm8io_reg8: {
+            case AddressingMode.imm8io: {
                 const index = this.bus.read((this.state.p + 1) & 0xffff);
                 this.bus.write(0xff00 + index, value);
                 break;
             }
 
+            case AddressingMode.reg8:
+                this.state.r8[par] = value & 0xff;
+                break;
+
+            case AddressingMode.reg8io:
+                this.bus.write(0xff00 + this.state.r8[par], value);
+                break;
+
+            case AddressingMode.ind8:
+                this.bus.write(this.state.r16[par], value & 0xff);
+                break;
+
+            case AddressingMode.reg16:
+                this.state.r16[par] = value & 0xffff;
+                break;
+
             default:
                 throw new Error('bad addressing mode');
         }
     }
 
-    private getArg2(instruction: Instruction) {
-        switch (instruction.addressingMode) {
-            case AddressingMode.reg16_imm16:
-                return this.bus.read16((this.state.p + 1) & 0xffff);
-
-            case AddressingMode.ind8_imm8:
-            case AddressingMode.reg8_imm8:
-                return this.bus.read((this.state.p + 1) & 0xffff);
-
-            case AddressingMode.ind8_reg8:
-            case AddressingMode.imm8_reg8:
-            case AddressingMode.immind8_reg8:
-            case AddressingMode.reg8_reg8:
-            case AddressingMode.imm8io_reg8:
-            case AddressingMode.reg8io_reg8:
-                return this.state.r8[instruction.par2];
-
-            case AddressingMode.reg8_ind8:
-                return this.bus.read(this.state.r16[instruction.par2]);
-
-            case AddressingMode.reg8_reg8io:
-                return this.bus.read(0xff00 + this.state.r8[instruction.par2]);
-
-            case AddressingMode.reg8_imm8io: {
-                const index = this.bus.read((this.state.p + 1) & 0xffff);
-                return this.bus.read(0xff00 + index);
-            }
-
-            default:
-                throw new Error('bad addressing mode');
-        }
+    private setArg1(instruction: Instruction, value: number): void {
+        this.setArg(instruction.par1, instruction.mode1, value);
     }
 
     readonly onExecute = new Event<number>();
