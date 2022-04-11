@@ -204,7 +204,7 @@ for (let i = 0; i < 0x100; i++)
         par2: 0,
         mode2: AddressingMode.implicit,
         cycles: 0,
-        len: 0,
+        len: 1,
     };
 
 apply(0, { op: Operation.nop, cycles: 1, len: 1 });
