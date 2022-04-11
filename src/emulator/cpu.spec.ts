@@ -803,7 +803,7 @@ describe('The glorious CPU', () => {
 
         it('sets correct cycles if NOT jumping', () => {
             const jump = 0x16;
-            const { cpu } = setup(jump, 0x0);
+            const { cpu } = setup(jump, flag.z);
 
             expect(cpu.step(1)).toBe(2);
         });
@@ -887,7 +887,7 @@ describe('The glorious CPU', () => {
 
         it('sets correct cycles if jumping', () => {
             const jump = 0x16;
-            const { cpu } = setup(jump, 0x0);
+            const { cpu } = setup(jump, flag.z);
 
             expect(cpu.step(1)).toBe(3);
         });
@@ -947,7 +947,7 @@ describe('The glorious CPU', () => {
 
         it('sets correct cycles if NOT jumping', () => {
             const jump = 0x16;
-            const { cpu } = setup(jump, 0x0);
+            const { cpu } = setup(jump, flag.c);
 
             expect(cpu.step(1)).toBe(2);
         });
@@ -993,7 +993,7 @@ describe('The glorious CPU', () => {
 
         it('sets correct cycles if jumping', () => {
             const jump = 0x16;
-            const { cpu } = setup(jump, 0x0);
+            const { cpu } = setup(jump, flag.c);
 
             expect(cpu.step(1)).toBe(3);
         });
