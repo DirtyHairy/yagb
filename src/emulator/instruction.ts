@@ -74,7 +74,7 @@ export function disassembleInstruction(bus: Bus, address: number): string {
         default: {
             const par1 = instruction.par1 === undefined ? '' : disassembleOperationParameter(bus, address, instruction.par1);
             const par2 = instruction.par2 === undefined ? '' : disassembleOperationParameter(bus, address, instruction.par2);
-            return `${op} ${par1}  ${par2}`;
+            return `${op} ${par1}, ${par2}`;
         }
     }
 }
@@ -312,8 +312,12 @@ apply(0xe2, {
     })
 );
 
+// 0x04, 0x14, 0x24
+// 0x05, 0x15, 0x25
 // 0x06, 0x16, 0x26
 [r8.b, r8.d, r8.h].forEach((reg, i) => {
+    apply((i << 4) | 0x04, { operation: Operation.inc, par1: { value: reg, addressingMode: AddressingMode.reg8 }, cycles: 1, len: 1 });
+    apply((i << 4) | 0x05, { operation: Operation.dec, par1: { value: reg, addressingMode: AddressingMode.reg8 }, cycles: 1, len: 1 });
     apply((i << 4) | 0x06, {
         operation: Operation.ld,
         par1: { value: reg, addressingMode: AddressingMode.reg8 },
@@ -323,8 +327,12 @@ apply(0xe2, {
     });
 });
 
+// 0x0c, 0x1c, 0x2c, 0x3c
+// 0x0d, 0x1d, 0x2d, 0x3d
 // 0x0e, 0x1e, 0x2e, 0x3e
 [r8.c, r8.e, r8.l, r8.a].forEach((reg, i) => {
+    apply((i << 4) | 0x0c, { operation: Operation.inc, par1: { value: reg, addressingMode: AddressingMode.reg8 }, cycles: 1, len: 1 });
+    apply((i << 4) | 0x0d, { operation: Operation.dec, par1: { value: reg, addressingMode: AddressingMode.reg8 }, cycles: 1, len: 1 });
     apply((i << 4) | 0x0e, {
         operation: Operation.ld,
         par1: { value: reg, addressingMode: AddressingMode.reg8 },
@@ -364,39 +372,10 @@ apply(0x3a, {
     len: 1,
 });
 
-// 0x04, 0x14, 0x24
-// 0x05, 0x15, 0x25
-// 0x06, 0x16, 0x26
-[r8.b, r8.d, r8.h].forEach((reg, i) => {
-    apply((i << 4) | 0x04, { operation: Operation.inc, par1: { value: reg, addressingMode: AddressingMode.reg8 }, cycles: 1, len: 1 });
-    apply((i << 4) | 0x05, { operation: Operation.dec, par1: { value: reg, addressingMode: AddressingMode.reg8 }, cycles: 1, len: 1 });
-    apply((i << 4) | 0x06, {
-        operation: Operation.ld,
-        par1: { value: reg, addressingMode: AddressingMode.reg8 },
-        par2: { addressingMode: AddressingMode.imm8 },
-        cycles: 2,
-        len: 2,
-    });
-});
-
-// 0x0c, 0x1c, 0x2c, 0x3c
-// 0x0d, 0x1d, 0x2d, 0x3d
-[r8.c, r8.e, r8.l, r8.a].forEach((reg, i) => {
-    apply((i << 4) | 0x0c, { operation: Operation.inc, par1: { value: reg, addressingMode: AddressingMode.reg8 }, cycles: 1, len: 1 });
-    apply((i << 4) | 0x0d, { operation: Operation.dec, par1: { value: reg, addressingMode: AddressingMode.reg8 }, cycles: 1, len: 1 });
-    apply((i << 4) | 0x0e, {
-        operation: Operation.ld,
-        par1: { value: reg, addressingMode: AddressingMode.reg8 },
-        par2: { addressingMode: AddressingMode.imm8 },
-        cycles: 2,
-        len: 2,
-    });
-});
-
 // 0x0b, 0x1b, 0x2b, 0x3b
 [r16.bc, r16.de, r16.hl, r16.sp].forEach((reg, i) => {
-    apply((i << 4) | 0x0b, { operation: Operation.dec, par1: { value: reg, addressingMode: AddressingMode.reg16 }, cycles: 2, len: 1 });
     apply((i << 4) | 0x03, { operation: Operation.inc, par1: { value: reg, addressingMode: AddressingMode.reg16 }, cycles: 2, len: 1 });
+    apply((i << 4) | 0x0b, { operation: Operation.dec, par1: { value: reg, addressingMode: AddressingMode.reg16 }, cycles: 2, len: 1 });
 });
 
 apply(0x20, { operation: Operation.jrnz, par1: { addressingMode: AddressingMode.imm8 }, cycles: 2, len: 2 });
