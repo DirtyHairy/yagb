@@ -1,4 +1,4 @@
-import { AddressingMode, Instruction, Operation, OperationParameter, decodeInstruction } from './instruction';
+import { AddressingMode, Instruction, Operation, decodeInstruction } from './instruction';
 import { Interrupt, irq } from './interrupt';
 import { hex16, hex8 } from '../helper/format';
 
@@ -121,9 +121,9 @@ export class Cpu {
     }
 
     private dispatch(instruction: Instruction): number {
-        if (instruction.operation !== Operation.invalid) this.onExecute.dispatch(this.state.p);
+        if (instruction.op !== Operation.invalid) this.onExecute.dispatch(this.state.p);
 
-        switch (instruction.operation) {
+        switch (instruction.op) {
             case Operation.and:
                 this.clock.increment(instruction.cycles);
 
@@ -336,8 +336,8 @@ export class Cpu {
         }
     }
 
-    private getArg(par: OperationParameter): number {
-        switch (par.addressingMode) {
+    private getArg(par: number, mode: AddressingMode): number {
+        switch (mode) {
             case AddressingMode.imm8:
                 return this.bus.read((this.state.p + 1) & 0xffff);
 
@@ -352,35 +352,19 @@ export class Cpu {
             }
 
             case AddressingMode.reg8:
-                if (par.value === undefined) {
-                    throw new Error('missing value for operation parameter');
-                }
-
-                return this.state.r8[par.value];
+                return this.state.r8[par];
 
             case AddressingMode.reg8io:
-                if (par.value === undefined) {
-                    throw new Error('missing value for operation parameter');
-                }
-
-                return this.bus.read(0xff00 + this.state.r8[par.value]);
+                return this.bus.read(0xff00 + this.state.r8[par]);
 
             case AddressingMode.ind8:
-                if (par.value === undefined) {
-                    throw new Error('missing value for operation parameter');
-                }
-
-                return this.bus.read(this.state.r16[par.value]);
+                return this.bus.read(this.state.r16[par]);
 
             case AddressingMode.imm16:
                 return this.bus.read16((this.state.p + 1) & 0xffff);
 
             case AddressingMode.reg16:
-                if (par.value === undefined) {
-                    throw new Error('missing value for operation parameter');
-                }
-
-                return this.state.r16[par.value];
+                return this.state.r16[par];
 
             default:
                 throw new Error('bad addressing mode');
@@ -388,23 +372,15 @@ export class Cpu {
     }
 
     private getArg1(instruction: Instruction): number {
-        if (instruction.par1 === undefined) {
-            throw new Error('missing parameter one for operation');
-        }
-
-        return this.getArg(instruction.par1);
+        return this.getArg(instruction.par1, instruction.mode1);
     }
 
     private getArg2(instruction: Instruction): number {
-        if (instruction.par2 === undefined) {
-            throw new Error('missing parameter two for operation');
-        }
-
-        return this.getArg(instruction.par2);
+        return this.getArg(instruction.par2, instruction.mode2);
     }
 
-    private setArg(par: OperationParameter, value: number): void {
-        switch (par.addressingMode) {
+    private setArg(par: number, mode: AddressingMode, value: number): void {
+        switch (mode) {
             case AddressingMode.imm8ind:
                 this.bus.write(this.bus.read16((this.state.p + 1) & 0xffff), value & 0xff);
                 break;
@@ -416,35 +392,19 @@ export class Cpu {
             }
 
             case AddressingMode.reg8:
-                if (par.value === undefined) {
-                    throw new Error('missing value for operation parameter');
-                }
-
-                this.state.r8[par.value] = value & 0xff;
+                this.state.r8[par] = value & 0xff;
                 break;
 
             case AddressingMode.reg8io:
-                if (par.value === undefined) {
-                    throw new Error('missing value for operation parameter');
-                }
-
-                this.bus.write(0xff00 + this.state.r8[par.value], value);
+                this.bus.write(0xff00 + this.state.r8[par], value);
                 break;
 
             case AddressingMode.ind8:
-                if (par.value === undefined) {
-                    throw new Error('missing value for operation parameter');
-                }
-
-                this.bus.write(this.state.r16[par.value], value & 0xff);
+                this.bus.write(this.state.r16[par], value & 0xff);
                 break;
 
             case AddressingMode.reg16:
-                if (par.value === undefined) {
-                    throw new Error('missing value for operation parameter');
-                }
-
-                this.state.r16[par.value] = value & 0xffff;
+                this.state.r16[par] = value & 0xffff;
                 break;
 
             default:
@@ -453,11 +413,7 @@ export class Cpu {
     }
 
     private setArg1(instruction: Instruction, value: number): void {
-        if (instruction.par1 === undefined) {
-            throw new Error('missing parameter one for operation');
-        }
-
-        this.setArg(instruction.par1, value);
+        this.setArg(instruction.par1, instruction.mode1, value);
     }
 
     readonly onExecute = new Event<number>();

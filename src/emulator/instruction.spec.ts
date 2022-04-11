@@ -24,6 +24,12 @@ describe('The opcode instructions', () => {
     }
 
     describe('disassembleInstruction', () => {
+        describe('unknown opcode', () => {
+            it('returns DB d8', () => {
+                const { bus, address } = setup([0xec]);
+                expect(disassembleInstruction(bus, address)).toBe('DB 0xec');
+            });
+        });
         describe('with no parameters', () => {
             it('returns NOP', () => {
                 const { bus, address } = setup([0x0]);
