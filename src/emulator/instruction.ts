@@ -267,6 +267,7 @@ apply(0xb6, { op: Operation.or, par1: r16.hl, mode1: AddressingMode.reg16ind8, c
 });
 
 apply(0x34, { op: Operation.inc, par1: r16.hl, mode1: AddressingMode.reg16ind8, cycles: 3, len: 1 });
+apply(0x35, { op: Operation.dec, par1: r16.hl, mode1: AddressingMode.reg16ind8, cycles: 3, len: 1 });
 apply(0x36, { op: Operation.ld, par1: r16.hl, mode1: AddressingMode.reg16ind8, mode2: AddressingMode.imm8, cycles: 3, len: 2 });
 
 apply(0xf0, { op: Operation.ld, par1: r8.a, mode1: AddressingMode.reg8, mode2: AddressingMode.imm8io, cycles: 3, len: 2 });
