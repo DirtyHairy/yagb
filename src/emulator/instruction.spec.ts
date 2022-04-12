@@ -284,15 +284,15 @@ describe('The opcode instructions', () => {
         }
 
         const opcodes = Array.from({ length: 255 }, (_, i) => i);
-        const { bus, address } = setup(opcodes.concat([0xff, 0xff]));
+        const { bus, address } = setup(opcodes.reduce((acc, x) => acc.concat([x, 0, 0]), [] as Array<number>));
 
         opcodes.forEach((opcode) => {
-            const instruction = decodeInstruction(bus, address + opcode);
+            const instruction = decodeInstruction(bus, address + 3 * opcode);
 
             // skip not defined (invalid) operations
             if (instruction.op === Operation.invalid) return;
 
-            describe(disassembleInstruction(bus, address + opcode), () => {
+            describe(disassembleInstruction(bus, address + 3 * opcode), () => {
                 it('has cycles set', () => {
                     expect(instruction.cycles).toBeGreaterThan(0);
                 });
