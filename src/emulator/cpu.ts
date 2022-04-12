@@ -335,7 +335,6 @@ export class Cpu {
 
                 this.state.interruptsEnabled = true;
 
-                this.state.p = (this.state.p + instruction.len) & 0xffff;
                 return instruction.cycles;
             }
 
