@@ -1,4 +1,4 @@
-import { AddressingMode, Instruction, Operation, decodeInstruction } from './instruction';
+import { AddressingMode, Condition, Instruction, Operation, decodeInstruction } from './instruction';
 import { Interrupt, irq } from './interrupt';
 import { hex16, hex8 } from '../helper/format';
 
@@ -31,7 +31,6 @@ export const enum flag {
     n = 0x40,
     h = 0x20,
     c = 0x10,
-    not = 0x1,
 }
 
 export interface CpuState {
@@ -232,15 +231,11 @@ export class Cpu {
                 return instruction.cycles;
 
             case Operation.jr: {
-                const operator = this.getArg1(instruction);
-                const f = operator & (flag.z | flag.c);
-                const not = operator & flag.not;
-
-                const condition = (this.state.r8[r8.f] & f) === (not ? 0 : f);
+                const condition = this.evaluateCondition(instruction);
                 const cycles = instruction.cycles + (condition ? 1 : 0);
                 this.clock.increment(cycles);
 
-                const displacement = extendSign8(this.getArg2(instruction));
+                const displacement = extendSign8(this.getArg1(instruction));
 
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
                 if (condition) {
@@ -371,9 +366,6 @@ export class Cpu {
             case AddressingMode.reg16:
                 return this.state.r16[par];
 
-            case AddressingMode.flag:
-                return par;
-
             default:
                 throw new Error('bad addressing mode');
         }
@@ -422,6 +414,24 @@ export class Cpu {
 
     private setArg1(instruction: Instruction, value: number): void {
         this.setArg(instruction.par1, instruction.mode1, value);
+    }
+
+    private evaluateCondition(instruction: Instruction): boolean {
+        switch (instruction.condition) {
+            case Condition.c:
+                return (this.state.r8[r8.f] & flag.c) !== 0;
+
+            case Condition.nc:
+                return (this.state.r8[r8.f] & flag.c) === 0;
+
+            case Condition.z:
+                return (this.state.r8[r8.f] & flag.z) !== 0;
+
+            case Condition.nz:
+                return (this.state.r8[r8.f] & flag.z) === 0;
+        }
+
+        return true;
     }
 
     readonly onExecute = new Event<number>();

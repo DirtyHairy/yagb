@@ -1,5 +1,5 @@
-import { flag, r16, r8 } from './cpu';
 import { hex16, hex8 } from '../helper/format';
+import { r16, r8 } from './cpu';
 
 import { Bus } from './bus';
 
@@ -38,8 +38,14 @@ export const enum AddressingMode {
 
     imm16,
     reg16,
+}
 
-    flag,
+export const enum Condition {
+    always,
+    z,
+    nz,
+    c,
+    nc,
 }
 
 export interface Instruction {
@@ -51,6 +57,7 @@ export interface Instruction {
     mode2: AddressingMode;
     cycles: number;
     len: number;
+    condition: Condition;
 }
 
 export function decodeInstruction(bus: Bus, address: number): Instruction {
@@ -61,7 +68,7 @@ export function disassembleInstruction(bus: Bus, address: number): string {
     const instruction = decodeInstruction(bus, address);
     if (instruction.op === Operation.invalid) return `DB ${hex8(instruction.opcode)}`;
 
-    const op = disassembleOperation(instruction.op);
+    const op = `${disassembleOperation(instruction.op)}${disassembleCondition(instruction.condition)}`;
 
     switch (true) {
         case instruction.mode1 === AddressingMode.implicit && instruction.mode2 === AddressingMode.implicit:
@@ -77,6 +84,25 @@ export function disassembleInstruction(bus: Bus, address: number): string {
             const par2 = disassembleOperationParameter(bus, address, instruction.par2, instruction.mode2);
             return `${op} ${par1}${par1 !== '' ? ', ' : ''}${par2}`;
         }
+    }
+}
+
+function disassembleCondition(condition: Condition): string {
+    switch (condition) {
+        case Condition.always:
+            return '';
+
+        case Condition.c:
+            return ' C,';
+
+        case Condition.nc:
+            return ' NC,';
+
+        case Condition.z:
+            return ' Z,';
+
+        case Condition.nz:
+            return ' NZ,';
     }
 }
 
@@ -170,13 +196,6 @@ function disassembleOperationParameter(bus: Bus, address: number, par: number, m
         case AddressingMode.reg16:
             return `${disassembleR16(par)}`;
 
-        case AddressingMode.flag: {
-            const N = par & flag.not ? 'N' : '';
-            const Z = par & flag.z ? 'Z' : '';
-            const C = par & flag.c ? 'C' : '';
-            return `${N}${Z}${C}`;
-        }
-
         default:
             throw new Error('bad addressing mode');
     }
@@ -214,6 +233,7 @@ for (let i = 0; i < 0x100; i++)
         mode2: AddressingMode.implicit,
         cycles: 0,
         len: 1,
+        condition: Condition.always,
     };
 
 apply(0, { op: Operation.nop, cycles: 1, len: 1 });
@@ -294,11 +314,11 @@ apply(0x3a, { op: Operation.ldd, par1: r8.a, mode1: AddressingMode.reg8, par2: r
     apply((i << 4) | 0x0b, { op: Operation.dec, par1: reg, mode1: AddressingMode.reg16, cycles: 2, len: 1 });
 });
 
-apply(0x18, { op: Operation.jr, mode1: AddressingMode.flag, mode2: AddressingMode.imm8, cycles: 2, len: 2 });
-apply(0x20, { op: Operation.jr, par1: flag.z | flag.not, mode1: AddressingMode.flag, mode2: AddressingMode.imm8, cycles: 2, len: 2 });
-apply(0x28, { op: Operation.jr, par1: flag.z, mode1: AddressingMode.flag, mode2: AddressingMode.imm8, cycles: 2, len: 2 });
-apply(0x30, { op: Operation.jr, par1: flag.c | flag.not, mode1: AddressingMode.flag, mode2: AddressingMode.imm8, cycles: 2, len: 2 });
-apply(0x38, { op: Operation.jr, par1: flag.c, mode1: AddressingMode.flag, mode2: AddressingMode.imm8, cycles: 2, len: 2 });
+apply(0x18, { op: Operation.jr, mode1: AddressingMode.imm8, cycles: 2, len: 2 });
+apply(0x20, { op: Operation.jr, mode1: AddressingMode.imm8, condition: Condition.nz, cycles: 2, len: 2 });
+apply(0x28, { op: Operation.jr, mode1: AddressingMode.imm8, condition: Condition.z, cycles: 2, len: 2 });
+apply(0x30, { op: Operation.jr, mode1: AddressingMode.imm8, condition: Condition.nc, cycles: 2, len: 2 });
+apply(0x38, { op: Operation.jr, mode1: AddressingMode.imm8, condition: Condition.c, cycles: 2, len: 2 });
 
 apply(0xf3, { op: Operation.di, cycles: 1, len: 1 });
 apply(0xfb, { op: Operation.ei, cycles: 1, len: 1 });

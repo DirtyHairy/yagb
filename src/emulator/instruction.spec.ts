@@ -268,14 +268,6 @@ describe('The opcode instructions', () => {
                         expect(modes.includes(instruction.mode1)).toBe(false);
                     });
                 }
-
-                if (instruction.mode1 === AddressingMode.flag) {
-                    describe(`par1 addressing mode flag`, () => {
-                        it('does not set Z AND C', () => {
-                            expect(instruction.par1).not.toBe(flag.z | flag.c);
-                        });
-                    });
-                }
             });
         });
     });
