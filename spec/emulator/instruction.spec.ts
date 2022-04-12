@@ -87,6 +87,10 @@ describe('The opcode instructions', () => {
                 const { bus, address } = setup([0x18, 0x08]);
                 expect(disassembleInstruction(bus, address)).toBe('JR 0x08');
             });
+            it('returns AND d8', () => {
+                const { bus, address } = setup([0xe6, 0x08]);
+                expect(disassembleInstruction(bus, address)).toBe('AND 0x08');
+            });
         });
         describe('with one imm8 value and condition', () => {
             it('returns JR NZ, d8', () => {
