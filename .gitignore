@@ -3,3 +3,5 @@
 /yarn-error.log
 *.gb
 /.idea
+/test_results/
+/coverage/
