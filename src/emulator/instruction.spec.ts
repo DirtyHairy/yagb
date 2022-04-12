@@ -280,7 +280,7 @@ describe('The opcode instructions', () => {
         }
 
         const opcodes = Array.from({ length: 255 }, (_, i) => i);
-        const { bus, address } = setup(opcodes.reduce((acc, x) => acc.concat([x, 0, 0]), [] as Array<number>));
+        const { bus, address } = setup(opcodes.concat([0xff, 0xff]));
 
         opcodes.forEach((opcode) => {
             const instruction = decodeInstruction(bus, address + opcode);
