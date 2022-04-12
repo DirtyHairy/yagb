@@ -313,13 +313,19 @@ export class Cpu {
                 return instruction.cycles;
             }
 
-            case Operation.ret:
-                this.clock.increment(instruction.cycles);
+            case Operation.ret: {
+                const condition = this.getCondition(instruction);
+                const cycles = instruction.cycles + (instruction.opcode !== 0xc9 ? (condition ? 1 : -2) : 0);
+                this.clock.increment(cycles);
 
-                this.state.p = this.bus.read16(this.state.r16[r16.sp]);
-                this.state.r16[r16.sp] = (this.state.r16[r16.sp] + 2) & 0xffff;
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
+                if (condition) {
+                    this.state.p = this.bus.read16(this.state.r16[r16.sp]);
+                    this.state.r16[r16.sp] = (this.state.r16[r16.sp] + 2) & 0xffff;
+                }
 
-                return instruction.cycles;
+                return cycles;
+            }
 
             case Operation.xor:
                 this.clock.increment(instruction.cycles);
@@ -334,6 +340,14 @@ export class Cpu {
                 this.system.break('invalid instruction');
                 return 0;
         }
+    }
+
+    private getCondition(instruction: Instruction): boolean {
+        const operator = this.getArg1(instruction);
+        const f = operator & (flag.z | flag.c);
+        const not = operator & flag.not;
+
+        return (this.state.r8[r8.f] & f) === (not ? 0 : f);
     }
 
     private getArg(par: number, mode: AddressingMode): number {
