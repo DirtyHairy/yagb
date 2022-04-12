@@ -23,6 +23,7 @@ export const enum Operation {
     pop,
     push,
     ret,
+    reti,
     xor,
 }
 
@@ -30,13 +31,13 @@ export const enum AddressingMode {
     implicit,
 
     imm8,
-    imm16ind8,
     imm8io,
     reg8,
     reg8io,
     ind8,
 
     imm16,
+    imm16ind8,
     reg16,
 }
 
@@ -68,15 +69,16 @@ export function disassembleInstruction(bus: Bus, address: number): string {
     const instruction = decodeInstruction(bus, address);
     if (instruction.op === Operation.invalid) return `DB ${hex8(instruction.opcode)}`;
 
-    const op = `${disassembleOperation(instruction.op)}${disassembleCondition(instruction.condition)}`;
+    const op = disassembleOperation(instruction.op);
+    const condition = disassembleCondition(instruction.condition);
 
     switch (true) {
         case instruction.mode1 === AddressingMode.implicit && instruction.mode2 === AddressingMode.implicit:
-            return op;
+            return `${op}${condition !== '' ? ` ${condition}` : ''}`;
 
         case instruction.mode2 === AddressingMode.implicit: {
             const par1 = disassembleOperationParameter(bus, address, instruction.par1, instruction.mode1);
-            return `${op} ${par1}`;
+            return `${op}${condition !== '' ? ` ${condition},` : ''} ${par1}`;
         }
 
         default: {
@@ -93,16 +95,16 @@ function disassembleCondition(condition: Condition): string {
             return '';
 
         case Condition.c:
-            return ' C,';
+            return 'C';
 
         case Condition.nc:
-            return ' NC,';
+            return 'NC';
 
         case Condition.z:
-            return ' Z,';
+            return 'Z';
 
         case Condition.nz:
-            return ' NZ,';
+            return 'NZ';
     }
 }
 
@@ -161,6 +163,9 @@ function disassembleOperation(operation: Operation): string {
 
         case Operation.ret:
             return 'RET';
+
+        case Operation.reti:
+            return 'RETI';
 
         case Operation.xor:
             return 'XOR';
@@ -328,6 +333,11 @@ apply(0xfe, { op: Operation.cp, mode1: AddressingMode.imm8, cycles: 2, len: 2 })
 apply(0xcd, { op: Operation.call, mode1: AddressingMode.imm16, cycles: 8, len: 3 });
 
 apply(0xc9, { op: Operation.ret, cycles: 4, len: 1 });
+apply(0xd9, { op: Operation.reti, cycles: 4, len: 1 });
+apply(0xc0, { op: Operation.ret, condition: Condition.nz, cycles: 4, len: 1 });
+apply(0xc8, { op: Operation.ret, condition: Condition.z, cycles: 4, len: 1 });
+apply(0xd0, { op: Operation.ret, condition: Condition.nc, cycles: 4, len: 1 });
+apply(0xd8, { op: Operation.ret, condition: Condition.c, cycles: 4, len: 1 });
 
 apply(0x2f, { op: Operation.cpl, cycles: 1, len: 1 });
 

@@ -847,7 +847,7 @@ describe('The glorious CPU', () => {
             return env;
         }
 
-        it('sets correct cycles if jumping', () => {
+        it('sets correct cycles', () => {
             const jump = 0x16;
             const { cpu } = setup(jump);
 
@@ -1029,6 +1029,324 @@ describe('The glorious CPU', () => {
             cpu.step(1);
 
             expect(cpu.state.p).toBe(baseAddress + instructionLength);
+        });
+    });
+
+    describe('RET', () => {
+        const address = 0x1000;
+
+        function setup(address: number): Environment {
+            const env = newEnvironment([0xc9]);
+
+            env.cpu.state.r8[r8.f] = flag.z | flag.n | flag.h | flag.c;
+
+            env.cpu.state.r16[r16.sp] = (env.cpu.state.r16[r16.sp] - 1) & 0xffff;
+            env.bus.write(env.cpu.state.r16[r16.sp], address >>> 8);
+            env.cpu.state.r16[r16.sp] = (env.cpu.state.r16[r16.sp] - 1) & 0xffff;
+            env.bus.write(env.cpu.state.r16[r16.sp], address & 0xff);
+
+            return env;
+        }
+
+        it('sets correct cycles', () => {
+            const { cpu } = setup(address);
+
+            expect(cpu.step(1)).toBe(4);
+        });
+
+        it('increases stack pointer correctly', () => {
+            const { cpu } = setup(address);
+
+            const sp = cpu.state.r16[r16.sp];
+
+            cpu.step(1);
+
+            expect(cpu.state.r16[r16.sp]).toBe(sp + 2);
+        });
+
+        it('returns to address in stack', () => {
+            const { cpu } = setup(address);
+
+            cpu.step(1);
+
+            expect(cpu.state.p).toBe(address);
+        });
+    });
+
+    describe('RET NZ', () => {
+        const instructionLength = 1;
+        const baseAddress = 0x100;
+        const address = 0x1000;
+
+        function setup(address: number, flags: number): Environment {
+            const env = newEnvironment([0xc0]);
+
+            env.cpu.state.r8[r8.f] = flags;
+
+            env.cpu.state.r16[r16.sp] = (env.cpu.state.r16[r16.sp] - 1) & 0xffff;
+            env.bus.write(env.cpu.state.r16[r16.sp], address >>> 8);
+            env.cpu.state.r16[r16.sp] = (env.cpu.state.r16[r16.sp] - 1) & 0xffff;
+            env.bus.write(env.cpu.state.r16[r16.sp], address & 0xff);
+
+            return env;
+        }
+
+        it('sets correct cycles if returning to address in stack', () => {
+            const { cpu } = setup(address, 0x0);
+
+            expect(cpu.step(1)).toBe(5);
+        });
+
+        it('sets correct cycles if NOT returning to address in stack', () => {
+            const { cpu } = setup(address, flag.z);
+
+            expect(cpu.step(1)).toBe(2);
+        });
+
+        it('increases stack pointer correctly', () => {
+            const { cpu } = setup(address, 0);
+
+            const sp = cpu.state.r16[r16.sp];
+
+            cpu.step(1);
+
+            expect(cpu.state.r16[r16.sp]).toBe(sp + 2);
+        });
+
+        it('returns to address in stack if Z flag is NOT set', () => {
+            const { cpu } = setup(address, 0x0);
+
+            cpu.step(1);
+
+            expect(cpu.state.p).toBe(address);
+        });
+
+        it('does NOT return to address in stack if Z flag is set', () => {
+            const { cpu } = setup(address, flag.z);
+
+            cpu.step(1);
+
+            expect(cpu.state.p).toBe(baseAddress + instructionLength);
+        });
+    });
+
+    describe('RET Z', () => {
+        const instructionLength = 1;
+        const baseAddress = 0x100;
+        const address = 0x1000;
+
+        function setup(address: number, flags: number): Environment {
+            const env = newEnvironment([0xc8]);
+
+            env.cpu.state.r8[r8.f] = flags;
+
+            env.cpu.state.r16[r16.sp] = (env.cpu.state.r16[r16.sp] - 1) & 0xffff;
+            env.bus.write(env.cpu.state.r16[r16.sp], address >>> 8);
+            env.cpu.state.r16[r16.sp] = (env.cpu.state.r16[r16.sp] - 1) & 0xffff;
+            env.bus.write(env.cpu.state.r16[r16.sp], address & 0xff);
+
+            return env;
+        }
+
+        it('sets correct cycles if returning to address in stack', () => {
+            const { cpu } = setup(address, flag.z);
+
+            expect(cpu.step(1)).toBe(5);
+        });
+
+        it('sets correct cycles if NOT returning to address in stack', () => {
+            const { cpu } = setup(address, 0x0);
+
+            expect(cpu.step(1)).toBe(2);
+        });
+
+        it('increases stack pointer correctly', () => {
+            const { cpu } = setup(address, flag.z);
+
+            const sp = cpu.state.r16[r16.sp];
+
+            cpu.step(1);
+
+            expect(cpu.state.r16[r16.sp]).toBe(sp + 2);
+        });
+
+        it('returns to address in stack if Z flag is set', () => {
+            const { cpu } = setup(address, flag.z);
+
+            cpu.step(1);
+
+            expect(cpu.state.p).toBe(address);
+        });
+
+        it('does NOT return to address in stack if Z flag is NOT set', () => {
+            const { cpu } = setup(address, 0x0);
+
+            cpu.step(1);
+
+            expect(cpu.state.p).toBe(baseAddress + instructionLength);
+        });
+    });
+
+    describe('RET NC', () => {
+        const instructionLength = 1;
+        const baseAddress = 0x100;
+        const address = 0x1000;
+
+        function setup(address: number, flags: number): Environment {
+            const env = newEnvironment([0xd0]);
+
+            env.cpu.state.r8[r8.f] = flags;
+
+            env.cpu.state.r16[r16.sp] = (env.cpu.state.r16[r16.sp] - 1) & 0xffff;
+            env.bus.write(env.cpu.state.r16[r16.sp], address >>> 8);
+            env.cpu.state.r16[r16.sp] = (env.cpu.state.r16[r16.sp] - 1) & 0xffff;
+            env.bus.write(env.cpu.state.r16[r16.sp], address & 0xff);
+
+            return env;
+        }
+
+        it('sets correct cycles if returning to address in stack', () => {
+            const { cpu } = setup(address, 0x0);
+
+            expect(cpu.step(1)).toBe(5);
+        });
+
+        it('sets correct cycles if NOT returning to address in stack', () => {
+            const { cpu } = setup(address, flag.c);
+
+            expect(cpu.step(1)).toBe(2);
+        });
+
+        it('increases stack pointer correctly', () => {
+            const { cpu } = setup(address, 0);
+
+            const sp = cpu.state.r16[r16.sp];
+
+            cpu.step(1);
+
+            expect(cpu.state.r16[r16.sp]).toBe(sp + 2);
+        });
+
+        it('returns to address in stack if C flag is NOT set', () => {
+            const { cpu } = setup(address, 0x0);
+
+            cpu.step(1);
+
+            expect(cpu.state.p).toBe(address);
+        });
+
+        it('does NOT return to address in stack if C flag is set', () => {
+            const { cpu } = setup(address, flag.c);
+
+            cpu.step(1);
+
+            expect(cpu.state.p).toBe(baseAddress + instructionLength);
+        });
+    });
+
+    describe('RET C', () => {
+        const instructionLength = 1;
+        const baseAddress = 0x100;
+        const address = 0x1000;
+
+        function setup(address: number, flags: number): Environment {
+            const env = newEnvironment([0xd8]);
+
+            env.cpu.state.r8[r8.f] = flags;
+
+            env.cpu.state.r16[r16.sp] = (env.cpu.state.r16[r16.sp] - 1) & 0xffff;
+            env.bus.write(env.cpu.state.r16[r16.sp], address >>> 8);
+            env.cpu.state.r16[r16.sp] = (env.cpu.state.r16[r16.sp] - 1) & 0xffff;
+            env.bus.write(env.cpu.state.r16[r16.sp], address & 0xff);
+
+            return env;
+        }
+
+        it('sets correct cycles if returning to address in stack', () => {
+            const { cpu } = setup(address, flag.c);
+
+            expect(cpu.step(1)).toBe(5);
+        });
+
+        it('sets correct cycles if NOT returning to address in stack', () => {
+            const { cpu } = setup(address, 0x0);
+
+            expect(cpu.step(1)).toBe(2);
+        });
+
+        it('increases stack pointer correctly', () => {
+            const { cpu } = setup(address, flag.c);
+
+            const sp = cpu.state.r16[r16.sp];
+
+            cpu.step(1);
+
+            expect(cpu.state.r16[r16.sp]).toBe(sp + 2);
+        });
+
+        it('returns to address in stack if C flag is set', () => {
+            const { cpu } = setup(address, flag.c);
+
+            cpu.step(1);
+
+            expect(cpu.state.p).toBe(address);
+        });
+
+        it('does NOT return to address in stack if C flag is NOT set', () => {
+            const { cpu } = setup(address, 0x0);
+
+            cpu.step(1);
+
+            expect(cpu.state.p).toBe(baseAddress + instructionLength);
+        });
+    });
+
+    describe('RETI', () => {
+        const address = 0x1000;
+
+        function setup(address: number): Environment {
+            const env = newEnvironment([0xd9]);
+
+            env.cpu.state.r8[r8.f] = flag.z | flag.n | flag.h | flag.c;
+
+            env.cpu.state.r16[r16.sp] = (env.cpu.state.r16[r16.sp] - 1) & 0xffff;
+            env.bus.write(env.cpu.state.r16[r16.sp], address >>> 8);
+            env.cpu.state.r16[r16.sp] = (env.cpu.state.r16[r16.sp] - 1) & 0xffff;
+            env.bus.write(env.cpu.state.r16[r16.sp], address & 0xff);
+
+            return env;
+        }
+
+        it('sets correct cycles', () => {
+            const { cpu } = setup(address);
+
+            expect(cpu.step(1)).toBe(4);
+        });
+
+        it('increases stack pointer correctly', () => {
+            const { cpu } = setup(address);
+
+            const sp = cpu.state.r16[r16.sp];
+
+            cpu.step(1);
+
+            expect(cpu.state.r16[r16.sp]).toBe(sp + 2);
+        });
+
+        it('returns to address in stack', () => {
+            const { cpu } = setup(address);
+
+            cpu.step(1);
+
+            expect(cpu.state.p).toBe(address);
+        });
+
+        it('enables interrupts', () => {
+            const { cpu } = setup(address);
+
+            cpu.step(1);
+
+            expect(cpu.state.interruptsEnabled).toBe(true);
         });
     });
 });

@@ -313,13 +313,30 @@ export class Cpu {
                 return instruction.cycles;
             }
 
-            case Operation.ret:
+            case Operation.ret: {
+                const condition = this.evaluateCondition(instruction);
+                const cycles = instruction.cycles + (instruction.opcode !== 0xc9 ? (condition ? 1 : -2) : 0);
+                this.clock.increment(cycles);
+
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
+                if (condition) {
+                    this.state.p = this.bus.read16(this.state.r16[r16.sp]);
+                    this.state.r16[r16.sp] = (this.state.r16[r16.sp] + 2) & 0xffff;
+                }
+
+                return cycles;
+            }
+
+            case Operation.reti: {
                 this.clock.increment(instruction.cycles);
 
                 this.state.p = this.bus.read16(this.state.r16[r16.sp]);
                 this.state.r16[r16.sp] = (this.state.r16[r16.sp] + 2) & 0xffff;
 
+                this.state.interruptsEnabled = true;
+
                 return instruction.cycles;
+            }
 
             case Operation.xor:
                 this.clock.increment(instruction.cycles);
