@@ -1300,4 +1300,53 @@ describe('The glorious CPU', () => {
             expect(cpu.state.p).toBe(baseAddress + instructionLength);
         });
     });
+
+    describe('RETI', () => {
+        const address = 0x1000;
+
+        function setup(address: number): Environment {
+            const env = newEnvironment([0xd9]);
+
+            env.cpu.state.r8[r8.f] = flag.z | flag.n | flag.h | flag.c;
+
+            env.cpu.state.r16[r16.sp] = (env.cpu.state.r16[r16.sp] - 1) & 0xffff;
+            env.bus.write(env.cpu.state.r16[r16.sp], address >>> 8);
+            env.cpu.state.r16[r16.sp] = (env.cpu.state.r16[r16.sp] - 1) & 0xffff;
+            env.bus.write(env.cpu.state.r16[r16.sp], address & 0xff);
+
+            return env;
+        }
+
+        it('sets correct cycles', () => {
+            const { cpu } = setup(address);
+
+            expect(cpu.step(1)).toBe(4);
+        });
+
+        it('increases stack pointer correctly', () => {
+            const { cpu } = setup(address);
+
+            const sp = cpu.state.r16[r16.sp];
+
+            cpu.step(1);
+
+            expect(cpu.state.r16[r16.sp]).toBe(sp + 2);
+        });
+
+        it('returns to address in stack', () => {
+            const { cpu } = setup(address);
+
+            cpu.step(1);
+
+            expect(cpu.state.p).toBe(address);
+        });
+
+        it('enables interrupts', () => {
+            const { cpu } = setup(address);
+
+            cpu.step(1);
+
+            expect(cpu.state.interruptsEnabled).toBe(true);
+        });
+    });
 });

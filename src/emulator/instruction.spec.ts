@@ -140,6 +140,10 @@ describe('The opcode instructions', () => {
                 const { bus, address } = setup([0xc9]);
                 expect(disassembleInstruction(bus, address)).toBe('RET');
             });
+            it('returns RETI', () => {
+                const { bus, address } = setup([0xd9]);
+                expect(disassembleInstruction(bus, address)).toBe('RETI');
+            });
             it('returns RET NZ', () => {
                 const { bus, address } = setup([0xc0]);
                 expect(disassembleInstruction(bus, address)).toBe('RET NZ');

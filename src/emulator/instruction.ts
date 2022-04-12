@@ -23,6 +23,7 @@ export const enum Operation {
     pop,
     push,
     ret,
+    reti,
     xor,
 }
 
@@ -162,6 +163,9 @@ function disassembleOperation(operation: Operation): string {
 
         case Operation.ret:
             return 'RET';
+
+        case Operation.reti:
+            return 'RETI';
 
         case Operation.xor:
             return 'XOR';
@@ -329,6 +333,7 @@ apply(0xfe, { op: Operation.cp, mode1: AddressingMode.imm8, cycles: 2, len: 2 })
 apply(0xcd, { op: Operation.call, mode1: AddressingMode.imm16, cycles: 8, len: 3 });
 
 apply(0xc9, { op: Operation.ret, cycles: 4, len: 1 });
+apply(0xd9, { op: Operation.reti, cycles: 4, len: 1 });
 apply(0xc0, { op: Operation.ret, condition: Condition.nz, cycles: 4, len: 1 });
 apply(0xc8, { op: Operation.ret, condition: Condition.z, cycles: 4, len: 1 });
 apply(0xd0, { op: Operation.ret, condition: Condition.nc, cycles: 4, len: 1 });

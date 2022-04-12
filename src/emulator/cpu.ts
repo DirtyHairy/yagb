@@ -327,6 +327,18 @@ export class Cpu {
                 return cycles;
             }
 
+            case Operation.reti: {
+                this.clock.increment(instruction.cycles);
+
+                this.state.p = this.bus.read16(this.state.r16[r16.sp]);
+                this.state.r16[r16.sp] = (this.state.r16[r16.sp] + 2) & 0xffff;
+
+                this.state.interruptsEnabled = true;
+
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
+                return instruction.cycles;
+            }
+
             case Operation.xor:
                 this.clock.increment(instruction.cycles);
 
