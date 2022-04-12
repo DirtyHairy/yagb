@@ -68,15 +68,16 @@ export function disassembleInstruction(bus: Bus, address: number): string {
     const instruction = decodeInstruction(bus, address);
     if (instruction.op === Operation.invalid) return `DB ${hex8(instruction.opcode)}`;
 
-    const op = `${disassembleOperation(instruction.op)}${disassembleCondition(instruction.condition)}`;
+    const op = disassembleOperation(instruction.op);
+    const condition = disassembleCondition(instruction.condition);
 
     switch (true) {
         case instruction.mode1 === AddressingMode.implicit && instruction.mode2 === AddressingMode.implicit:
-            return op;
+            return `${op}${condition !== '' ? ` ${condition}` : ''}`;
 
         case instruction.mode2 === AddressingMode.implicit: {
             const par1 = disassembleOperationParameter(bus, address, instruction.par1, instruction.mode1);
-            return `${op}${par1 !== '' ? ' ' : ''}${par1}`;
+            return `${op}${condition !== '' ? ` ${condition},` : ''} ${par1}`;
         }
 
         default: {
@@ -93,16 +94,16 @@ function disassembleCondition(condition: Condition): string {
             return '';
 
         case Condition.c:
-            return ' C,';
+            return 'C';
 
         case Condition.nc:
-            return ' NC,';
+            return 'NC';
 
         case Condition.z:
-            return ' Z,';
+            return 'Z';
 
         case Condition.nz:
-            return ' NZ,';
+            return 'NZ';
     }
 }
 
