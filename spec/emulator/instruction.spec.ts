@@ -216,6 +216,12 @@ describe('The opcode instructions', () => {
                 expect(disassembleInstruction(bus, address)).toBe('LD A, (FF00 + C)');
             });
         });
+        describe('with first reg8 value and second imm16ind8 value', () => {
+            it('returns LD A, (a16)', () => {
+                const { bus, address } = setup([0xfa, 0xce, 0xc0]);
+                expect(disassembleInstruction(bus, address)).toBe('LD A, (0xc0ce)');
+            });
+        });
         describe('with first reg8 value and second reg16ind8 value', () => {
             it('returns LDI A, (HL)', () => {
                 const { bus, address } = setup([0x2a, 0xc8]);

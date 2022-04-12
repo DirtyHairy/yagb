@@ -267,13 +267,16 @@ apply(0xb6, { op: Operation.or, par1: r16.hl, mode1: AddressingMode.reg16ind8, c
 });
 
 apply(0x36, { op: Operation.ld, par1: r16.hl, mode1: AddressingMode.reg16ind8, mode2: AddressingMode.imm8, cycles: 3, len: 2 });
-apply(0xea, { op: Operation.ld, mode1: AddressingMode.imm16ind8, par2: r8.a, mode2: AddressingMode.reg8, cycles: 4, len: 3 });
 
 apply(0xf0, { op: Operation.ld, par1: r8.a, mode1: AddressingMode.reg8, mode2: AddressingMode.imm8io, cycles: 3, len: 2 });
 apply(0xe0, { op: Operation.ld, mode1: AddressingMode.imm8io, par2: r8.a, mode2: AddressingMode.reg8, cycles: 3, len: 2 });
 
 apply(0xf2, { op: Operation.ld, par1: r8.a, mode1: AddressingMode.reg8, par2: r8.c, mode2: AddressingMode.reg8io, cycles: 2, len: 1 });
 apply(0xe2, { op: Operation.ld, par1: r8.c, mode1: AddressingMode.reg8io, par2: r8.a, mode2: AddressingMode.reg8, cycles: 2, len: 1 });
+
+apply(0xea, { op: Operation.ld, mode1: AddressingMode.imm16ind8, par2: r8.a, mode2: AddressingMode.reg8, cycles: 4, len: 3 });
+apply(0xfa, { op: Operation.ld, par1: r8.a, mode1: AddressingMode.reg8, mode2: AddressingMode.imm16ind8, cycles: 4, len: 3 });
+
 [r8.c, r8.e, r8.l, r8.a].forEach((reg1, i1) =>
     [r8.a, r8.b, r8.c, r8.d, r8.e, r8.h, r8.l].forEach((reg2, i2) => {
         if (reg1 !== reg2)
