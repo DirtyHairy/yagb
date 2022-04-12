@@ -2,11 +2,12 @@ import { Environment, newEnvironment } from '../../../support/_helper';
 import { flag, r8 } from '../../../../src/emulator/cpu';
 
 describe('The glorious CPU', () => {
-    describe('CP d8', () => {
+    describe('CP B', () => {
         function setup(lhs: number, rhs: number): Environment {
-            const env = newEnvironment([0xfe, rhs]);
+            const env = newEnvironment([0xb8]);
 
             env.cpu.state.r8[r8.a] = lhs;
+            env.cpu.state.r8[r8.b] = rhs;
 
             return env;
         }

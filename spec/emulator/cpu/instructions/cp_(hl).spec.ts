@@ -1,12 +1,16 @@
 import { Environment, newEnvironment } from '../../../support/_helper';
-import { flag, r8 } from '../../../../src/emulator/cpu';
+import { flag, r16, r8 } from '../../../../src/emulator/cpu';
 
 describe('The glorious CPU', () => {
-    describe('CP d8', () => {
+    describe('CP (HL)', () => {
         function setup(lhs: number, rhs: number): Environment {
-            const env = newEnvironment([0xfe, rhs]);
+            const env = newEnvironment([0xbe]);
+
+            const address = 0x2000;
 
             env.cpu.state.r8[r8.a] = lhs;
+            env.cpu.state.r16[r16.hl] = address;
+            env.bus.write(address, rhs);
 
             return env;
         }

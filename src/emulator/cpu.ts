@@ -151,14 +151,16 @@ export class Cpu {
             case Operation.cp: {
                 this.clock.increment(instruction.cycles);
 
+                const a = this.state.r8[r8.a];
                 const operand = this.getArg1(instruction);
-                const result = this.state.r8[r8.a] - operand;
+                const result = a - operand;
 
                 this.state.r8[r8.f] =
                     flag.n |
                     ((result & 0xff) === 0 ? flag.z : 0) |
                     ((((this.state.r8[r8.a] & 0x0f) - (operand & 0x0f)) & 0xf0) !== 0 ? flag.h : 0) |
                     ((result & ~0xff) !== 0 ? flag.c : 0);
+                //                (a === operand ? flag.z : 0) | flag.n | ((a & 0xf) < (operand & 0xf) ? flag.h : 0) | (a < operand ? flag.c : 0);
 
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
                 return instruction.cycles;
