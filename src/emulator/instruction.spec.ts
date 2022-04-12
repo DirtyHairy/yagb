@@ -256,6 +256,7 @@ describe('The opcode instructions', () => {
                     return 2;
             }
         }
+
         const opcodes = Array.from({ length: 255 }, (_, i) => i);
         const { bus, address } = setup(opcodes.reduce((acc, x) => acc.concat([x, 0, 0]), [] as Array<number>));
 
