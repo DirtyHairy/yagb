@@ -30,7 +30,7 @@ export const enum AddressingMode {
     implicit,
 
     imm8,
-    imm8ind,
+    imm16ind8,
     imm8io,
     reg8,
     reg8io,
@@ -175,7 +175,7 @@ function disassembleOperationParameter(bus: Bus, address: number, par: number, m
         case AddressingMode.imm8:
             return `${hex8(bus.read((address + 1) & 0xffff))}`;
 
-        case AddressingMode.imm8ind:
+        case AddressingMode.imm16ind8:
             return `(${hex8(bus.read16((address + 1) & 0xffff))})`;
 
         case AddressingMode.imm8io:
@@ -262,7 +262,7 @@ apply(0xb6, { op: Operation.or, par1: r16.hl, mode1: AddressingMode.ind8, cycles
 
 apply(0x36, { op: Operation.ld, par1: r16.hl, mode1: AddressingMode.ind8, mode2: AddressingMode.imm8, cycles: 3, len: 2 });
 
-apply(0xea, { op: Operation.ld, mode1: AddressingMode.imm8ind, par2: r8.a, mode2: AddressingMode.reg8, cycles: 4, len: 3 });
+apply(0xea, { op: Operation.ld, mode1: AddressingMode.imm16ind8, par2: r8.a, mode2: AddressingMode.reg8, cycles: 4, len: 3 });
 
 apply(0xf0, { op: Operation.ld, par1: r8.a, mode1: AddressingMode.reg8, mode2: AddressingMode.imm8io, cycles: 3, len: 2 });
 apply(0xe0, { op: Operation.ld, mode1: AddressingMode.imm8io, par2: r8.a, mode2: AddressingMode.reg8, cycles: 3, len: 2 });

@@ -341,7 +341,7 @@ export class Cpu {
             case AddressingMode.imm8:
                 return this.bus.read((this.state.p + 1) & 0xffff);
 
-            case AddressingMode.imm8ind: {
+            case AddressingMode.imm16ind8: {
                 const index = this.bus.read16((this.state.p + 1) & 0xffff);
                 return this.bus.read(index);
             }
@@ -381,7 +381,7 @@ export class Cpu {
 
     private setArg(par: number, mode: AddressingMode, value: number): void {
         switch (mode) {
-            case AddressingMode.imm8ind:
+            case AddressingMode.imm16ind8:
                 this.bus.write(this.bus.read16((this.state.p + 1) & 0xffff), value & 0xff);
                 break;
 

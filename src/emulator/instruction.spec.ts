@@ -238,8 +238,26 @@ describe('The opcode instructions', () => {
     });
 
     describe('consistency checks', () => {
+        function cyclesForMode(mode: AddressingMode): number {
+            switch (mode) {
+                case AddressingMode.implicit:
+                case AddressingMode.ind8:
+                case AddressingMode.reg16:
+                case AddressingMode.reg8:
+                case AddressingMode.reg8io:
+                    return 0;
+
+                case AddressingMode.imm8:
+                case AddressingMode.imm8io:
+                    return 1;
+
+                case AddressingMode.imm16:
+                case AddressingMode.imm16ind8:
+                    return 2;
+            }
+        }
         const opcodes = Array.from({ length: 255 }, (_, i) => i);
-        const { bus, address } = setup(opcodes.concat([0xff, 0xff]));
+        const { bus, address } = setup(opcodes.reduce((acc, x) => acc.concat([x, 0, 0]), [] as Array<number>));
 
         opcodes.forEach((opcode) => {
             const instruction = decodeInstruction(bus, address + opcode);
@@ -251,23 +269,15 @@ describe('The opcode instructions', () => {
                 it('has cycles set', () => {
                     expect(instruction.cycles).toBeGreaterThan(0);
                 });
-                it('has len set', () => {
-                    expect(instruction.len).toBeGreaterThan(0);
+
+                it('has correct len set', () => {
+                    expect(instruction.len).toBe(1 + cyclesForMode(instruction.mode1) + cyclesForMode(instruction.mode2));
                 });
 
-                const modes = [AddressingMode.imm8, AddressingMode.imm8ind, AddressingMode.imm8io, AddressingMode.imm16];
-
-                if (modes.includes(instruction.mode1)) {
-                    it('does not load par2 from memory', () => {
-                        expect(modes.includes(instruction.mode2)).toBe(false);
-                    });
-                }
-
-                if (modes.includes(instruction.mode2)) {
-                    it('does not load par1 from memory', () => {
-                        expect(modes.includes(instruction.mode1)).toBe(false);
-                    });
-                }
+                const modes = [AddressingMode.imm8, AddressingMode.imm16ind8, AddressingMode.imm8io, AddressingMode.imm16];
+                it('does not load both parameters from memory', () => {
+                    expect(modes.includes(instruction.mode1) && modes.includes(instruction.mode2)).not.toBe(true);
+                });
             });
         });
     });
