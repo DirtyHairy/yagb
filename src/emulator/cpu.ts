@@ -358,11 +358,6 @@ export class Cpu {
             case AddressingMode.imm8:
                 return this.bus.read((this.state.p + 1) & 0xffff);
 
-            case AddressingMode.imm16ind8: {
-                const index = this.bus.read16((this.state.p + 1) & 0xffff);
-                return this.bus.read(index);
-            }
-
             case AddressingMode.imm8io: {
                 const index = this.bus.read((this.state.p + 1) & 0xffff);
                 return this.bus.read(0xff00 + index);
@@ -374,14 +369,19 @@ export class Cpu {
             case AddressingMode.reg8io:
                 return this.bus.read(0xff00 + this.state.r8[par]);
 
-            case AddressingMode.ind8:
-                return this.bus.read(this.state.r16[par]);
-
             case AddressingMode.imm16:
                 return this.bus.read16((this.state.p + 1) & 0xffff);
 
+            case AddressingMode.imm16ind8: {
+                const index = this.bus.read16((this.state.p + 1) & 0xffff);
+                return this.bus.read(index);
+            }
+
             case AddressingMode.reg16:
                 return this.state.r16[par];
+
+            case AddressingMode.reg16ind8:
+                return this.bus.read(this.state.r16[par]);
 
             default:
                 throw new Error('bad addressing mode');
@@ -398,10 +398,6 @@ export class Cpu {
 
     private setArg(par: number, mode: AddressingMode, value: number): void {
         switch (mode) {
-            case AddressingMode.imm16ind8:
-                this.bus.write(this.bus.read16((this.state.p + 1) & 0xffff), value & 0xff);
-                break;
-
             case AddressingMode.imm8io: {
                 const index = this.bus.read((this.state.p + 1) & 0xffff);
                 this.bus.write(0xff00 + index, value);
@@ -416,7 +412,11 @@ export class Cpu {
                 this.bus.write(0xff00 + this.state.r8[par], value);
                 break;
 
-            case AddressingMode.ind8:
+            case AddressingMode.imm16ind8:
+                this.bus.write(this.bus.read16((this.state.p + 1) & 0xffff), value & 0xff);
+                break;
+
+            case AddressingMode.reg16ind8:
                 this.bus.write(this.state.r16[par], value & 0xff);
                 break;
 
