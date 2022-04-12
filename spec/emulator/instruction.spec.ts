@@ -153,6 +153,10 @@ describe('The opcode instructions', () => {
                 const { bus, address } = setup([0xb6, 0x03]);
                 expect(disassembleInstruction(bus, address)).toBe('OR (HL)');
             });
+            it('returns INC (HL)', () => {
+                const { bus, address } = setup([0x34, 0x03]);
+                expect(disassembleInstruction(bus, address)).toBe('INC (HL)');
+            });
         });
         describe('with one imm16 value', () => {
             it('returns CALL a16', () => {
