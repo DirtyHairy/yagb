@@ -95,6 +95,10 @@ describe('The opcode instructions', () => {
                 const { bus, address } = setup([0xf6, 0x08]);
                 expect(disassembleInstruction(bus, address)).toBe('OR 0x08');
             });
+            it('returns XOR d8', () => {
+                const { bus, address } = setup([0xee, 0x08]);
+                expect(disassembleInstruction(bus, address)).toBe('XOR 0x08');
+            });
         });
         describe('with one imm8 value and condition', () => {
             it('returns JR NZ, d8', () => {

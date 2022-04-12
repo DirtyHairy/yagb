@@ -263,6 +263,7 @@ apply(0xb6, { op: Operation.or, par1: r16.hl, mode1: AddressingMode.reg16ind8, c
 
 apply(0xe6, { op: Operation.and, mode1: AddressingMode.imm8, cycles: 2, len: 2 });
 apply(0xee, { op: Operation.xor, mode1: AddressingMode.imm8, cycles: 2, len: 2 });
+apply(0xf6, { op: Operation.or, mode1: AddressingMode.imm8, cycles: 2, len: 2 });
 
 // 0x01, 0x11, 0x21, 0x31
 [r16.bc, r16.de, r16.hl, r16.sp].forEach((reg, i) => {
