@@ -31,6 +31,7 @@ export const enum flag {
     n = 0x40,
     h = 0x20,
     c = 0x10,
+    not = 0x1,
 }
 
 export interface CpuState {
@@ -230,12 +231,16 @@ export class Cpu {
                 this.state.p = this.getArg1(instruction);
                 return instruction.cycles;
 
-            case Operation.jrnz: {
-                const condition = (this.state.r8[r8.f] & flag.z) === 0;
+            case Operation.jr: {
+                const operator = this.getArg1(instruction);
+                const f = operator & (flag.z | flag.c);
+                const not = operator & flag.not;
+
+                const condition = (this.state.r8[r8.f] & f) === (not ? 0 : f);
                 const cycles = instruction.cycles + (condition ? 1 : 0);
                 this.clock.increment(cycles);
 
-                const displacement = extendSign8(this.getArg1(instruction));
+                const displacement = extendSign8(this.getArg2(instruction));
 
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
                 if (condition) {
@@ -365,6 +370,9 @@ export class Cpu {
 
             case AddressingMode.reg16:
                 return this.state.r16[par];
+
+            case AddressingMode.flag:
+                return par;
 
             default:
                 throw new Error('bad addressing mode');

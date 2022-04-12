@@ -781,4 +781,254 @@ describe('The glorious CPU', () => {
             expect(cpu.state.r8[r8.f] & (flag.n | flag.h | flag.c)).toBe(0);
         });
     });
+
+    describe('JR NZ, d8', () => {
+        const instructionLength = 2;
+        const baseAddress = 0x100;
+
+        function setup(jumppoint: number, flags: number): Environment {
+            const env = newEnvironment([0x20, jumppoint]);
+
+            env.cpu.state.r8[r8.f] = flags;
+
+            return env;
+        }
+
+        it('sets correct cycles if jumping', () => {
+            const jump = 0x16;
+            const { cpu } = setup(jump, 0x0);
+
+            expect(cpu.step(1)).toBe(3);
+        });
+
+        it('sets correct cycles if NOT jumping', () => {
+            const jump = 0x16;
+            const { cpu } = setup(jump, flag.z);
+
+            expect(cpu.step(1)).toBe(2);
+        });
+
+        it('jumps forward if Z flag is NOT set', () => {
+            const jump = 0x16;
+            const { cpu } = setup(jump, 0x0);
+
+            cpu.step(1);
+
+            expect(cpu.state.p).toBe(baseAddress + instructionLength + jump);
+        });
+
+        it('jumps backward if Z flag is NOT set', () => {
+            const jump = ~0x16;
+            const { cpu } = setup(jump, 0x0);
+
+            cpu.step(1);
+
+            expect(cpu.state.p).toBe(baseAddress + instructionLength + jump);
+        });
+
+        it('does NOT jump if Z flag is set', () => {
+            const { cpu } = setup(0x08, flag.z);
+
+            cpu.step(1);
+
+            expect(cpu.state.p).toBe(baseAddress + instructionLength);
+        });
+    });
+
+    describe('JR d8', () => {
+        const instructionLength = 2;
+        const baseAddress = 0x100;
+
+        function setup(jumppoint: number): Environment {
+            const env = newEnvironment([0x18, jumppoint]);
+
+            env.cpu.state.r8[r8.f] = flag.z | flag.n | flag.h | flag.c;
+
+            return env;
+        }
+
+        it('sets correct cycles if jumping', () => {
+            const jump = 0x16;
+            const { cpu } = setup(jump);
+
+            expect(cpu.step(1)).toBe(3);
+        });
+
+        it('jumps forward', () => {
+            const jump = 0x16;
+            const { cpu } = setup(jump);
+
+            cpu.step(1);
+
+            expect(cpu.state.p).toBe(baseAddress + instructionLength + jump);
+        });
+
+        it('jumps backward', () => {
+            const jump = ~0x16;
+            const { cpu } = setup(jump);
+
+            cpu.step(1);
+
+            expect(cpu.state.p).toBe(baseAddress + instructionLength + jump);
+        });
+    });
+
+    describe('JR Z, d8', () => {
+        const instructionLength = 2;
+        const baseAddress = 0x100;
+
+        function setup(jumppoint: number, flags: number): Environment {
+            const env = newEnvironment([0x28, jumppoint]);
+
+            env.cpu.state.r8[r8.f] = flags;
+
+            return env;
+        }
+
+        it('sets correct cycles if jumping', () => {
+            const jump = 0x16;
+            const { cpu } = setup(jump, flag.z);
+
+            expect(cpu.step(1)).toBe(3);
+        });
+
+        it('sets correct cycles if NOT jumping', () => {
+            const jump = 0x16;
+            const { cpu } = setup(jump, 0x0);
+
+            expect(cpu.step(1)).toBe(2);
+        });
+
+        it('jumps forward if Z flag is set', () => {
+            const jump = 0x16;
+            const { cpu } = setup(jump, flag.z);
+
+            cpu.step(1);
+
+            expect(cpu.state.p).toBe(baseAddress + instructionLength + jump);
+        });
+
+        it('jumps backward if Z flag is set', () => {
+            const jump = ~0x16;
+            const { cpu } = setup(jump, flag.z);
+
+            cpu.step(1);
+
+            expect(cpu.state.p).toBe(baseAddress + instructionLength + jump);
+        });
+
+        it('does NOT jump if Z flag is NOT set', () => {
+            const { cpu } = setup(0x08, 0x0);
+
+            cpu.step(1);
+
+            expect(cpu.state.p).toBe(baseAddress + instructionLength);
+        });
+    });
+
+    describe('JR NC, d8', () => {
+        const instructionLength = 2;
+        const baseAddress = 0x100;
+
+        function setup(jumppoint: number, flags: number): Environment {
+            const env = newEnvironment([0x30, jumppoint]);
+
+            env.cpu.state.r8[r8.f] = flags;
+
+            return env;
+        }
+
+        it('sets correct cycles if jumping', () => {
+            const jump = 0x16;
+            const { cpu } = setup(jump, 0x0);
+
+            expect(cpu.step(1)).toBe(3);
+        });
+
+        it('sets correct cycles if NOT jumping', () => {
+            const jump = 0x16;
+            const { cpu } = setup(jump, flag.c);
+
+            expect(cpu.step(1)).toBe(2);
+        });
+
+        it('jumps forward if C flag is NOT set', () => {
+            const jump = 0x16;
+            const { cpu } = setup(jump, 0x0);
+
+            cpu.step(1);
+
+            expect(cpu.state.p).toBe(baseAddress + instructionLength + jump);
+        });
+
+        it('jumps backward if C flag is NOT set', () => {
+            const jump = ~0x16;
+            const { cpu } = setup(jump, 0x0);
+
+            cpu.step(1);
+
+            expect(cpu.state.p).toBe(baseAddress + instructionLength + jump);
+        });
+
+        it('does NOT jump if C flag is set', () => {
+            const { cpu } = setup(0x08, flag.c);
+
+            cpu.step(1);
+
+            expect(cpu.state.p).toBe(baseAddress + instructionLength);
+        });
+    });
+
+    describe('JR C, d8', () => {
+        const instructionLength = 2;
+        const baseAddress = 0x100;
+
+        function setup(jumppoint: number, flags: number): Environment {
+            const env = newEnvironment([0x38, jumppoint]);
+
+            env.cpu.state.r8[r8.f] = flags;
+
+            return env;
+        }
+
+        it('sets correct cycles if jumping', () => {
+            const jump = 0x16;
+            const { cpu } = setup(jump, flag.c);
+
+            expect(cpu.step(1)).toBe(3);
+        });
+
+        it('sets correct cycles if NOT jumping', () => {
+            const jump = 0x16;
+            const { cpu } = setup(jump, 0x0);
+
+            expect(cpu.step(1)).toBe(2);
+        });
+
+        it('jumps forward if C flag is set', () => {
+            const jump = 0x16;
+            const { cpu } = setup(jump, flag.c);
+
+            cpu.step(1);
+
+            expect(cpu.state.p).toBe(baseAddress + instructionLength + jump);
+        });
+
+        it('jumps backward if C flag is set', () => {
+            const jump = ~0x16;
+            const { cpu } = setup(jump, flag.c);
+
+            cpu.step(1);
+
+            expect(cpu.state.p).toBe(baseAddress + instructionLength + jump);
+        });
+
+        it('does NOT jump if C flag is NOT set', () => {
+            const { cpu } = setup(0x08, 0x0);
+
+            cpu.step(1);
+
+            expect(cpu.state.p).toBe(baseAddress + instructionLength);
+        });
+    });
 });

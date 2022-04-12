@@ -2,6 +2,7 @@ import { AddressingMode, Operation, decodeInstruction, disassembleInstruction } 
 import { Bus, ReadHandler, WriteHandler } from './bus';
 
 import { System } from './system';
+import { flag } from './cpu';
 
 describe('The opcode instructions', () => {
     function setup(code: ArrayLike<number>) {
@@ -53,10 +54,6 @@ describe('The opcode instructions', () => {
             });
         });
         describe('with one imm8 value', () => {
-            it('returns JR NZ, d8', () => {
-                const { bus, address } = setup([0x20, 0x08]);
-                expect(disassembleInstruction(bus, address)).toBe('JR NZ, 0x08');
-            });
             it('returns CP d8', () => {
                 const { bus, address } = setup([0xfe, 0x94]);
                 expect(disassembleInstruction(bus, address)).toBe('CP 0x94');
@@ -216,11 +213,33 @@ describe('The opcode instructions', () => {
                 expect(disassembleInstruction(bus, address)).toBe('LD BC, 0xffff');
             });
         });
+        describe('with first flag value and second imm8 value', () => {
+            it('returns JR d8', () => {
+                const { bus, address } = setup([0x18, 0x08]);
+                expect(disassembleInstruction(bus, address)).toBe('JR 0x08');
+            });
+            it('returns JR NZ, d8', () => {
+                const { bus, address } = setup([0x20, 0x08]);
+                expect(disassembleInstruction(bus, address)).toBe('JR NZ, 0x08');
+            });
+            it('returns JR Z, d8', () => {
+                const { bus, address } = setup([0x28, 0x08]);
+                expect(disassembleInstruction(bus, address)).toBe('JR Z, 0x08');
+            });
+            it('returns JR NC, d8', () => {
+                const { bus, address } = setup([0x30, 0x08]);
+                expect(disassembleInstruction(bus, address)).toBe('JR NC, 0x08');
+            });
+            it('returns JR C, d8', () => {
+                const { bus, address } = setup([0x38, 0x08]);
+                expect(disassembleInstruction(bus, address)).toBe('JR C, 0x08');
+            });
+        });
     });
 
     describe('consistency checks', () => {
         const opcodes = Array.from({ length: 255 }, (_, i) => i);
-        const { bus, address } = setup(opcodes);
+        const { bus, address } = setup(opcodes.concat([0xff, 0xff]));
 
         opcodes.forEach((opcode) => {
             const instruction = decodeInstruction(bus, address + opcode);
@@ -228,20 +247,35 @@ describe('The opcode instructions', () => {
             // skip not defined (invalid) operations
             if (instruction.op === Operation.invalid) return;
 
-            describe(`0x${opcode.toString(16)}`, () => {
+            describe(disassembleInstruction(bus, address + opcode), () => {
                 it('has cycles set', () => {
                     expect(instruction.cycles).toBeGreaterThan(0);
                 });
                 it('has len set', () => {
                     expect(instruction.len).toBeGreaterThan(0);
                 });
-                it('does not load from memory for both parameters', () => {
-                    const modes = [AddressingMode.imm8, AddressingMode.imm8ind, AddressingMode.imm8io, AddressingMode.imm16];
 
-                    const result = modes.includes(instruction.mode1) && modes.includes(instruction.mode2);
+                const modes = [AddressingMode.imm8, AddressingMode.imm8ind, AddressingMode.imm8io, AddressingMode.imm16];
 
-                    expect(result).toBe(false);
-                });
+                if (modes.includes(instruction.mode1)) {
+                    it('does not load par2 from memory', () => {
+                        expect(modes.includes(instruction.mode2)).toBe(false);
+                    });
+                }
+
+                if (modes.includes(instruction.mode2)) {
+                    it('does not load par1 from memory', () => {
+                        expect(modes.includes(instruction.mode1)).toBe(false);
+                    });
+                }
+
+                if (instruction.mode1 === AddressingMode.flag) {
+                    describe(`par1 addressing mode flag`, () => {
+                        it('does not set Z AND C', () => {
+                            expect(instruction.par1).not.toBe(flag.z | flag.c);
+                        });
+                    });
+                }
             });
         });
     });
