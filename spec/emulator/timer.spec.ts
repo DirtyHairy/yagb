@@ -1,8 +1,8 @@
-import { Interrupt, irq } from './interrupt';
+import { Interrupt, irq } from '../../src/emulator/interrupt';
 
-import { Bus } from './bus';
-import { System } from './system';
-import { Timer } from './timer';
+import { Bus } from '../../src/emulator/bus';
+import { System } from '../../src/emulator/system';
+import { Timer } from '../../src/emulator/timer';
 
 describe('Timer', () => {
     function setup(): { bus: Bus; timer: Timer; raiseSpy: jest.SpyInstance<void, [irq]> } {
