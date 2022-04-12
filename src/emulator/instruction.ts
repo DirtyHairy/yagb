@@ -31,13 +31,13 @@ export const enum AddressingMode {
     implicit,
 
     imm8,
-    imm16ind8,
     imm8io,
     reg8,
     reg8io,
     ind8,
 
     imm16,
+    imm16ind8,
     reg16,
 }
 
