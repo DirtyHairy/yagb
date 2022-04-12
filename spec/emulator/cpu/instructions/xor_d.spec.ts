@@ -27,7 +27,7 @@ describe('The glorious CPU', () => {
             expect(cpu.state.r8[r8.f] & flag.z).toBe(flag.z);
         });
 
-        it('does not set Z if zero', () => {
+        it('does not set Z if not zero', () => {
             cpu.state.r8[r8.a] = 0x00;
             cpu.state.r8[r8.d] = 0x10;
 
@@ -36,7 +36,7 @@ describe('The glorious CPU', () => {
             expect(cpu.state.r8[r8.f] & flag.z).toBe(0);
         });
 
-        it('clears N, C, and H', () => {
+        it('clears N, H, C', () => {
             cpu.state.r8[r8.a] = 0x01;
             cpu.state.r8[r8.d] = 0x10;
             cpu.state.r8[r8.f] = flag.n | flag.c | flag.h;
