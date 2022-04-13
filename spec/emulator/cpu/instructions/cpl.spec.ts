@@ -1,5 +1,6 @@
-import { Environment, newEnvironment } from '../../../support/_helper';
-import { Cpu, flag, r8 } from '../../../../src/emulator/cpu';
+import { Cpu, r8 } from '../../../../src/emulator/cpu';
+
+import { newEnvironment } from '../../../support/_helper';
 
 describe('The glorious CPU', () => {
     describe('CPL', () => {

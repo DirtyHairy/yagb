@@ -1,11 +1,12 @@
 import { Bus, ReadHandler, WriteHandler } from '../../src/emulator/bus';
-import { Cpu } from '../../src/emulator/cpu';
-import { System } from '../../src/emulator/system';
+
 import { Clock } from '../../src/emulator/clock';
+import { Cpu } from '../../src/emulator/cpu';
 import { Interrupt } from '../../src/emulator/interrupt';
 import { Ppu } from '../../src/emulator/ppu';
-import { Timer } from '../../src/emulator/timer';
 import { Ram } from '../../src/emulator/ram';
+import { System } from '../../src/emulator/system';
+import { Timer } from '../../src/emulator/timer';
 
 export interface Environment {
     bus: Bus;

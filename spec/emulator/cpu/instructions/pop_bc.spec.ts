@@ -1,5 +1,6 @@
 import { Environment, newEnvironment } from '../../../support/_helper';
-import { Cpu, flag, r16, r8 } from '../../../../src/emulator/cpu';
+
+import { r16 } from '../../../../src/emulator/cpu';
 
 describe('The glorious CPU', () => {
     describe('POP BC', () => {
