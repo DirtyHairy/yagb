@@ -57,7 +57,7 @@
         }
     },
     "prettier": {
-        "printWidth": 140,
+        "printWidth": 160,
         "tabWidth": 4,
         "singleQuote": true,
         "parser": "typescript"
