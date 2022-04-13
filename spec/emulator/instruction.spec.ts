@@ -1,7 +1,7 @@
-import { Cpu } from '../../src/emulator/cpu';
 import { AddressingMode, Operation, decodeInstruction, disassembleInstruction } from '../../src/emulator/instruction';
 import { Bus, ReadHandler, WriteHandler } from '../../src/emulator/bus';
 
+import { Cpu } from '../../src/emulator/cpu';
 import { System } from '../../src/emulator/system';
 
 describe('The opcode instructions', () => {
@@ -342,7 +342,7 @@ describe('The opcode instructions', () => {
         const opcodes = Array.from({ length: 0x1ff }, (_, i) => i);
         const { bus, address } = setup(
             opcodes.reduce((acc, x) => {
-                let y = 0
+                let y = 0;
                 if (x > 0xff) {
                     y = x - 0x100;
                     x = Cpu.prefixCb;
@@ -363,7 +363,7 @@ describe('The opcode instructions', () => {
                 });
 
                 it('has correct len set', () => {
-                    const len = bus.read(address + 3 * opcode) === Cpu.prefixCb ? 2 : 1
+                    const len = bus.read(address + 3 * opcode) === Cpu.prefixCb ? 2 : 1;
                     expect(instruction.len).toBe(len + cyclesForMode(instruction.mode1) + cyclesForMode(instruction.mode2));
                 });
 
