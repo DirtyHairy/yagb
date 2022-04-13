@@ -1,3 +1,4 @@
+import { Cpu } from '../../src/emulator/cpu';
 import { AddressingMode, Operation, decodeInstruction, disassembleInstruction } from '../../src/emulator/instruction';
 import { Bus, ReadHandler, WriteHandler } from '../../src/emulator/bus';
 
@@ -306,12 +307,19 @@ describe('The opcode instructions', () => {
                 expect(disassembleInstruction(bus, address)).toBe('LD BC, 0xffff');
             });
         });
+        xdescribe('prefix cb', () => {
+            it('returns CB d8', () => {
+                const { bus, address } = setup([0xcb, 0x94]);
+                expect(disassembleInstruction(bus, address)).toBe('CB 0x94');
+            });
+        });
     });
 
     describe('consistency checks', () => {
         function cyclesForMode(mode: AddressingMode): number {
             switch (mode) {
                 case AddressingMode.implicit:
+                case AddressingMode.explicit:
                 case AddressingMode.reg8:
                 case AddressingMode.reg8io:
                 case AddressingMode.reg16:
@@ -331,8 +339,17 @@ describe('The opcode instructions', () => {
             }
         }
 
-        const opcodes = Array.from({ length: 255 }, (_, i) => i);
-        const { bus, address } = setup(opcodes.reduce((acc, x) => acc.concat([x, 0, 0]), [] as Array<number>));
+        const opcodes = Array.from({ length: 0x1ff }, (_, i) => i);
+        const { bus, address } = setup(
+            opcodes.reduce((acc, x) => {
+                let y = 0
+                if (x > 0xff) {
+                    y = x - 0x100;
+                    x = Cpu.prefixCb;
+                }
+                return acc.concat([x, y, 0]);
+            }, [] as Array<number>)
+        );
 
         opcodes.forEach((opcode) => {
             const instruction = decodeInstruction(bus, address + 3 * opcode);
@@ -346,7 +363,8 @@ describe('The opcode instructions', () => {
                 });
 
                 it('has correct len set', () => {
-                    expect(instruction.len).toBe(1 + cyclesForMode(instruction.mode1) + cyclesForMode(instruction.mode2));
+                    const len = bus.read(address + 3 * opcode) === Cpu.prefixCb ? 2 : 1
+                    expect(instruction.len).toBe(len + cyclesForMode(instruction.mode1) + cyclesForMode(instruction.mode2));
                 });
 
                 const modes = [AddressingMode.imm8, AddressingMode.imm16ind8, AddressingMode.imm8io, AddressingMode.imm16];
