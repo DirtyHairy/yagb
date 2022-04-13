@@ -1,7 +1,7 @@
-import { Interrupt, irq } from './interrupt';
+import { Interrupt, irq } from '../../src/emulator/interrupt';
 
-import { Bus } from './bus';
-import { System } from './system';
+import { Bus } from '../../src/emulator/bus';
+import { System } from '../../src/emulator/system';
 
 describe('interrupts', () => {
     function setup(iflag: number, imask: number): Interrupt {

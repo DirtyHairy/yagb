@@ -1,16 +1,40 @@
 name: Run tests
-on: push
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - name: Cache node_modules
-      uses: actions/cache@v3
-      with:
-        path: "**/node_modules"
-        key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
-    - name: Install modules
-      run: yarn
-    - name: Run tests
-      run: yarn test
+      - name: 'Checkout'
+        uses: actions/checkout@v2
+      - name: 'Cache node_modules'
+        uses: actions/cache@v3
+        with:
+          path: '**/node_modules'
+          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
+      - name: 'Install modules'
+        run: yarn
+      - name: 'Run all tests'
+        run: yarn test --coverage
+      - name: 'Upload test results (html)'
+        uses: actions/upload-artifact@v3
+        with:
+          name: test_results
+          path: test_results/
+          retention-days: 30
+          if-no-files-found: error
+      - name: 'Upload coverage report (html)'
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage_report
+          path: coverage/lcov-report/
+          retention-days: 30
+          if-no-files-found: error

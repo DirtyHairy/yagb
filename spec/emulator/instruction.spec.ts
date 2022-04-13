@@ -1,8 +1,8 @@
-import { AddressingMode, Operation, decodeInstruction, disassembleInstruction } from './instruction';
-import { Bus, ReadHandler, WriteHandler } from './bus';
+import { AddressingMode, Operation, decodeInstruction, disassembleInstruction } from '../../src/emulator/instruction';
+import { Bus, ReadHandler, WriteHandler } from '../../src/emulator/bus';
 
-import { System } from './system';
-import { flag } from './cpu';
+import { System } from '../../src/emulator/system';
+import { flag } from '../../src/emulator/cpu';
 
 describe('The opcode instructions', () => {
     function setup(code: ArrayLike<number>) {
