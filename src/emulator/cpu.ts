@@ -349,7 +349,7 @@ export class Cpu {
                 return instruction.cycles;
 
             default:
-                this.system.break('invalid instruction');
+                this.system.break(`invalid instruction ${hex8(instruction.op)} at ${hex16(this.state.p)}`);
                 return 0;
         }
     }
