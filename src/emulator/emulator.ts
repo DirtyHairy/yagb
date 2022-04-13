@@ -61,9 +61,7 @@ export class Emulator {
 
         this.cpu.onExecute.addHandler((address) => this.trace.add(address));
         this.bus.onRead.addHandler((address) => this.traps.get(address)?.trapRead && this.system.break(`trap read from ${hex16(address)}`));
-        this.bus.onWrite.addHandler(
-            (address) => this.traps.get(address)?.trapWrite && this.system.break(`trap write to ${hex16(address)}`)
-        );
+        this.bus.onWrite.addHandler((address) => this.traps.get(address)?.trapWrite && this.system.break(`trap write to ${hex16(address)}`));
 
         this.reset();
     }
@@ -109,9 +107,7 @@ export class Emulator {
         const busLocked = this.bus.isLocked();
         this.bus.unlock();
 
-        const traceLines = (count === undefined ? trace : trace.slice(trace.length - count, trace.length))
-            .map((address) => this.disassemblyLineAt(address))
-            .join('\n');
+        const traceLines = (count === undefined ? trace : trace.slice(trace.length - count, trace.length)).map((address) => this.disassemblyLineAt(address)).join('\n');
 
         if (busLocked) this.bus.lock();
         return traceLines;

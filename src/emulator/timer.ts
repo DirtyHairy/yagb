@@ -80,9 +80,7 @@ export class Timer {
     }
 
     printState(): string {
-        return `div=${hex8(this.reg[reg.div])} tima=${hex8(this.reg[reg.tima])} tma=${hex8(this.reg[reg.tma])} tac=${hex8(
-            this.reg[reg.tac]
-        )}`;
+        return `div=${hex8(this.reg[reg.div])} tima=${hex8(this.reg[reg.tima])} tma=${hex8(this.reg[reg.tma])} tac=${hex8(this.reg[reg.tac])}`;
     }
 
     private read: ReadHandler = (address) => {

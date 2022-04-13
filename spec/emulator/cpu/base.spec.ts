@@ -1,7 +1,7 @@
-import { r16 } from '../../../src/emulator/cpu';
-import { irq } from '../../../src/emulator/interrupt';
-
 import { Environment, newEnvironment } from '../../support/_helper';
+
+import { irq } from '../../../src/emulator/interrupt';
+import { r16 } from '../../../src/emulator/cpu';
 
 describe('The glorious CPU', () => {
     describe('interrupt dispatch', () => {

@@ -183,6 +183,8 @@ export class Cpu {
                 const result = operand - 1;
 
                 this.setArg1(instruction, result);
+
+                // prettier-ignore
                 this.state.r8[r8.f] =
                     (this.state.r8[r8.f] & flag.c) |
                     flag.n |
@@ -216,6 +218,8 @@ export class Cpu {
                 const result = operand + 1;
 
                 this.setArg1(instruction, result);
+
+                // prettier-ignore
                 this.state.r8[r8.f] =
                     (this.state.r8[r8.f] & flag.c) |
                     ((result & 0xff) === 0 ? flag.z : 0) |

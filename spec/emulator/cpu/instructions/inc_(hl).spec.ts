@@ -1,5 +1,5 @@
 import { Environment, newEnvironment } from '../../../support/_helper';
-import { Cpu, flag, r16, r8 } from '../../../../src/emulator/cpu';
+import { flag, r16, r8 } from '../../../../src/emulator/cpu';
 
 describe('The glorious CPU', () => {
     describe('INC (HL)', () => {
@@ -46,7 +46,7 @@ describe('The glorious CPU', () => {
 
             cpu.step(1);
 
-            expect(cpu.state.r8[r8.f] & (flag.n)).toBe(0);
+            expect(cpu.state.r8[r8.f] & flag.n).toBe(0);
         });
 
         it('sets H if half carry', () => {
