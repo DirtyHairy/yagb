@@ -382,6 +382,17 @@ export class Cpu {
                 return instruction.cycles;
             }
 
+            case Operation.res: {
+                this.clock.increment(instruction.cycles);
+
+                const operand = this.getArg2(instruction);
+                const bitMask = ~(1 << this.getArg1(instruction));
+
+                this.setArg2(instruction, operand & bitMask);
+
+                return instruction.cycles;
+            }
+
             default:
                 this.system.break(`invalid instruction ${hex8(instruction.op)} at ${hex16(this.state.p)}`);
                 return 0;
