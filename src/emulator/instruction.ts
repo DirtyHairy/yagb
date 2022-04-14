@@ -264,7 +264,7 @@ function disassembleOperationParameter(bus: Bus, address: number, par: number, m
             return `(${disassembleR16(par)})`;
 
         default:
-            throw new Error('bad addressing mode');
+            throw new Error(`bad addressing mode ${hex8(mode)}`);
     }
 }
 

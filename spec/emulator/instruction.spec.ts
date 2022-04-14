@@ -3,6 +3,7 @@ import { Bus, ReadHandler, WriteHandler } from '../../src/emulator/bus';
 
 import { Cpu } from '../../src/emulator/cpu';
 import { System } from '../../src/emulator/system';
+import { hex8 } from '../../src/helper/format';
 
 describe('The opcode instructions', () => {
     function setup(code: ArrayLike<number>) {
@@ -335,7 +336,7 @@ describe('The opcode instructions', () => {
                     return 2;
 
                 default:
-                    throw new Error('bad addressing mode');
+                    throw new Error(`bad addressing mode ${hex8(mode)}`);
             }
         }
 

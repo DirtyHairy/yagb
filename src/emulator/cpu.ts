@@ -408,7 +408,7 @@ export class Cpu {
                 return this.bus.read(this.state.r16[par]);
 
             default:
-                throw new Error('bad addressing mode');
+                throw new Error(`bad addressing mode ${hex8(mode)}`);
         }
     }
 
@@ -449,7 +449,7 @@ export class Cpu {
                 break;
 
             default:
-                throw new Error('bad addressing mode');
+                throw new Error(`bad addressing mode ${hex8(mode)}`);
         }
     }
 
