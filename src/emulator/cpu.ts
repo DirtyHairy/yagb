@@ -356,6 +356,21 @@ export class Cpu {
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
                 return instruction.cycles;
 
+            case Operation.bit: {
+                this.clock.increment(instruction.cycles);
+
+                const operand = this.getArg2(instruction);
+                const bitMask = 1 << this.getArg1(instruction);
+
+                // prettier-ignore
+                this.state.r8[r8.f] =
+                    (this.state.r8[r8.f] & flag.c) |
+                    flag.h |
+                    (operand & bitMask ? 0x0 : 0x80);
+
+                return instruction.cycles;
+            }
+
             default:
                 this.system.break(`invalid instruction ${hex8(instruction.op)} at ${hex16(this.state.p)}`);
                 return 0;

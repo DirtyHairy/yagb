@@ -28,17 +28,17 @@ export const enum Operation {
     xor,
 
     // prefix cb
-    rlc,
-    rrc,
-    rl,
-    rr,
-    sla,
-    sra,
-    swap,
-    srl,
     bit,
     res,
+    rl,
+    rlc,
+    rr,
+    rrc,
     set,
+    sla,
+    sra,
+    srl,
+    swap,
 }
 
 export const enum AddressingMode {
