@@ -1,5 +1,5 @@
-import { Cpu, r16, r8 } from './cpu';
 import { hex16, hex8 } from '../helper/format';
+import { r16, r8 } from './cpu';
 
 import { Bus } from './bus';
 
@@ -80,7 +80,7 @@ export interface Instruction {
 export function decodeInstruction(bus: Bus, address: number): Instruction {
     let opcode = bus.read(address);
 
-    if (Cpu.prefixCb === opcode) opcode = bus.read(address + 1) + 0x100;
+    if (0xcb === opcode) opcode = bus.read(address + 1) + 0x100;
 
     return instructions[opcode];
 }
@@ -281,7 +281,7 @@ function disassembleR16(reg: r16): string {
 }
 
 function apply(opcode: number, instruction: Partial<Instruction>): void {
-    opcode = (opcode & 0xff00) >>> 8 === Cpu.prefixCb ? (opcode & 0x00ff) + 0x100 : opcode;
+    opcode = (opcode & 0xff00) >>> 8 === 0xcb ? (opcode & 0x00ff) + 0x100 : opcode;
 
     instructions[opcode] = {
         ...instructions[opcode],

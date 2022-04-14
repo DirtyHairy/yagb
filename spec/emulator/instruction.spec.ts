@@ -345,7 +345,7 @@ describe('The opcode instructions', () => {
                 let y = 0;
                 if (x > 0xff) {
                     y = x - 0x100;
-                    x = Cpu.prefixCb;
+                    x = 0xcb;
                 }
                 return acc.concat([x, y, 0]);
             }, [] as Array<number>)
@@ -363,7 +363,7 @@ describe('The opcode instructions', () => {
                 });
 
                 it('has correct len set', () => {
-                    const len = bus.read(address + 3 * opcode) === Cpu.prefixCb ? 2 : 1;
+                    const len = bus.read(address + 3 * opcode) === 0xcb ? 2 : 1;
                     expect(instruction.len).toBe(len + cyclesForMode(instruction.mode1) + cyclesForMode(instruction.mode2));
                 });
 

@@ -56,8 +56,6 @@ function getIrqVector(interrupt: irq): number {
 }
 
 export class Cpu {
-    static readonly prefixCb = 0xcb;
-
     constructor(private bus: Bus, private clock: Clock, private interrupt: Interrupt, private system: SystemInterface) {
         const r16 = new Uint16Array(5);
         const r8 = new Uint8Array(r16.buffer);
