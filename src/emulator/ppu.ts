@@ -1,10 +1,21 @@
 import { Bus, ReadHandler, WriteHandler } from './bus';
 
 import { SystemInterface } from './system';
-import { hex16 } from '../helper/format';
 
 const enum reg {
-    ly = 0xff44,
+    base = 0xff40,
+    lcdc = 0x00,
+    stat = 0x01,
+    scy = 0x02,
+    scx = 0x03,
+    ly = 0x04,
+    lyc = 0x05,
+    dma = 0x06,
+    bgp = 0x07,
+    obp0 = 0x08,
+    obp1 = 0x09,
+    wy = 0x0a,
+    wx = 0x0b,
 }
 
 export const enum Mode {
@@ -12,6 +23,10 @@ export const enum Mode {
     vblank = 1,
     oamScan = 2,
     draw = 3,
+}
+
+const enum Lcdc {
+    enable = 0x08,
 }
 
 export class Ppu {
@@ -34,7 +49,12 @@ export class Ppu {
             bus.map(i, this.stubRead, this.stubWrite);
         }
 
-        bus.map(reg.ly, this.readLY, this.invalidWrite);
+        for (let i = 0; i <= reg.wx; i++) {
+            bus.map(reg.base + i, this.registerRead, this.registerWrite);
+        }
+
+        bus.map(reg.base + reg.ly, this.lyRead, this.stubWrite);
+        bus.map(reg.base + reg.stat, this.statRead, this.registerWrite);
     }
 
     reset(): void {
@@ -45,6 +65,7 @@ export class Ppu {
 
         this.vram.fill(0);
         this.oam.fill(0);
+        this.reg.fill(0);
     }
 
     cycle(systemClocks: number): void {
@@ -59,6 +80,10 @@ export class Ppu {
 
     getFrame(): number {
         return this.frame;
+    }
+
+    getMode(): Mode {
+        return this.mode;
     }
 
     private consumeClocks(clocks: number): number {
@@ -121,24 +146,35 @@ export class Ppu {
         }
     }
 
-    mode: Mode = Mode.oamScan;
-
     private stubRead: ReadHandler = () => 0;
     private stubWrite: WriteHandler = () => undefined;
-    private invalidWrite: WriteHandler = (address) => this.system.break(`bad write to PPU at ${hex16(address)}`);
 
-    private vramRead: ReadHandler = (address) => this.vram[address & 0x1fff];
-    private vramWrite: WriteHandler = (address, value) => (this.vram[address & 0x1fff] = value);
+    private vramRead: ReadHandler = (address) =>
+        (this.reg[reg.lcdc] & Lcdc.enable) === 0 || this.mode !== Mode.draw ? this.vram[address & 0x1fff] : 0xff;
+    private vramWrite: WriteHandler = (address, value) =>
+        (this.reg[reg.lcdc] & Lcdc.enable) === 0 || (this.mode !== Mode.draw && (this.vram[address & 0x1fff] = value));
 
-    private oamRead: ReadHandler = (address) => this.oam[address & 0xff];
-    private oamWrite: WriteHandler = (address, value) => (this.oam[address & 0xff] = value);
+    private oamRead: ReadHandler = (address) =>
+        (this.reg[reg.lcdc] & Lcdc.enable) === 0 || (this.mode !== Mode.draw && this.mode !== Mode.oamScan)
+            ? this.oam[address & 0xff]
+            : 0xff;
+    private oamWrite: WriteHandler = (address, value) =>
+        (this.reg[reg.lcdc] & Lcdc.enable) === 0 ||
+        (this.mode !== Mode.draw && this.mode !== Mode.oamScan && (this.oam[address & 0xff] = value));
 
-    private readLY: ReadHandler = () => this.scanline;
+    private registerRead: ReadHandler = (address) => this.reg[address - reg.base];
+    private registerWrite: WriteHandler = (address, value) => (this.reg[address - reg.base] = value);
+
+    private statRead: ReadHandler = () => (this.reg[reg.stat] & 0xf8) | (this.reg[reg.lyc] === this.scanline ? 4 : 0) | this.mode;
+    private lyRead: ReadHandler = () => this.scanline;
 
     private clockInMode = 0;
     private scanline = 0;
     private frame = 0;
+    private mode: Mode = Mode.oamScan;
 
     private vram = new Uint8Array(0x2000);
     private oam = new Uint8Array(0xa0);
+
+    private reg = new Uint8Array(reg.wx + 1);
 }

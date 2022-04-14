@@ -21,7 +21,7 @@ describe('PPU', () => {
             it('starts in mode 2 (OAM scan)', () => {
                 const { ppu } = setup();
 
-                expect(ppu.mode).toBe(Mode.oamScan);
+                expect(ppu.getMode()).toBe(Mode.oamScan);
             });
 
             it('enters mode 3 (draw) after 80 cyles', () => {
@@ -29,11 +29,11 @@ describe('PPU', () => {
 
                 increment(ppu, 79);
 
-                expect(ppu.mode).toBe(Mode.oamScan);
+                expect(ppu.getMode()).toBe(Mode.oamScan);
 
                 increment(ppu, 1);
 
-                expect(ppu.mode).toBe(Mode.draw);
+                expect(ppu.getMode()).toBe(Mode.draw);
             });
 
             it('enters mode 3 (hblank) after 252 cyles', () => {
@@ -41,11 +41,11 @@ describe('PPU', () => {
 
                 increment(ppu, 251);
 
-                expect(ppu.mode).toBe(Mode.draw);
+                expect(ppu.getMode()).toBe(Mode.draw);
 
                 increment(ppu, 1);
 
-                expect(ppu.mode).toBe(Mode.hblank);
+                expect(ppu.getMode()).toBe(Mode.hblank);
             });
 
             it('enters mode 0 (hblank) after 252 cyles', () => {
@@ -53,11 +53,11 @@ describe('PPU', () => {
 
                 increment(ppu, 251);
 
-                expect(ppu.mode).toBe(Mode.draw);
+                expect(ppu.getMode()).toBe(Mode.draw);
 
                 increment(ppu, 1);
 
-                expect(ppu.mode).toBe(Mode.hblank);
+                expect(ppu.getMode()).toBe(Mode.hblank);
             });
 
             it('reenters mode 2 (OAM scan) and increments the line counter after 456 cycles', () => {
@@ -65,12 +65,12 @@ describe('PPU', () => {
 
                 increment(ppu, 455);
 
-                expect(ppu.mode).toBe(Mode.hblank);
+                expect(ppu.getMode()).toBe(Mode.hblank);
                 expect(bus.read(0xff44)).toBe(0);
 
                 increment(ppu, 1);
 
-                expect(ppu.mode).toBe(Mode.oamScan);
+                expect(ppu.getMode()).toBe(Mode.oamScan);
                 expect(bus.read(0xff44)).toBe(1);
             });
 
@@ -79,12 +79,12 @@ describe('PPU', () => {
 
                 increment(ppu, 144 * 456 - 1);
 
-                expect(ppu.mode).toBe(Mode.hblank);
+                expect(ppu.getMode()).toBe(Mode.hblank);
                 expect(bus.read(0xff44)).toBe(143);
 
                 increment(ppu, 1);
 
-                expect(ppu.mode).toBe(Mode.vblank);
+                expect(ppu.getMode()).toBe(Mode.vblank);
                 expect(bus.read(0xff44)).toBe(144);
             });
 
@@ -93,17 +93,17 @@ describe('PPU', () => {
 
                 increment(ppu, 144 * 456);
 
-                expect(ppu.mode).toBe(Mode.vblank);
+                expect(ppu.getMode()).toBe(Mode.vblank);
                 expect(bus.read(0xff44)).toBe(144);
 
                 increment(ppu, 455);
 
-                expect(ppu.mode).toBe(Mode.vblank);
+                expect(ppu.getMode()).toBe(Mode.vblank);
                 expect(bus.read(0xff44)).toBe(144);
 
                 increment(ppu, 1);
 
-                expect(ppu.mode).toBe(Mode.vblank);
+                expect(ppu.getMode()).toBe(Mode.vblank);
                 expect(bus.read(0xff44)).toBe(145);
             });
 
@@ -112,13 +112,13 @@ describe('PPU', () => {
 
                 increment(ppu, 70223);
 
-                expect(ppu.mode).toBe(Mode.vblank);
+                expect(ppu.getMode()).toBe(Mode.vblank);
                 expect(bus.read(0xff44)).toBe(153);
                 expect(ppu.getFrame()).toBe(0);
 
                 increment(ppu, 1);
 
-                expect(ppu.mode).toBe(Mode.oamScan);
+                expect(ppu.getMode()).toBe(Mode.oamScan);
                 expect(bus.read(0xff44)).toBe(0);
                 expect(ppu.getFrame()).toBe(1);
             });
