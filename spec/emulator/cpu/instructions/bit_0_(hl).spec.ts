@@ -37,7 +37,7 @@ describe('The glorious CPU', () => {
 
             cpu.step(1);
 
-            expect(cpu.state.r8[r8.f] & (flag.n)).toBe(0);
+            expect(cpu.state.r8[r8.f] & flag.n).toBe(0);
         });
 
         it('sets H', () => {
@@ -49,7 +49,7 @@ describe('The glorious CPU', () => {
         });
 
         it('does not affect C', () => {
-            const { cpu } = setup(0xf0);
+            const { cpu } = setup(0x55);
 
             cpu.step(1);
 

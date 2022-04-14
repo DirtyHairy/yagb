@@ -17,7 +17,7 @@ describe('The glorious CPU', () => {
             return env;
         }
 
-        it('calculates A & (HL)', () => {
+        it('calculates A | (HL)', () => {
             const { cpu } = setup(0x15, 0x32);
 
             cpu.step(1);

@@ -13,7 +13,7 @@ describe('The glorious CPU', () => {
             return env;
         }
 
-        it('calculates B & 0x1', () => {
+        it('calculates A & 0x1', () => {
             const { cpu } = setup(0xaa);
 
             cpu.step(1);

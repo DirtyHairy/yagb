@@ -22,7 +22,7 @@ describe('The glorious CPU', () => {
 
             cpu.step(1);
 
-            expect(bus.read16(cpu.state.r16[r16.hl])).toBe(value + 1);
+            expect(bus.read(cpu.state.r16[r16.hl])).toBe(value + 1);
         });
 
         it('sets Z if zero', () => {
