@@ -1,4 +1,5 @@
 import { Bus, ReadHandler, WriteHandler } from './bus';
+import { Interrupt, irq } from './interrupt';
 
 import { SystemInterface } from './system';
 
@@ -18,19 +19,19 @@ const enum reg {
     wx = 0x0b,
 }
 
-export const enum Mode {
+export const enum ppuMode {
     hblank = 0,
     vblank = 1,
     oamScan = 2,
     draw = 3,
 }
 
-const enum Lcdc {
+const enum lcdc {
     enable = 0x80,
 }
 
 export class Ppu {
-    constructor(private system: SystemInterface) {}
+    constructor(private system: SystemInterface, private interrupt: Interrupt) {}
 
     install(bus: Bus): void {
         for (let i = 0xff40; i <= 0xff4b; i++) {
@@ -59,7 +60,7 @@ export class Ppu {
 
     reset(): void {
         this.clockInMode = 0;
-        this.mode = Mode.oamScan;
+        this.mode = ppuMode.oamScan;
         this.scanline = 0;
         this.frame = 0;
 
@@ -82,17 +83,17 @@ export class Ppu {
         return this.frame;
     }
 
-    getMode(): Mode {
+    getMode(): ppuMode {
         return this.mode;
     }
 
     private consumeClocks(clocks: number): number {
         switch (this.mode) {
-            case Mode.oamScan:
+            case ppuMode.oamScan:
                 if (clocks + this.clockInMode >= 80) {
                     const consumed = 80 - this.clockInMode;
 
-                    this.mode = Mode.draw;
+                    this.mode = ppuMode.draw;
                     this.clockInMode = 0;
 
                     return consumed;
@@ -101,11 +102,11 @@ export class Ppu {
                     return clocks;
                 }
 
-            case Mode.draw:
+            case ppuMode.draw:
                 if (clocks + this.clockInMode >= 172) {
                     const consumed = 172 - this.clockInMode;
 
-                    this.mode = Mode.hblank;
+                    this.mode = ppuMode.hblank;
                     this.clockInMode = 0;
 
                     return consumed;
@@ -114,12 +115,17 @@ export class Ppu {
                     return clocks;
                 }
 
-            case Mode.hblank:
+            case ppuMode.hblank:
                 if (clocks + this.clockInMode >= 204) {
                     const consumed = 204 - this.clockInMode;
 
                     this.scanline++;
-                    this.mode = this.scanline === 144 ? Mode.vblank : Mode.oamScan;
+                    if (this.scanline === 144) {
+                        this.mode = ppuMode.vblank;
+                        this.interrupt.raise(irq.vblank);
+                    } else {
+                        this.mode = ppuMode.oamScan;
+                    }
                     this.clockInMode = 0;
 
                     return consumed;
@@ -128,11 +134,11 @@ export class Ppu {
                     return clocks;
                 }
 
-            case Mode.vblank:
+            case ppuMode.vblank:
                 if (clocks + this.clockInMode >= 4560) {
                     const consumed = 4560 - this.clockInMode;
 
-                    this.mode = Mode.oamScan;
+                    this.mode = ppuMode.oamScan;
                     this.clockInMode = 0;
                     this.scanline = 0;
                     this.frame++;
@@ -150,16 +156,16 @@ export class Ppu {
     private stubWrite: WriteHandler = () => undefined;
 
     private vramRead: ReadHandler = (address) =>
-        (this.reg[reg.lcdc] & Lcdc.enable) === 0 || this.mode !== Mode.draw ? this.vram[address & 0x1fff] : 0xff;
+        (this.reg[reg.lcdc] & lcdc.enable) === 0 || this.mode !== ppuMode.draw ? this.vram[address & 0x1fff] : 0xff;
     private vramWrite: WriteHandler = (address, value) =>
-        ((this.reg[reg.lcdc] & Lcdc.enable) === 0 || this.mode !== Mode.draw) && (this.vram[address & 0x1fff] = value);
+        ((this.reg[reg.lcdc] & lcdc.enable) === 0 || this.mode !== ppuMode.draw) && (this.vram[address & 0x1fff] = value);
 
     private oamRead: ReadHandler = (address) =>
-        (this.reg[reg.lcdc] & Lcdc.enable) === 0 || (this.mode !== Mode.draw && this.mode !== Mode.oamScan)
+        (this.reg[reg.lcdc] & lcdc.enable) === 0 || (this.mode !== ppuMode.draw && this.mode !== ppuMode.oamScan)
             ? this.oam[address & 0xff]
             : 0xff;
     private oamWrite: WriteHandler = (address, value) =>
-        ((this.reg[reg.lcdc] & Lcdc.enable) === 0 || (this.mode !== Mode.draw && this.mode !== Mode.oamScan)) &&
+        ((this.reg[reg.lcdc] & lcdc.enable) === 0 || (this.mode !== ppuMode.draw && this.mode !== ppuMode.oamScan)) &&
         (this.oam[address & 0xff] = value);
 
     private registerRead: ReadHandler = (address) => this.reg[address - reg.base];
@@ -171,7 +177,7 @@ export class Ppu {
     private clockInMode = 0;
     private scanline = 0;
     private frame = 0;
-    private mode: Mode = Mode.oamScan;
+    private mode: ppuMode = ppuMode.oamScan;
 
     private vram = new Uint8Array(0x2000);
     private oam = new Uint8Array(0xa0);

@@ -25,9 +25,9 @@ export class Emulator {
     constructor(cartridgeImage: Uint8Array, printCb: (message: string) => void) {
         this.system = new System(printCb);
         this.bus = new Bus(this.system);
-        this.ppu = new Ppu(this.system);
-        this.audio = new Audio();
         this.interrupt = new Interrupt();
+        this.ppu = new Ppu(this.system, this.interrupt);
+        this.audio = new Audio();
         this.timer = new Timer(this.interrupt);
         this.clock = new Clock(this.ppu, this.timer);
         this.cpu = new Cpu(this.bus, this.clock, this.interrupt, this.system);

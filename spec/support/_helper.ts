@@ -22,8 +22,8 @@ export function newEnvironment(code: ArrayLike<number>): Environment {
         throw new Error(msg);
     });
 
-    const ppu = new Ppu(system);
     const interrupt = new Interrupt();
+    const ppu = new Ppu(system, interrupt);
     const timer = new Timer(interrupt);
 
     const clock = new Clock(ppu, timer);
