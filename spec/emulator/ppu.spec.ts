@@ -39,18 +39,6 @@ describe('PPU', () => {
                 expect(ppu.getMode()).toBe(ppuMode.draw);
             });
 
-            it('enters mode 3 (hblank) after 252 cyles', () => {
-                const { ppu } = setup();
-
-                increment(ppu, 251);
-
-                expect(ppu.getMode()).toBe(ppuMode.draw);
-
-                increment(ppu, 1);
-
-                expect(ppu.getMode()).toBe(ppuMode.hblank);
-            });
-
             it('enters mode 0 (hblank) after 252 cyles', () => {
                 const { ppu } = setup();
 
@@ -77,7 +65,7 @@ describe('PPU', () => {
                 expect(bus.read(0xff44)).toBe(1);
             });
 
-            it('enter mode 1 (vblank) after 143 scanlines', () => {
+            it('enter mode 1 (vblank) after 144 scanlines', () => {
                 const { ppu, bus } = setup();
 
                 increment(ppu, 144 * 456 - 1);
@@ -374,7 +362,7 @@ describe('PPU', () => {
             expect(raiseSpy).not.toHaveBeenCalled();
         });
 
-        it('hitting LY triggers STAT interrupt if configured', () => {
+        it('hitting LYC triggers STAT interrupt if configured', () => {
             const { bus, ppu, raiseSpy } = setup();
 
             bus.write(0xff40, 0x80);
@@ -389,7 +377,7 @@ describe('PPU', () => {
             expect(raiseSpy).toHaveBeenCalledWith(irq.stat);
         });
 
-        it('hitting LY does not trigger STAT interrupt if not configured', () => {
+        it('hitting LYC does not trigger STAT interrupt if not configured', () => {
             const { bus, ppu, raiseSpy } = setup();
 
             bus.write(0xff40, 0x80);
@@ -432,6 +420,52 @@ describe('PPU', () => {
 
             bus.write(0xff45, 10);
             expect(raiseSpy).toHaveBeenCalledWith(irq.stat);
+        });
+    });
+
+    describe('STAT flags', () => {
+        it('LYC = LY triggers appropiately', () => {
+            const { bus, ppu } = setup();
+
+            bus.write(0xff40, 0x80);
+            bus.write(0xff45, 10);
+
+            ppu.cycle(10 * 456 - 1);
+            expect(bus.read(0xff41) & 0x04).toBe(0);
+
+            ppu.cycle(1);
+            bus.write(0xff45, 10);
+            expect(bus.read(0xff41) & 0x04).toBe(0x04);
+        });
+
+        it('flags mode 2 (OAM scan)', () => {
+            const { bus } = setup();
+
+            expect(bus.read(0xff41) & 0x043).toBe(0x02);
+        });
+
+        it('flags mode 3 (draw)', () => {
+            const { bus, ppu } = setup();
+
+            ppu.cycle(80);
+
+            expect(bus.read(0xff41) & 0x043).toBe(0x03);
+        });
+
+        it('flags mode 0 (hblank)', () => {
+            const { bus, ppu } = setup();
+
+            ppu.cycle(252);
+
+            expect(bus.read(0xff41) & 0x043).toBe(0x00);
+        });
+
+        it('flags mode 1 (vblank)', () => {
+            const { bus, ppu } = setup();
+
+            ppu.cycle(144 * 456);
+
+            expect(bus.read(0xff41) & 0x043).toBe(0x01);
         });
     });
 });
