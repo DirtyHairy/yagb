@@ -379,6 +379,9 @@ export class Cpu {
 
     private getArg(par: number, mode: AddressingMode): number {
         switch (mode) {
+            case AddressingMode.explicit:
+                return par;
+
             case AddressingMode.imm8:
                 return this.bus.read((this.state.p + 1) & 0xffff);
 
