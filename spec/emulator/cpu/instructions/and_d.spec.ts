@@ -27,7 +27,7 @@ describe('The glorious CPU', () => {
             expect(cpu.state.r8[r8.f] & flag.z).toBe(flag.z);
         });
 
-        it('does not set Z if zero', () => {
+        it('does not set Z if not zero', () => {
             cpu.state.r8[r8.a] = 0x15;
             cpu.state.r8[r8.d] = 0x32;
 

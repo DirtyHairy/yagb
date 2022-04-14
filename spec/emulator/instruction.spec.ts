@@ -87,6 +87,18 @@ describe('The opcode instructions', () => {
                 const { bus, address } = setup([0x18, 0x08]);
                 expect(disassembleInstruction(bus, address)).toBe('JR 0x08');
             });
+            it('returns AND d8', () => {
+                const { bus, address } = setup([0xe6, 0x08]);
+                expect(disassembleInstruction(bus, address)).toBe('AND 0x08');
+            });
+            it('returns OR d8', () => {
+                const { bus, address } = setup([0xf6, 0x08]);
+                expect(disassembleInstruction(bus, address)).toBe('OR 0x08');
+            });
+            it('returns XOR d8', () => {
+                const { bus, address } = setup([0xee, 0x08]);
+                expect(disassembleInstruction(bus, address)).toBe('XOR 0x08');
+            });
         });
         describe('with one imm8 value and condition', () => {
             it('returns JR NZ, d8', () => {
@@ -107,29 +119,17 @@ describe('The opcode instructions', () => {
             });
         });
         describe('with one reg8 value', () => {
-            it('returns AND A', () => {
-                const { bus, address } = setup([0xa7, 0x01]);
-                expect(disassembleInstruction(bus, address)).toBe('AND A');
-            });
             it('returns AND B', () => {
                 const { bus, address } = setup([0xa0, 0x01]);
                 expect(disassembleInstruction(bus, address)).toBe('AND B');
             });
-            it('returns XOR A', () => {
-                const { bus, address } = setup([0xaf, 0x01]);
-                expect(disassembleInstruction(bus, address)).toBe('XOR A');
+            it('returns OR B', () => {
+                const { bus, address } = setup([0xb0, 0x01]);
+                expect(disassembleInstruction(bus, address)).toBe('OR B');
             });
             it('returns XOR B', () => {
                 const { bus, address } = setup([0xa8, 0x01]);
                 expect(disassembleInstruction(bus, address)).toBe('XOR B');
-            });
-            it('returns OR A', () => {
-                const { bus, address } = setup([0xb7, 0x01]);
-                expect(disassembleInstruction(bus, address)).toBe('OR A');
-            });
-            it('returns OR B', () => {
-                const { bus, address } = setup([0xb0, 0x01]);
-                expect(disassembleInstruction(bus, address)).toBe('OR B');
             });
             it('returns INC B', () => {
                 const { bus, address } = setup([0x04, 0x01]);
@@ -139,19 +139,59 @@ describe('The opcode instructions', () => {
                 const { bus, address } = setup([0x05, 0x01]);
                 expect(disassembleInstruction(bus, address)).toBe('DEC B');
             });
+            it('returns CP B', () => {
+                const { bus, address } = setup([0xb8, 0x01]);
+                expect(disassembleInstruction(bus, address)).toBe('CP B');
+            });
+            it('returns AND A', () => {
+                const { bus, address } = setup([0xa7, 0x01]);
+                expect(disassembleInstruction(bus, address)).toBe('AND A');
+            });
+            it('returns OR A', () => {
+                const { bus, address } = setup([0xb7, 0x01]);
+                expect(disassembleInstruction(bus, address)).toBe('OR A');
+            });
+            it('returns XOR A', () => {
+                const { bus, address } = setup([0xaf, 0x01]);
+                expect(disassembleInstruction(bus, address)).toBe('XOR A');
+            });
+            it('returns INC A', () => {
+                const { bus, address } = setup([0x3c, 0x01]);
+                expect(disassembleInstruction(bus, address)).toBe('INC A');
+            });
+            it('returns DEC A', () => {
+                const { bus, address } = setup([0x3d, 0x01]);
+                expect(disassembleInstruction(bus, address)).toBe('DEC A');
+            });
+            it('returns CP A', () => {
+                const { bus, address } = setup([0xbf, 0x01]);
+                expect(disassembleInstruction(bus, address)).toBe('CP A');
+            });
         });
-        describe('with one ind8 value', () => {
+        describe('with one reg16ind8 value', () => {
             it('returns AND (HL)', () => {
                 const { bus, address } = setup([0xa6, 0x03]);
                 expect(disassembleInstruction(bus, address)).toBe('AND (HL)');
+            });
+            it('returns OR (HL)', () => {
+                const { bus, address } = setup([0xb6, 0x03]);
+                expect(disassembleInstruction(bus, address)).toBe('OR (HL)');
             });
             it('returns XOR (HL)', () => {
                 const { bus, address } = setup([0xae, 0x03]);
                 expect(disassembleInstruction(bus, address)).toBe('XOR (HL)');
             });
-            it('returns OR (HL)', () => {
-                const { bus, address } = setup([0xb6, 0x03]);
-                expect(disassembleInstruction(bus, address)).toBe('OR (HL)');
+            it('returns INC (HL)', () => {
+                const { bus, address } = setup([0x34, 0x03]);
+                expect(disassembleInstruction(bus, address)).toBe('INC (HL)');
+            });
+            it('returns DEC (HL)', () => {
+                const { bus, address } = setup([0x35, 0x03]);
+                expect(disassembleInstruction(bus, address)).toBe('DEC (HL)');
+            });
+            it('returns CP (HL)', () => {
+                const { bus, address } = setup([0xbe, 0x03]);
+                expect(disassembleInstruction(bus, address)).toBe('CP (HL)');
             });
         });
         describe('with one imm16 value', () => {
@@ -180,12 +220,6 @@ describe('The opcode instructions', () => {
             it('returns POP BC', () => {
                 const { bus, address } = setup([0xc1]);
                 expect(disassembleInstruction(bus, address)).toBe('POP BC');
-            });
-        });
-        describe('with first imm16ind8 value and second reg8 value', () => {
-            it('returns LD (a8), A', () => {
-                const { bus, address } = setup([0xea, 0xce, 0xc0]);
-                expect(disassembleInstruction(bus, address)).toBe('LD (0xc0ce), A');
             });
         });
         describe('with first imm8io value and second reg8 value', () => {
@@ -222,7 +256,13 @@ describe('The opcode instructions', () => {
                 expect(disassembleInstruction(bus, address)).toBe('LD A, (FF00 + C)');
             });
         });
-        describe('with first reg8 value and second ind8 value', () => {
+        describe('with first reg8 value and second imm16ind8 value', () => {
+            it('returns LD A, (a16)', () => {
+                const { bus, address } = setup([0xfa, 0xce, 0xc0]);
+                expect(disassembleInstruction(bus, address)).toBe('LD A, (0xc0ce)');
+            });
+        });
+        describe('with first reg8 value and second reg16ind8 value', () => {
             it('returns LDI A, (HL)', () => {
                 const { bus, address } = setup([0x2a, 0xc8]);
                 expect(disassembleInstruction(bus, address)).toBe('LDI A, (HL)');
@@ -238,7 +278,13 @@ describe('The opcode instructions', () => {
                 expect(disassembleInstruction(bus, address)).toBe('LD (FF00 + C), A');
             });
         });
-        describe('with first ind8 value and second reg8 value', () => {
+        describe('with first imm16ind8 value and second reg8 value', () => {
+            it('returns LD (a16), A', () => {
+                const { bus, address } = setup([0xea, 0xce, 0xc0]);
+                expect(disassembleInstruction(bus, address)).toBe('LD (0xc0ce), A');
+            });
+        });
+        describe('with first reg16ind8 value and second reg8 value', () => {
             it('returns LDI (HL), A', () => {
                 const { bus, address } = setup([0x22, 0xc8]);
                 expect(disassembleInstruction(bus, address)).toBe('LDI (HL), A');
@@ -248,7 +294,7 @@ describe('The opcode instructions', () => {
                 expect(disassembleInstruction(bus, address)).toBe('LDD (HL), A');
             });
         });
-        describe('with first ind8 value and second imm8 value', () => {
+        describe('with first reg16ind8 value and second imm8 value', () => {
             it('returns LD (HL), d8', () => {
                 const { bus, address } = setup([0x36, 0xff]);
                 expect(disassembleInstruction(bus, address)).toBe('LD (HL), 0xff');
@@ -266,10 +312,10 @@ describe('The opcode instructions', () => {
         function cyclesForMode(mode: AddressingMode): number {
             switch (mode) {
                 case AddressingMode.implicit:
-                case AddressingMode.ind8:
-                case AddressingMode.reg16:
                 case AddressingMode.reg8:
                 case AddressingMode.reg8io:
+                case AddressingMode.reg16:
+                case AddressingMode.reg16ind8:
                     return 0;
 
                 case AddressingMode.imm8:
@@ -279,6 +325,9 @@ describe('The opcode instructions', () => {
                 case AddressingMode.imm16:
                 case AddressingMode.imm16ind8:
                     return 2;
+
+                default:
+                    throw new Error('bad addressing mode');
             }
         }
 

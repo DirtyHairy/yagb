@@ -1,23 +1,19 @@
 import { Environment, newEnvironment } from '../../../support/_helper';
-import { flag, r16, r8 } from '../../../../src/emulator/cpu';
+import { flag, r8 } from '../../../../src/emulator/cpu';
 
 describe('The glorious CPU', () => {
-    describe('OR (HL)', () => {
+    describe('OR d8', () => {
         function setup(lhs: number, rhs: number): Environment {
-            const env = newEnvironment([0xb6]);
-
-            const address = 0x2000;
+            const env = newEnvironment([0xf6, rhs]);
 
             env.cpu.state.r8[r8.a] = lhs;
-            env.cpu.state.r16[r16.hl] = address;
-            env.bus.write(address, rhs);
 
             env.cpu.state.r8[r8.f] = flag.z | flag.n | flag.h | flag.c;
 
             return env;
         }
 
-        it('calculates A & (HL)', () => {
+        it('calculates A | d8', () => {
             const { cpu } = setup(0x15, 0x32);
 
             cpu.step(1);
