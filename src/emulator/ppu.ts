@@ -208,8 +208,7 @@ export class Ppu {
     private oamRead: ReadHandler = (address) =>
         (this.reg[reg.lcdc] & lcdc.enable) === 0 || (this.mode !== ppuMode.draw && this.mode !== ppuMode.oamScan) ? this.oam[address & 0xff] : 0xff;
     private oamWrite: WriteHandler = (address, value) =>
-        ((this.reg[reg.lcdc] & lcdc.enable) === 0 || (this.mode !== ppuMode.draw && this.mode !== ppuMode.oamScan)) &&
-        (this.oam[address & 0xff] = value);
+        ((this.reg[reg.lcdc] & lcdc.enable) === 0 || (this.mode !== ppuMode.draw && this.mode !== ppuMode.oamScan)) && (this.oam[address & 0xff] = value);
 
     private registerRead: ReadHandler = (address) => this.reg[address - reg.base];
     private registerWrite: WriteHandler = (address, value) => {

@@ -393,6 +393,19 @@ export class Cpu {
                 return instruction.cycles;
             }
 
+            case Operation.swap: {
+                this.clock.increment(instruction.cycles);
+
+                const operand = this.getArg1(instruction);
+                const result = ((operand & 0xf0) >> 4) | ((operand & 0x0f) << 4);
+
+                this.setArg1(instruction, result);
+
+                this.state.r8[r8.f] = (result & 0xff) === 0 ? flag.z : 0;
+
+                return instruction.cycles;
+            }
+
             default:
                 this.system.break(`invalid instruction ${hex8(instruction.op)} at ${hex16(this.state.p)}`);
                 return 0;
