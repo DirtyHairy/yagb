@@ -138,7 +138,7 @@ export class Emulator {
     }
 
     printState(): string {
-        return `CPU:\n${this.cpu.printState()}\n\nIRQ:\n${this.interrupt.printState()}\n\nTimer:\n${this.timer.printState()}`;
+        return `CPU:\n${this.cpu.printState()}\n\nIRQ:\n${this.interrupt.printState()}\n\nTimer:\n${this.timer.printState()}\n\nPPU:\n${this.ppu.printState()}`;
     }
 
     disassemble(count: number, address = this.cpu.state.p): Array<string> {

@@ -7,6 +7,13 @@ const enum reg {
     ly = 0xff44,
 }
 
+export const enum Mode {
+    hblank = 0,
+    vblank = 1,
+    oamScan = 2,
+    draw = 3,
+}
+
 export class Ppu {
     constructor(private system: SystemInterface) {}
 
@@ -31,20 +38,90 @@ export class Ppu {
     }
 
     reset(): void {
-        this.cyclesInLine = 0;
-        this.currentLine = 0;
+        this.clockInMode = 0;
+        this.mode = Mode.oamScan;
+        this.scanline = 0;
+        this.frame = 0;
 
         this.vram.fill(0);
+        this.oam.fill(0);
     }
 
     cycle(systemClocks: number): void {
-        const pendingCycles = this.cyclesInLine + systemClocks;
-
-        this.currentLine += (pendingCycles / 456) | 0;
-        this.cyclesInLine = pendingCycles % 456;
-
-        this.currentLine %= 154;
+        while (systemClocks > 0) {
+            systemClocks -= this.consumeClocks(systemClocks);
+        }
     }
+
+    printState(): string {
+        return `scanline=${this.scanline} mode=${this.mode} clockInMode=${this.clockInMode} frame=${this.frame}`;
+    }
+
+    getFrame(): number {
+        return this.frame;
+    }
+
+    private consumeClocks(clocks: number): number {
+        switch (this.mode) {
+            case Mode.oamScan:
+                if (clocks + this.clockInMode >= 80) {
+                    const consumed = 80 - this.clockInMode;
+
+                    this.mode = Mode.draw;
+                    this.clockInMode = 0;
+
+                    return consumed;
+                } else {
+                    this.clockInMode += clocks;
+                    return clocks;
+                }
+
+            case Mode.draw:
+                if (clocks + this.clockInMode >= 172) {
+                    const consumed = 172 - this.clockInMode;
+
+                    this.mode = Mode.hblank;
+                    this.clockInMode = 0;
+
+                    return consumed;
+                } else {
+                    this.clockInMode += clocks;
+                    return clocks;
+                }
+
+            case Mode.hblank:
+                if (clocks + this.clockInMode >= 204) {
+                    const consumed = 204 - this.clockInMode;
+
+                    this.scanline++;
+                    this.mode = this.scanline === 144 ? Mode.vblank : Mode.oamScan;
+                    this.clockInMode = 0;
+
+                    return consumed;
+                } else {
+                    this.clockInMode += clocks;
+                    return clocks;
+                }
+
+            case Mode.vblank:
+                if (clocks + this.clockInMode >= 4560) {
+                    const consumed = 4560 - this.clockInMode;
+
+                    this.mode = Mode.oamScan;
+                    this.clockInMode = 0;
+                    this.scanline = 0;
+                    this.frame++;
+
+                    return consumed;
+                } else {
+                    this.clockInMode += clocks;
+                    this.scanline = 144 + ((this.clockInMode / 456) | 0);
+                    return clocks;
+                }
+        }
+    }
+
+    mode: Mode = Mode.oamScan;
 
     private stubRead: ReadHandler = () => 0;
     private stubWrite: WriteHandler = () => undefined;
@@ -56,10 +133,11 @@ export class Ppu {
     private oamRead: ReadHandler = (address) => this.oam[address & 0xff];
     private oamWrite: WriteHandler = (address, value) => (this.oam[address & 0xff] = value);
 
-    private readLY: ReadHandler = () => this.currentLine;
+    private readLY: ReadHandler = () => this.scanline;
 
-    cyclesInLine = 0;
-    currentLine = 0;
+    private clockInMode = 0;
+    private scanline = 0;
+    private frame = 0;
 
     private vram = new Uint8Array(0x2000);
     private oam = new Uint8Array(0xa0);
