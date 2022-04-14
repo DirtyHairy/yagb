@@ -26,7 +26,7 @@ export const enum Mode {
 }
 
 const enum Lcdc {
-    enable = 0x08,
+    enable = 0x80,
 }
 
 export class Ppu {
@@ -152,15 +152,15 @@ export class Ppu {
     private vramRead: ReadHandler = (address) =>
         (this.reg[reg.lcdc] & Lcdc.enable) === 0 || this.mode !== Mode.draw ? this.vram[address & 0x1fff] : 0xff;
     private vramWrite: WriteHandler = (address, value) =>
-        (this.reg[reg.lcdc] & Lcdc.enable) === 0 || (this.mode !== Mode.draw && (this.vram[address & 0x1fff] = value));
+        ((this.reg[reg.lcdc] & Lcdc.enable) === 0 || this.mode !== Mode.draw) && (this.vram[address & 0x1fff] = value);
 
     private oamRead: ReadHandler = (address) =>
         (this.reg[reg.lcdc] & Lcdc.enable) === 0 || (this.mode !== Mode.draw && this.mode !== Mode.oamScan)
             ? this.oam[address & 0xff]
             : 0xff;
     private oamWrite: WriteHandler = (address, value) =>
-        (this.reg[reg.lcdc] & Lcdc.enable) === 0 ||
-        (this.mode !== Mode.draw && this.mode !== Mode.oamScan && (this.oam[address & 0xff] = value));
+        ((this.reg[reg.lcdc] & Lcdc.enable) === 0 || (this.mode !== Mode.draw && this.mode !== Mode.oamScan)) &&
+        (this.oam[address & 0xff] = value);
 
     private registerRead: ReadHandler = (address) => this.reg[address - reg.base];
     private registerWrite: WriteHandler = (address, value) => (this.reg[address - reg.base] = value);
