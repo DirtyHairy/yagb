@@ -30,6 +30,13 @@ const enum lcdc {
     enable = 0x80,
 }
 
+const enum stat {
+    sourceLY = 0x40,
+    sourceModeOAM = 0x20,
+    sourceModeVblank = 0x10,
+    sourceModeHblank = 0x08,
+}
+
 export class Ppu {
     constructor(private system: SystemInterface, private interrupt: Interrupt) {}
 
@@ -63,6 +70,7 @@ export class Ppu {
         this.mode = ppuMode.oamScan;
         this.scanline = 0;
         this.frame = 0;
+        this.stat = false;
 
         this.vram.fill(0);
         this.oam.fill(0);
@@ -72,6 +80,7 @@ export class Ppu {
     cycle(systemClocks: number): void {
         while (systemClocks > 0) {
             systemClocks -= this.consumeClocks(systemClocks);
+            this.updateStat();
         }
     }
 
@@ -152,6 +161,20 @@ export class Ppu {
         }
     }
 
+    private updateStat(): void {
+        const oldStat = this.stat;
+        const statval = this.reg[reg.stat];
+
+        this.stat =
+            !!(this.reg[reg.lcdc] & lcdc.enable) &&
+            ((!!(statval & stat.sourceLY) && this.scanline === this.reg[reg.lyc]) ||
+                (!!(statval & stat.sourceModeOAM) && this.mode === ppuMode.oamScan) ||
+                (!!(statval & stat.sourceModeVblank) && this.mode === ppuMode.vblank) ||
+                (!!(statval & stat.sourceModeHblank) && this.mode === ppuMode.hblank));
+
+        if (this.stat && !oldStat) this.interrupt.raise(irq.stat);
+    }
+
     private stubRead: ReadHandler = () => 0;
     private stubWrite: WriteHandler = () => undefined;
 
@@ -169,7 +192,10 @@ export class Ppu {
         (this.oam[address & 0xff] = value);
 
     private registerRead: ReadHandler = (address) => this.reg[address - reg.base];
-    private registerWrite: WriteHandler = (address, value) => (this.reg[address - reg.base] = value);
+    private registerWrite: WriteHandler = (address, value) => {
+        this.reg[address - reg.base] = value;
+        this.updateStat();
+    };
 
     private statRead: ReadHandler = () => (this.reg[reg.stat] & 0xf8) | (this.reg[reg.lyc] === this.scanline ? 4 : 0) | this.mode;
     private lyRead: ReadHandler = () => this.scanline;
@@ -181,6 +207,7 @@ export class Ppu {
 
     private vram = new Uint8Array(0x2000);
     private oam = new Uint8Array(0xa0);
+    private stat = false;
 
     private reg = new Uint8Array(reg.wx + 1);
 }

@@ -276,5 +276,162 @@ describe('PPU', () => {
             expect(raiseSpy).toBeCalledTimes(1);
             expect(raiseSpy).toBeCalledWith(irq.vblank);
         });
+
+        it('entering mode 2 (OAM scan) triggers STAT interrupt if configured', () => {
+            const { bus, ppu, raiseSpy } = setup();
+
+            bus.write(0xff40, 0x80);
+            bus.write(0xff41, 0x20);
+            raiseSpy.mockReset();
+
+            ppu.cycle(455);
+            expect(ppu.getMode()).not.toBe(ppuMode.oamScan);
+            expect(raiseSpy).not.toHaveBeenCalled();
+
+            ppu.cycle(1);
+            expect(ppu.getMode()).toBe(ppuMode.oamScan);
+            expect(raiseSpy).toBeCalledTimes(1);
+            expect(raiseSpy).toBeCalledWith(irq.stat);
+        });
+
+        it('entering mode 2 (OAM scan) does not trigger STAT interrupt if not configured', () => {
+            const { bus, ppu, raiseSpy } = setup();
+
+            bus.write(0xff40, 0x80);
+            bus.write(0xff41, 0x00);
+            raiseSpy.mockReset();
+
+            ppu.cycle(455);
+            expect(ppu.getMode()).not.toBe(ppuMode.oamScan);
+            expect(raiseSpy).not.toHaveBeenCalled();
+
+            ppu.cycle(1);
+            expect(ppu.getMode()).toBe(ppuMode.oamScan);
+            expect(raiseSpy).not.toHaveBeenCalled();
+        });
+
+        it('entering mode 1 (vblank) triggers STAT interrupt if configured', () => {
+            const { bus, ppu, raiseSpy } = setup();
+
+            bus.write(0xff40, 0x80);
+            bus.write(0xff41, 0x10);
+
+            ppu.cycle(144 * 456 - 1);
+            expect(ppu.getMode()).not.toBe(ppuMode.vblank);
+            expect(raiseSpy).not.toHaveBeenCalled();
+
+            ppu.cycle(1);
+            expect(ppu.getMode()).toBe(ppuMode.vblank);
+            expect(raiseSpy).toBeCalledTimes(2);
+            expect(raiseSpy).toBeCalledWith(irq.stat);
+        });
+
+        it('entering mode 1 (vblank) does not trigger STAT interrupt if not configured', () => {
+            const { bus, ppu, raiseSpy } = setup();
+
+            bus.write(0xff40, 0x80);
+            bus.write(0xff41, 0x00);
+            raiseSpy.mockReset();
+
+            ppu.cycle(144 * 456 - 1);
+            expect(ppu.getMode()).not.toBe(ppuMode.vblank);
+            expect(raiseSpy).not.toHaveBeenCalled();
+
+            ppu.cycle(1);
+            expect(ppu.getMode()).toBe(ppuMode.vblank);
+            expect(raiseSpy).toBeCalledTimes(1);
+            expect(raiseSpy).not.toHaveBeenCalledWith(irq.stat);
+        });
+
+        it('entering mode 0 (hblank) triggers STAT interrupt if configured', () => {
+            const { bus, ppu, raiseSpy } = setup();
+
+            bus.write(0xff40, 0x80);
+            bus.write(0xff41, 0x08);
+            raiseSpy.mockReset();
+
+            ppu.cycle(251);
+            expect(ppu.getMode()).not.toBe(ppuMode.hblank);
+            expect(raiseSpy).not.toHaveBeenCalled();
+
+            ppu.cycle(1);
+            expect(raiseSpy).toBeCalledTimes(1);
+            expect(raiseSpy).toBeCalledWith(irq.stat);
+        });
+
+        it('entering mode 0 (hblank) does not trigger STAT interrupt if not configured', () => {
+            const { bus, ppu, raiseSpy } = setup();
+
+            bus.write(0xff40, 0x80);
+            bus.write(0xff41, 0x00);
+            raiseSpy.mockReset();
+
+            ppu.cycle(251);
+            expect(ppu.getMode()).not.toBe(ppuMode.hblank);
+            expect(raiseSpy).not.toHaveBeenCalled();
+
+            ppu.cycle(1);
+            expect(raiseSpy).not.toHaveBeenCalled();
+        });
+
+        it('hitting LY triggers STAT interrupt if configured', () => {
+            const { bus, ppu, raiseSpy } = setup();
+
+            bus.write(0xff40, 0x80);
+            bus.write(0xff41, 0x40);
+            bus.write(0xff45, 10);
+            raiseSpy.mockReset();
+
+            ppu.cycle(10 * 456 - 1);
+            expect(raiseSpy).not.toHaveBeenCalledWith(irq.stat);
+
+            ppu.cycle(1);
+            expect(raiseSpy).toHaveBeenCalledWith(irq.stat);
+        });
+
+        it('hitting LY does not trigger STAT interrupt if not configured', () => {
+            const { bus, ppu, raiseSpy } = setup();
+
+            bus.write(0xff40, 0x80);
+            bus.write(0xff41, 0x00);
+            bus.write(0xff45, 10);
+            raiseSpy.mockReset();
+
+            ppu.cycle(10 * 456 - 1);
+            expect(raiseSpy).not.toHaveBeenCalledWith(irq.stat);
+
+            ppu.cycle(1);
+            expect(raiseSpy).not.toHaveBeenCalledWith(irq.stat);
+        });
+
+        it('STAT does not trigger multiple times trough consecutive conditions', () => {
+            const { bus, ppu, raiseSpy } = setup();
+
+            bus.write(0xff40, 0x80);
+            bus.write(0xff41, 0x48);
+            bus.write(0xff45, 10);
+            ppu.cycle(9 * 456);
+            raiseSpy.mockReset();
+
+            expect(raiseSpy).not.toHaveBeenCalled();
+
+            ppu.cycle(456);
+            expect(raiseSpy).toHaveBeenCalledTimes(1);
+        });
+
+        it('STAT can be triggered by writing a register', () => {
+            const { bus, ppu, raiseSpy } = setup();
+
+            bus.write(0xff40, 0x80);
+            bus.write(0xff41, 0x40);
+            bus.write(0xff45, 11);
+            raiseSpy.mockReset();
+
+            ppu.cycle(10 * 456);
+            expect(raiseSpy).not.toHaveBeenCalledWith(irq.stat);
+
+            bus.write(0xff45, 10);
+            expect(raiseSpy).toHaveBeenCalledWith(irq.stat);
+        });
     });
 });
