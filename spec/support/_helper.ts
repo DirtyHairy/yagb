@@ -15,6 +15,7 @@ export interface Environment {
     system: System;
     clock: Clock;
     interrupt: Interrupt;
+    cartridge: Uint8Array;
 }
 
 export function newEnvironment(code: ArrayLike<number>): Environment {
@@ -38,6 +39,8 @@ export function newEnvironment(code: ArrayLike<number>): Environment {
     const read: ReadHandler = (address) => cartridge[address];
     const write: WriteHandler = (address, value) => (cartridge[address] = value);
 
+    bus.map(0xff00, read, write);
+
     for (let i = 0; i < 0x8000; i++) {
         bus.map(i, read, write);
     }
@@ -52,5 +55,5 @@ export function newEnvironment(code: ArrayLike<number>): Environment {
     interrupt.reset();
     bus.reset();
 
-    return { bus, cpu, system, clock, interrupt };
+    return { bus, cpu, system, clock, interrupt, cartridge };
 }
