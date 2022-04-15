@@ -109,15 +109,27 @@ export class Cpu {
         this.interrupt.clear(irq);
         this.state.interruptsEnabled = false;
 
-        this.state.r16[r16.sp] = (this.state.r16[r16.sp] - 1) & 0xffff;
-        this.bus.write(this.state.r16[r16.sp], this.state.p >>> 8);
-        this.state.r16[r16.sp] = (this.state.r16[r16.sp] - 1) & 0xffff;
-        this.bus.write(this.state.r16[r16.sp], this.state.p & 0xff);
+        this.writeStack(this.state.p);
 
         this.state.p = getIrqVector(irq);
         this.clock.increment(5);
 
         return 5;
+    }
+
+    private writeStack(value: number): void {
+        value = value & 0xffff;
+        this.state.r16[r16.sp] = (this.state.r16[r16.sp] - 1) & 0xffff;
+        this.bus.write(this.state.r16[r16.sp], value >>> 8);
+        this.state.r16[r16.sp] = (this.state.r16[r16.sp] - 1) & 0xffff;
+        this.bus.write(this.state.r16[r16.sp], value & 0xff);
+    }
+
+    private readStack(): number {
+        const value = this.bus.read16(this.state.r16[r16.sp]) & 0xffff;
+        this.state.r16[r16.sp] = (this.state.r16[r16.sp] + 2) & 0xffff;
+
+        return value;
     }
 
     private dispatch(instruction: Instruction): number {
@@ -138,10 +150,7 @@ export class Cpu {
 
                 const returnTo = (this.state.p + instruction.len) & 0xffff;
 
-                this.state.r16[r16.sp] = (this.state.r16[r16.sp] - 1) & 0xffff;
-                this.bus.write(this.state.r16[r16.sp], returnTo >>> 8);
-                this.state.r16[r16.sp] = (this.state.r16[r16.sp] - 1) & 0xffff;
-                this.bus.write(this.state.r16[r16.sp], returnTo & 0xff);
+                this.writeStack(returnTo);
 
                 this.state.p = this.getArg1(instruction);
 
@@ -302,8 +311,9 @@ export class Cpu {
             case Operation.pop:
                 this.clock.increment(instruction.cycles);
 
-                this.setArg1(instruction, this.bus.read16(this.state.r16[r16.sp]));
-                this.state.r16[r16.sp] = (this.state.r16[r16.sp] + 2) & 0xffff;
+                this.readStack();
+
+                this.setArg1(instruction, this.readStack());
                 this.state.r8[r8.f] &= 0xf0;
 
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
@@ -314,10 +324,7 @@ export class Cpu {
 
                 const operand = this.getArg1(instruction);
 
-                this.state.r16[r16.sp] = (this.state.r16[r16.sp] - 1) & 0xffff;
-                this.bus.write(this.state.r16[r16.sp], operand >>> 8);
-                this.state.r16[r16.sp] = (this.state.r16[r16.sp] - 1) & 0xffff;
-                this.bus.write(this.state.r16[r16.sp], operand & 0xff);
+                this.writeStack(operand);
 
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
                 return instruction.cycles;
@@ -330,8 +337,7 @@ export class Cpu {
 
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
                 if (condition) {
-                    this.state.p = this.bus.read16(this.state.r16[r16.sp]);
-                    this.state.r16[r16.sp] = (this.state.r16[r16.sp] + 2) & 0xffff;
+                    this.state.p = this.readStack();
                 }
 
                 return cycles;
@@ -340,8 +346,7 @@ export class Cpu {
             case Operation.reti: {
                 this.clock.increment(instruction.cycles);
 
-                this.state.p = this.bus.read16(this.state.r16[r16.sp]);
-                this.state.r16[r16.sp] = (this.state.r16[r16.sp] + 2) & 0xffff;
+                this.state.p = this.readStack();
 
                 this.state.interruptsEnabled = true;
 
