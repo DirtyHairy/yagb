@@ -2,6 +2,7 @@ import { Interrupt, irq } from './../../src/emulator/interrupt';
 import { Ppu, ppuMode } from '../../src/emulator/ppu';
 
 import { Bus } from '../../src/emulator/bus';
+import { Ram } from './../../src/emulator/ram';
 import { System } from '../../src/emulator/system';
 
 describe('PPU', () => {
@@ -10,8 +11,12 @@ describe('PPU', () => {
         const bus = new Bus(system);
         const interrupt = new Interrupt();
         const ppu = new Ppu(system, interrupt);
+        const ram = new Ram();
 
         ppu.install(bus);
+        ram.install(bus);
+
+        ram.reset();
         ppu.reset();
         bus.reset();
 
@@ -505,6 +510,48 @@ describe('PPU', () => {
             bus.write(0xff40, 0x80);
             ppu.cycle(1);
             expect(ppu.getMode()).toBe(ppuMode.draw);
+        });
+    });
+
+    describe('OAM DMA', () => {
+        it('starting a DMA transfer locks the bus', () => {
+            const { bus } = setup();
+
+            const lockSpy = jest.spyOn(bus, 'lock');
+            const unlockSpy = jest.spyOn(bus, 'unlock');
+
+            bus.write(0xff46, 0xc0);
+            expect(lockSpy).toHaveBeenCalled();
+            expect(unlockSpy).not.toHaveBeenCalled();
+        });
+
+        it('finishes and unlocks the bus after 160 * 4 = 640 cycles', () => {
+            const { bus, ppu } = setup();
+
+            const unlockSpy = jest.spyOn(bus, 'unlock');
+
+            bus.write(0xff46, 0xc0);
+            ppu.cycle(640);
+            expect(unlockSpy).not.toHaveBeenCalled();
+
+            ppu.cycle(1);
+            expect(unlockSpy).toHaveBeenCalled();
+        });
+
+        it('copies 160 bytes to OAM RAM', () => {
+            const { bus, ppu } = setup();
+
+            for (let i = 0; i < 160; i++) {
+                bus.write(0xc000 + i, i + 1);
+            }
+
+            bus.write(0xff46, 0xc0);
+            ppu.cycle(641);
+            bus.write(0xff40, 0x00);
+
+            for (let i = 0; i << 160; i++) {
+                expect(bus.read(0xfe00 + i)).toBe(i + 1);
+            }
         });
     });
 });

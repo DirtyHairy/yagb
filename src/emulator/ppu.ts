@@ -192,7 +192,7 @@ export class Ppu {
         this.dmaInProgress = false;
         this.dmaCycle = 0;
 
-        const base = this.reg[reg.dma] << 8;
+        const base = this.reg[reg.dma] % 0xe0 << 8;
 
         for (let i = 0; i < 160; i++) {
             this.oam[i] = this.bus.read(base + i);
