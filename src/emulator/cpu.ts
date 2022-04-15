@@ -368,6 +368,7 @@ export class Cpu {
                     flag.h |
                     (operand & bitMask ? 0x0 : 0x80);
 
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
                 return instruction.cycles;
             }
 
@@ -379,6 +380,7 @@ export class Cpu {
 
                 this.setArg2(instruction, operand | bitMask);
 
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
                 return instruction.cycles;
             }
 
@@ -390,6 +392,7 @@ export class Cpu {
 
                 this.setArg2(instruction, operand & bitMask);
 
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
                 return instruction.cycles;
             }
 
@@ -403,6 +406,7 @@ export class Cpu {
 
                 this.state.r8[r8.f] = result === 0 ? flag.z : 0;
 
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
                 return instruction.cycles;
             }
 
@@ -419,6 +423,7 @@ export class Cpu {
                     (result === 0 ? flag.z : 0) |
                     ((operand & 0x80) >>> 3);
 
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
                 return instruction.cycles;
             }
 
@@ -435,6 +440,7 @@ export class Cpu {
                     (result === 0 ? flag.z : 0) |
                     ((operand & 0x80) >>> 3);
 
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
                 return instruction.cycles;
             }
 
@@ -451,6 +457,7 @@ export class Cpu {
                     (result === 0 ? flag.z : 0) |
                     ((operand & 0x01) << 4);
 
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
                 return instruction.cycles;
             }
 
@@ -467,6 +474,7 @@ export class Cpu {
                     ((result & 0xff) === 0 ? flag.z : 0) |
                     ((operand & 0x01) << 4);
 
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
                 return instruction.cycles;
             }
 
