@@ -478,7 +478,7 @@ export class Cpu {
 
     private getArg(par: number, mode: AddressingMode): number {
         switch (mode) {
-            case AddressingMode.explicit:
+            case AddressingMode.implicit:
                 return par;
 
             case AddressingMode.imm8:

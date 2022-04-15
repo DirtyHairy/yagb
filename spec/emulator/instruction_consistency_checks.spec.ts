@@ -29,7 +29,7 @@ describe('The opcode instructions', () => {
         function cyclesForMode(mode: AddressingMode): number {
             switch (mode) {
                 case AddressingMode.none:
-                case AddressingMode.explicit:
+                case AddressingMode.implicit:
                 case AddressingMode.reg8:
                 case AddressingMode.reg8io:
                 case AddressingMode.reg16:
