@@ -234,6 +234,7 @@ export class Cpu {
             }
 
             case Operation.jp:
+            case Operation.rst:
                 this.clock.increment(instruction.cycles);
 
                 this.state.p = this.getArg1(instruction);

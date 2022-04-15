@@ -34,6 +34,7 @@ export const enum Operation {
     rlc,
     rr,
     rrc,
+    rst,
     set,
     sla,
     sra,
@@ -223,6 +224,9 @@ function disassembleOperation(operation: Operation): string {
         case Operation.res:
             return 'RES';
 
+        case Operation.rst:
+            return 'RST';
+
         case Operation.set:
             return 'SET';
 
@@ -234,7 +238,7 @@ function disassembleOperation(operation: Operation): string {
 function disassembleOperationParameter(bus: Bus, address: number, par: number, mode: AddressingMode): string {
     switch (mode) {
         case AddressingMode.implicit:
-            return `${par}`;
+            return `${hex8(par)}`;
 
         case AddressingMode.cb:
             return `${hex8(bus.read((address + 1) & 0xffff))}`;
@@ -441,6 +445,13 @@ apply(0x2f, { op: Operation.cpl, cycles: 1, len: 1 });
 });
 
 apply(0xcb, { op: Operation.cb, mode1: AddressingMode.cb, cycles: 1, len: 1 });
+
+[0x08, 0x18, 0x28, 0x38].forEach((target, i) =>
+    apply(((0xc + i) << 4) | 0xf, { op: Operation.rst, mode1: AddressingMode.implicit, par1: target, cycles: 4, len: 1 })
+);
+[0x00, 0x10, 0x20, 0x30].forEach((target, i) =>
+    apply(((0xc + i) << 4) | 0x7, { op: Operation.rst, mode1: AddressingMode.implicit, par1: target, cycles: 4, len: 1 })
+);
 
 /*********************/
 /* prefix cb opcodes */
