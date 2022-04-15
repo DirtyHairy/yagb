@@ -75,9 +75,13 @@ export class Ppu {
         this.vram.fill(0);
         this.oam.fill(0);
         this.reg.fill(0);
+
+        this.reg[reg.lcdc] = lcdc.enable;
     }
 
     cycle(systemClocks: number): void {
+        if ((this.reg[reg.lcdc] & lcdc.enable) === 0) return;
+
         while (systemClocks > 0) {
             systemClocks -= this.consumeClocks(systemClocks);
             this.updateStat();
@@ -172,7 +176,7 @@ export class Ppu {
                 (!!(statval & stat.sourceModeVblank) && this.mode === ppuMode.vblank) ||
                 (!!(statval & stat.sourceModeHblank) && this.mode === ppuMode.hblank));
 
-        if (this.stat && !oldStat) this.interrupt.raise(irq.stat);
+        if (this.stat && !oldStat && (this.reg[reg.lcdc] & lcdc.enable) !== 0x00) this.interrupt.raise(irq.stat);
     }
 
     private stubRead: ReadHandler = () => 0;

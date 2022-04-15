@@ -178,7 +178,6 @@ describe('PPU', () => {
             it(`OAM cannot be accessed in ${describeMode(mode)}`, () => {
                 const { bus, ppu } = setup();
 
-                bus.write(0xff40, 0x80);
                 enterMode(mode, ppu);
                 expect(ppu.getMode()).toBe(mode);
 
@@ -191,7 +190,6 @@ describe('PPU', () => {
             it(`OAM can be accessed in ${describeMode(mode)}`, () => {
                 const { bus, ppu } = setup();
 
-                bus.write(0xff40, 0x80);
                 enterMode(mode, ppu);
                 expect(ppu.getMode()).toBe(mode);
 
@@ -215,7 +213,6 @@ describe('PPU', () => {
             it(`VRAM cannot be accessed in ${describeMode(mode)}`, () => {
                 const { bus, ppu } = setup();
 
-                bus.write(0xff40, 0x80);
                 enterMode(mode, ppu);
                 expect(ppu.getMode()).toBe(mode);
 
@@ -228,7 +225,6 @@ describe('PPU', () => {
             it(`VRAM can be accessed in ${describeMode(mode)}`, () => {
                 const { bus, ppu } = setup();
 
-                bus.write(0xff40, 0x80);
                 enterMode(mode, ppu);
                 expect(ppu.getMode()).toBe(mode);
 
@@ -240,10 +236,10 @@ describe('PPU', () => {
         it('VRAM can always be accessed if PPU is disabled', () => {
             const { bus, ppu } = setup();
 
-            bus.write(0xff40, 0x00);
             enterMode(ppuMode.draw, ppu);
             expect(ppu.getMode()).toBe(ppuMode.draw);
 
+            bus.write(0xff40, 0x00);
             bus.write(0x8000, 0x42);
             expect(bus.read(0x8000)).toBe(0x42);
         });
@@ -268,7 +264,6 @@ describe('PPU', () => {
         it('entering mode 2 (OAM scan) triggers STAT interrupt if configured', () => {
             const { bus, ppu, raiseSpy } = setup();
 
-            bus.write(0xff40, 0x80);
             bus.write(0xff41, 0x20);
             raiseSpy.mockReset();
 
@@ -285,7 +280,6 @@ describe('PPU', () => {
         it('entering mode 2 (OAM scan) does not trigger STAT interrupt if not configured', () => {
             const { bus, ppu, raiseSpy } = setup();
 
-            bus.write(0xff40, 0x80);
             bus.write(0xff41, 0x00);
             raiseSpy.mockReset();
 
@@ -301,7 +295,6 @@ describe('PPU', () => {
         it('entering mode 1 (vblank) triggers STAT interrupt if configured', () => {
             const { bus, ppu, raiseSpy } = setup();
 
-            bus.write(0xff40, 0x80);
             bus.write(0xff41, 0x10);
 
             ppu.cycle(144 * 456 - 1);
@@ -317,7 +310,6 @@ describe('PPU', () => {
         it('entering mode 1 (vblank) does not trigger STAT interrupt if not configured', () => {
             const { bus, ppu, raiseSpy } = setup();
 
-            bus.write(0xff40, 0x80);
             bus.write(0xff41, 0x00);
             raiseSpy.mockReset();
 
@@ -334,7 +326,6 @@ describe('PPU', () => {
         it('entering mode 0 (hblank) triggers STAT interrupt if configured', () => {
             const { bus, ppu, raiseSpy } = setup();
 
-            bus.write(0xff40, 0x80);
             bus.write(0xff41, 0x08);
             raiseSpy.mockReset();
 
@@ -350,7 +341,6 @@ describe('PPU', () => {
         it('entering mode 0 (hblank) does not trigger STAT interrupt if not configured', () => {
             const { bus, ppu, raiseSpy } = setup();
 
-            bus.write(0xff40, 0x80);
             bus.write(0xff41, 0x00);
             raiseSpy.mockReset();
 
@@ -365,7 +355,6 @@ describe('PPU', () => {
         it('hitting LYC triggers STAT interrupt if configured', () => {
             const { bus, ppu, raiseSpy } = setup();
 
-            bus.write(0xff40, 0x80);
             bus.write(0xff41, 0x40);
             bus.write(0xff45, 10);
             raiseSpy.mockReset();
@@ -380,7 +369,6 @@ describe('PPU', () => {
         it('hitting LYC does not trigger STAT interrupt if not configured', () => {
             const { bus, ppu, raiseSpy } = setup();
 
-            bus.write(0xff40, 0x80);
             bus.write(0xff41, 0x00);
             bus.write(0xff45, 10);
             raiseSpy.mockReset();
@@ -395,7 +383,6 @@ describe('PPU', () => {
         it('STAT does not trigger multiple times trough consecutive conditions', () => {
             const { bus, ppu, raiseSpy } = setup();
 
-            bus.write(0xff40, 0x80);
             bus.write(0xff41, 0x48);
             bus.write(0xff45, 10);
             ppu.cycle(9 * 456);
@@ -410,7 +397,6 @@ describe('PPU', () => {
         it('STAT can be triggered by writing a register', () => {
             const { bus, ppu, raiseSpy } = setup();
 
-            bus.write(0xff40, 0x80);
             bus.write(0xff41, 0x40);
             bus.write(0xff45, 11);
             raiseSpy.mockReset();
@@ -421,13 +407,27 @@ describe('PPU', () => {
             bus.write(0xff45, 10);
             expect(raiseSpy).toHaveBeenCalledWith(irq.stat);
         });
+
+        it('STAT cannot be triggered by writing a register if the PPU is disabled', () => {
+            const { bus, ppu, raiseSpy } = setup();
+
+            bus.write(0xff41, 0x40);
+            bus.write(0xff45, 11);
+            raiseSpy.mockReset();
+
+            ppu.cycle(10 * 456);
+            expect(raiseSpy).not.toHaveBeenCalledWith(irq.stat);
+
+            bus.write(0xff40, 0x00);
+            bus.write(0xff45, 10);
+            expect(raiseSpy).not.toHaveBeenCalledWith(irq.stat);
+        });
     });
 
     describe('STAT flags', () => {
         it('LYC = LY triggers appropiately', () => {
             const { bus, ppu } = setup();
 
-            bus.write(0xff40, 0x80);
             bus.write(0xff45, 10);
 
             ppu.cycle(10 * 456 - 1);
@@ -466,6 +466,44 @@ describe('PPU', () => {
             ppu.cycle(144 * 456);
 
             expect(bus.read(0xff41) & 0x043).toBe(0x01);
+        });
+    });
+
+    describe('PPU enable', () => {
+        it('PPU is enabled on reset', () => {
+            const { bus } = setup();
+
+            expect(bus.read(0xff40) & 0x80).toBe(0x80);
+        });
+
+        it('state machine does not advance if the PPU is disabled', () => {
+            const { bus, ppu } = setup();
+
+            bus.write(0xff40, 0x00);
+            ppu.cycle(80);
+            expect(ppu.getMode()).toBe(ppuMode.oamScan);
+
+            bus.write(0xff40, 0x80);
+            ppu.cycle(79);
+            expect(ppu.getMode()).toBe(ppuMode.oamScan);
+
+            ppu.cycle(1);
+            expect(ppu.getMode()).toBe(ppuMode.draw);
+        });
+
+        it('state machine continues once PPU is reenabled', () => {
+            const { bus, ppu } = setup();
+
+            ppu.cycle(79);
+            expect(ppu.getMode()).toBe(ppuMode.oamScan);
+
+            bus.write(0xff40, 0x00);
+            ppu.cycle(1);
+            expect(ppu.getMode()).toBe(ppuMode.oamScan);
+
+            bus.write(0xff40, 0x80);
+            ppu.cycle(1);
+            expect(ppu.getMode()).toBe(ppuMode.draw);
         });
     });
 });
