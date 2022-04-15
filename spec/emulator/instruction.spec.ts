@@ -3,7 +3,7 @@ import { disassembleInstruction } from '../../src/emulator/instruction';
 import { newEnvironment } from '../support/_helper';
 
 describe('The opcode instructions', () => {
-    function setup(code: ArrayLike<number>): { bus:Bus, address:number } {
+    function setup(code: ArrayLike<number>): { bus: Bus; address: number } {
         const env = newEnvironment(code);
 
         return { bus: env.bus, address: env.cpu.state.p };
@@ -62,6 +62,40 @@ describe('The opcode instructions', () => {
             it('returns RET C', () => {
                 const { bus, address } = setup([0xd8]);
                 expect(disassembleInstruction(bus, address)).toBe('RET C');
+            });
+        });
+        describe('with one implicit value', () => {
+            it('returns RST 0x00', () => {
+                const { bus, address } = setup([0xc7]);
+                expect(disassembleInstruction(bus, address)).toBe('RST 0x00');
+            });
+            it('returns RST 0x08', () => {
+                const { bus, address } = setup([0xcf]);
+                expect(disassembleInstruction(bus, address)).toBe('RST 0x08');
+            });
+            it('returns RST 0x10', () => {
+                const { bus, address } = setup([0xd7]);
+                expect(disassembleInstruction(bus, address)).toBe('RST 0x10');
+            });
+            it('returns RST 0x18', () => {
+                const { bus, address } = setup([0xdf]);
+                expect(disassembleInstruction(bus, address)).toBe('RST 0x18');
+            });
+            it('returns RST 0x20', () => {
+                const { bus, address } = setup([0xe7]);
+                expect(disassembleInstruction(bus, address)).toBe('RST 0x20');
+            });
+            it('returns RST 0x28', () => {
+                const { bus, address } = setup([0xef]);
+                expect(disassembleInstruction(bus, address)).toBe('RST 0x28');
+            });
+            it('returns RST 0x30', () => {
+                const { bus, address } = setup([0xf7]);
+                expect(disassembleInstruction(bus, address)).toBe('RST 0x30');
+            });
+            it('returns RST 0x38', () => {
+                const { bus, address } = setup([0xff]);
+                expect(disassembleInstruction(bus, address)).toBe('RST 0x38');
             });
         });
         describe('with one imm8 value', () => {

@@ -244,10 +244,10 @@ export class Cpu {
             }
 
             case Operation.jp:
-            case Operation.rst:
                 this.clock.increment(instruction.cycles);
 
                 this.state.p = this.getArg1(instruction);
+
                 return instruction.cycles;
 
             case Operation.jr: {
@@ -534,6 +534,16 @@ export class Cpu {
                 return instruction.cycles;
             }
 
+            case Operation.rst: {
+                this.clock.increment(instruction.cycles);
+
+                this.stackPush(this.state.p);
+
+                this.state.p = this.getArg1(instruction);
+
+                return instruction.cycles;
+            }
+
             default:
                 this.system.break(`invalid instruction ${hex8(instruction.op)} at ${hex16(this.state.p)}`);
                 return 0;
@@ -543,7 +553,9 @@ export class Cpu {
     private getArg(par: number, mode: AddressingMode): number {
         switch (mode) {
             case AddressingMode.implicit:
+            case AddressingMode.bit:
                 return par;
+
 
             case AddressingMode.imm8:
                 return this.bus.read((this.state.p + 0x01) & 0xffff);
