@@ -13,6 +13,7 @@ import { Serial } from './serial';
 import { System } from './system';
 import { Timer } from './timer';
 import { Trace } from './trace';
+import { Unmapped } from './unmapped';
 import { hex16 } from '../helper/format';
 
 export interface Trap {
@@ -34,6 +35,7 @@ export class Emulator {
         this.ram = new Ram();
         this.serial = new Serial();
         this.joypad = new Joypad();
+        const unmapped = new Unmapped();
 
         const cartridge = createCartridge(cartridgeImage, this.system);
         if (!cartridge) {
@@ -50,6 +52,7 @@ export class Emulator {
         this.audio.install(this.bus);
         this.timer.install(this.bus);
         this.joypad.install(this.bus);
+        unmapped.install(this.bus);
 
         this.system.onBreak.addHandler((message) => {
             this.break = true;
@@ -103,10 +106,15 @@ export class Emulator {
 
     getTrace(count?: number): string {
         const trace = this.trace.getTrace();
+        const busLocked = this.bus.isLocked();
+        this.bus.unlock();
 
-        return (count === undefined ? trace : trace.slice(trace.length - count, trace.length))
+        const traceLines = (count === undefined ? trace : trace.slice(trace.length - count, trace.length))
             .map((address) => this.disassemblyLineAt(address))
             .join('\n');
+
+        if (busLocked) this.bus.lock();
+        return traceLines;
     }
 
     step(count: number): [boolean, number] {
@@ -135,6 +143,7 @@ export class Emulator {
         this.joypad.reset();
         this.interrupt.reset();
         this.trace.reset();
+        this.bus.reset();
     }
 
     printState(): string {
@@ -143,6 +152,8 @@ export class Emulator {
 
     disassemble(count: number, address = this.cpu.state.p): Array<string> {
         const disassembledInstructions: Array<string> = [];
+        const busLocked = this.bus.isLocked();
+        this.bus.unlock();
 
         for (let i = 0; i < count; i++) {
             const instruction = decodeInstruction(this.bus, address);
@@ -152,6 +163,7 @@ export class Emulator {
             address = (address + instruction.len) & 0xffff;
         }
 
+        if (busLocked) this.bus.lock();
         return disassembledInstructions;
     }
 

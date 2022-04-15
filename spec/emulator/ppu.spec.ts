@@ -13,6 +13,7 @@ describe('PPU', () => {
 
         ppu.install(bus);
         ppu.reset();
+        bus.reset();
 
         const raiseSpy = jest.spyOn(interrupt, 'raise');
 

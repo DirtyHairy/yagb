@@ -16,11 +16,17 @@ export class Bus {
 
     read(address: number): number {
         this.onRead.dispatch(address);
+
+        if (this.locked && (address < 0xff80 || address === 0xffff)) return 0xff;
+
         return this.readMap[address](address);
     }
 
     write(address: number, value: number): void {
         this.onWrite.dispatch(address);
+
+        if (this.locked && (address < 0xff80 || address === 0xffff)) return;
+
         this.writeMap[address](address, value);
     }
 
@@ -33,14 +39,30 @@ export class Bus {
         this.writeMap[address] = write;
     }
 
+    lock(): void {
+        this.locked = true;
+    }
+
+    isLocked(): boolean {
+        return this.locked;
+    }
+
+    unlock(): void {
+        this.locked = false;
+    }
+
+    reset(): void {
+        this.locked = false;
+    }
+
     private invalidRead: ReadHandler = (address) => {
-        this.system.break(`invalid read from ${hex16(address)}`);
+        this.system.break(`unmapped read from ${hex16(address)}`);
 
         return 0;
     };
 
     private invalidWrite: WriteHandler = (address, value) => {
-        this.system.break(`invalid write of ${hex8(value)} to ${hex16(address)}`);
+        this.system.break(`unmapped write of ${hex8(value)} to ${hex16(address)}`);
     };
 
     readonly onRead = new Event<number>();
@@ -48,4 +70,6 @@ export class Bus {
 
     private readonly readMap = new Array<ReadHandler>(0x10000);
     private readonly writeMap = new Array<WriteHandler>(0x10000);
+
+    private locked = false;
 }

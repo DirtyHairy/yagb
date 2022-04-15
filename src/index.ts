@@ -14,6 +14,7 @@ const STORAGE_KEY_YAGB_CARTERIDGE_NAME = 'yagb-cartridge-name';
 
 const fileHandler = new FileHandler();
 let emulator: Emulator;
+let stateOnStep = false;
 
 function print(msg: string): void {
     terminal.echo(msg);
@@ -86,7 +87,8 @@ trap-clear-all                          Remove all traps
 trap-list                               List traps
 trace [count]                           Prints trace
 dump address [count=16]                 Dump bus
-context                                 Show context summary (trace + disassembly + state)`);
+context                                 Show context summary (trace + disassembly + state)
+state-on-step [0|1]                     Print state on every step`);
     },
     load(): void {
         fileHandler.openFile(async (data, name) => {
@@ -113,7 +115,12 @@ context                                 Show context summary (trace + disassembl
         if (!isBreak) print(emulator.lastBreakMessage());
         print(`done in ${cycles} cycles\n`);
 
-        print(emulator.disassemble(1).join('\n'));
+        if (stateOnStep) {
+            interpreter.state();
+            print('\n');
+        }
+
+        print(' > ' + emulator.disassemble(1).join('\n').replace(/^\s+/, ''));
     },
     state(): void {
         if (!assertEmulator()) return;
@@ -254,6 +261,12 @@ context                                 Show context summary (trace + disassembl
         interpreter.disassemble('5', undefined);
         print('');
         interpreter.state();
+    },
+    'state-on-step': function (toggle: string) {
+        const parsed = uintval(toggle);
+        if ([0, 1].includes(parsed as number)) stateOnStep = !!parsed;
+
+        print(stateOnStep ? 'printing state on every step' : 'not printing state on every step');
     },
 };
 

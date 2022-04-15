@@ -47,6 +47,7 @@ export function newEnvironment(code: ArrayLike<number>): Environment {
     cartridge.subarray(0x100).set(code);
     cpu.reset();
     interrupt.reset();
+    bus.reset();
 
     return { bus, cpu, system, clock, interrupt };
 }

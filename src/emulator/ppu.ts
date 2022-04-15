@@ -2,6 +2,7 @@ import { Bus, ReadHandler, WriteHandler } from './bus';
 import { Interrupt, irq } from './interrupt';
 
 import { SystemInterface } from './system';
+import { hex8 } from '../helper/format';
 
 const enum reg {
     base = 0xff40,
@@ -41,10 +42,6 @@ export class Ppu {
     constructor(private system: SystemInterface, private interrupt: Interrupt) {}
 
     install(bus: Bus): void {
-        for (let i = 0xff40; i <= 0xff4b; i++) {
-            bus.map(i, this.stubRead, this.stubWrite);
-        }
-
         for (let i = 0x8000; i < 0xa000; i++) {
             bus.map(i, this.vramRead, this.vramWrite);
         }
@@ -53,16 +50,15 @@ export class Ppu {
             bus.map(i, this.oamRead, this.oamWrite);
         }
 
-        for (let i = 0xfea0; i < 0xff00; i++) {
-            bus.map(i, this.stubRead, this.stubWrite);
-        }
-
         for (let i = 0; i <= reg.wx; i++) {
             bus.map(reg.base + i, this.registerRead, this.registerWrite);
         }
 
         bus.map(reg.base + reg.ly, this.lyRead, this.stubWrite);
         bus.map(reg.base + reg.stat, this.statRead, this.registerWrite);
+        bus.map(reg.base + reg.dma, this.registerRead, this.dmaWrite);
+
+        this.bus = bus;
     }
 
     reset(): void {
@@ -71,6 +67,8 @@ export class Ppu {
         this.scanline = 0;
         this.frame = 0;
         this.stat = false;
+        this.dmaInProgress = false;
+        this.dmaCycle = 0;
 
         this.vram.fill(0);
         this.oam.fill(0);
@@ -80,6 +78,14 @@ export class Ppu {
     }
 
     cycle(systemClocks: number): void {
+        while (this.dmaInProgress && systemClocks > 0) {
+            this.dmaCycle++;
+            systemClocks--;
+
+            if (this.dmaCycle > 640) this.executeDma();
+            if ((this.reg[reg.lcdc] & lcdc.enable) !== 0) this.consumeClocks(1);
+        }
+
         if ((this.reg[reg.lcdc] & lcdc.enable) === 0) return;
 
         while (systemClocks > 0) {
@@ -89,7 +95,9 @@ export class Ppu {
     }
 
     printState(): string {
-        return `scanline=${this.scanline} mode=${this.mode} clockInMode=${this.clockInMode} frame=${this.frame}`;
+        return `scanline=${this.scanline} mode=${this.mode} clockInMode=${this.clockInMode} frame=${this.frame} lcdc=${hex8(
+            this.reg[reg.lcdc]
+        )} dma=${this.dmaInProgress ? 1 : 0} dmaCycle=${this.dmaCycle}`;
     }
 
     getFrame(): number {
@@ -179,7 +187,18 @@ export class Ppu {
         if (this.stat && !oldStat && (this.reg[reg.lcdc] & lcdc.enable) !== 0x00) this.interrupt.raise(irq.stat);
     }
 
-    private stubRead: ReadHandler = () => 0;
+    private executeDma(): void {
+        this.bus.unlock();
+        this.dmaInProgress = false;
+        this.dmaCycle = 0;
+
+        const base = this.reg[reg.dma] << 8;
+
+        for (let i = 0; i < 160; i++) {
+            this.oam[i] = this.bus.read(base + i);
+        }
+    }
+
     private stubWrite: WriteHandler = () => undefined;
 
     private vramRead: ReadHandler = (address) =>
@@ -202,7 +221,16 @@ export class Ppu {
     };
 
     private statRead: ReadHandler = () => (this.reg[reg.stat] & 0xf8) | (this.reg[reg.lyc] === this.scanline ? 0x04 : 0) | this.mode;
+
     private lyRead: ReadHandler = () => this.scanline;
+
+    private dmaWrite: WriteHandler = (_, value) => {
+        this.reg[reg.dma] = value;
+
+        this.dmaCycle = 0;
+        this.dmaInProgress = true;
+        this.bus.lock();
+    };
 
     private clockInMode = 0;
     private scanline = 0;
@@ -213,5 +241,9 @@ export class Ppu {
     private oam = new Uint8Array(0xa0);
     private stat = false;
 
+    private dmaInProgress = false;
+    private dmaCycle = 0;
+
     private reg = new Uint8Array(reg.wx + 1);
+    private bus!: Bus;
 }
