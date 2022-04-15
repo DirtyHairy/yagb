@@ -238,7 +238,7 @@ function disassembleOperation(operation: Operation): string {
 function disassembleOperationParameter(bus: Bus, address: number, par: number, mode: AddressingMode): string {
     switch (mode) {
         case AddressingMode.implicit:
-            return `${hex8(par)}`;
+            return `${par}`;
 
         case AddressingMode.cb:
             return `${hex8(bus.read((address + 1) & 0xffff))}`;
