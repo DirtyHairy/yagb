@@ -352,43 +352,37 @@ apply(0xe2, { op: Operation.ld, par1: r8.c, mode1: AddressingMode.reg8io, par2: 
 apply(0xea, { op: Operation.ld, mode1: AddressingMode.imm16ind8, par2: r8.a, mode2: AddressingMode.reg8, cycles: 4, len: 3 });
 apply(0xfa, { op: Operation.ld, par1: r8.a, mode1: AddressingMode.reg8, mode2: AddressingMode.imm16ind8, cycles: 4, len: 3 });
 
-[r8.b, r8.c, r8.d, r8.e, r8.h, r8.l, -1, r8.a].forEach((reg2, i2) => {
-    [r8.c, r8.e, r8.l, r8.a].forEach((reg1, i1) =>
-        apply(((4 + i1) << 4) | (8 + i2), {
-            op: Operation.ld,
-            par1: reg1,
-            mode1: AddressingMode.reg8,
-            par2: reg2 >= 0 ? reg2 : r16.hl,
-            mode2: reg2 >= 0 ? AddressingMode.reg8 : AddressingMode.reg16ind8,
-            cycles: 1,
-            len: 1,
-        })
-    );
+// 0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47
+// 0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57
+// 0x60, 0x61, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67
+[r8.b, r8.d, r8.h].forEach((reg1, i1) => {
+    [r8.b, r8.c, r8.d, r8.e, r8.h, r8.l].forEach((reg2, i2) => {
+        // prettier-ignore
+        apply(((4 + i1) << 4) | i2, { op: Operation.ld, par1: reg1, mode1: AddressingMode.reg8, par2: reg2, mode2: AddressingMode.reg8, cycles: 1, len: 1, });
+    });
+    // prettier-ignore
+    apply(((4 + i1) << 4) | 0x06, { op: Operation.ld, par1: reg1, mode1: AddressingMode.reg8, par2: r16.hl, mode2: AddressingMode.reg16ind8, cycles: 2, len: 1, });
+    apply(((4 + i1) << 4) | 0x07, { op: Operation.ld, par1: reg1, mode1: AddressingMode.reg8, par2: r8.a, mode2: AddressingMode.reg8, cycles: 1, len: 1 });
+});
 
-    [r8.b, r8.d, r8.h].forEach((reg1, i1) =>
-        apply(((4 + i1) << 4) | i2, {
-            op: Operation.ld,
-            par1: reg1,
-            mode1: AddressingMode.reg8,
-            par2: reg2 >= 0 ? reg2 : r16.hl,
-            mode2: reg2 >= 0 ? AddressingMode.reg8 : AddressingMode.reg16ind8,
-            cycles: 1,
-            len: 1,
-        })
-    );
+// 0x48, 0x49, 0x4a, 0x4b, 0x4c, 0x4d, 0x4e, 0x4f
+// 0x58, 0x59, 0x5a, 0x5b, 0x5c, 0x5d, 0x5e, 0x5f
+// 0x68, 0x69, 0x6a, 0x6b, 0x6c, 0x6d, 0x6e, 0x6f
+// 0x78, 0x69, 0x6a, 0x6b, 0x6c, 0x6d, 0x6e, 0x6f
+[r8.c, r8.e, r8.l, r8.a].forEach((reg1, i1) => {
+    [r8.b, r8.c, r8.d, r8.e, r8.h, r8.l].forEach((reg2, i2) => {
+        // prettier-ignore
+        apply(((4 + i1) << 4) | (8 + i2), { op: Operation.ld, par1: reg1, mode1: AddressingMode.reg8, par2: reg2, mode2: AddressingMode.reg8, cycles: 1, len: 1, });
+    });
+    // prettier-ignore
+    apply(((4 + i1) << 4) | 0x0e, { op: Operation.ld, par1: reg1, mode1: AddressingMode.reg8, par2: r16.hl, mode2: AddressingMode.reg16ind8, cycles: 2, len: 1, });
+    apply(((4 + i1) << 4) | 0x0f, { op: Operation.ld, par1: reg1, mode1: AddressingMode.reg8, par2: r8.a, mode2: AddressingMode.reg8, cycles: 1, len: 1 });
+});
 
-    // 0x76 is STOP
-    if (reg2 >= 0) {
-        apply(0x70 | i2, {
-            op: Operation.ld,
-            par1: r16.hl,
-            mode1: AddressingMode.reg16ind8,
-            par2: reg2,
-            mode2: AddressingMode.reg8,
-            cycles: 1,
-            len: 1,
-        });
-    }
+// 0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x77
+[r8.b, r8.c, r8.d, r8.e, r8.h, r8.l, -1, r8.a].forEach((reg, i) => {
+    if (reg === -1) return; // 0x76 is STOP
+    apply((0x07 << 4) | i, { op: Operation.ld, par1: r16.hl, mode1: AddressingMode.reg16ind8, par2: reg, mode2: AddressingMode.reg8, cycles: 2, len: 1 });
 });
 
 // 0x04, 0x14, 0x24
