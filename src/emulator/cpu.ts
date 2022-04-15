@@ -433,7 +433,7 @@ export class Cpu {
                 // prettier-ignore
                 this.state.r8[r8.f] =
                     ((result & 0xff) === 0 ? flag.z : 0) |
-                    ((operand & (1 << 7)) === (1 << 7) ? flag.c : 0);
+                    ((operand & 0x80) >>> 3);
 
                 return instruction.cycles;
             }
