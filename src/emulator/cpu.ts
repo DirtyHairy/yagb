@@ -148,6 +148,10 @@ export class Cpu {
                 return instruction.cycles;
             }
 
+            case Operation.cb:
+                this.system.break('can not call CB');
+                return 0;
+
             case Operation.cp: {
                 this.clock.increment(instruction.cycles);
 
@@ -183,6 +187,8 @@ export class Cpu {
                 const result = operand - 1;
 
                 this.setArg1(instruction, result);
+
+                // prettier-ignore
                 this.state.r8[r8.f] =
                     (this.state.r8[r8.f] & flag.c) |
                     flag.n |
@@ -216,6 +222,8 @@ export class Cpu {
                 const result = operand + 1;
 
                 this.setArg1(instruction, result);
+
+                // prettier-ignore
                 this.state.r8[r8.f] =
                     (this.state.r8[r8.f] & flag.c) |
                     ((result & 0xff) === 0 ? flag.z : 0) |
@@ -348,14 +356,131 @@ export class Cpu {
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
                 return instruction.cycles;
 
+            case Operation.bit: {
+                this.clock.increment(instruction.cycles);
+
+                const operand = this.getArg2(instruction);
+                const bitMask = 1 << this.getArg1(instruction);
+
+                // prettier-ignore
+                this.state.r8[r8.f] =
+                    (this.state.r8[r8.f] & flag.c) |
+                    flag.h |
+                    (operand & bitMask ? 0x0 : 0x80);
+
+                return instruction.cycles;
+            }
+
+            case Operation.set: {
+                this.clock.increment(instruction.cycles);
+
+                const operand = this.getArg2(instruction);
+                const bitMask = 1 << this.getArg1(instruction);
+
+                this.setArg2(instruction, operand | bitMask);
+
+                return instruction.cycles;
+            }
+
+            case Operation.res: {
+                this.clock.increment(instruction.cycles);
+
+                const operand = this.getArg2(instruction);
+                const bitMask = ~(1 << this.getArg1(instruction));
+
+                this.setArg2(instruction, operand & bitMask);
+
+                return instruction.cycles;
+            }
+
+            case Operation.swap: {
+                this.clock.increment(instruction.cycles);
+
+                const operand = this.getArg1(instruction);
+                const result = ((operand & 0xf0) >> 4) | ((operand & 0x0f) << 4);
+
+                this.setArg1(instruction, result);
+
+                this.state.r8[r8.f] = result === 0 ? flag.z : 0;
+
+                return instruction.cycles;
+            }
+
+            case Operation.rlc: {
+                this.clock.increment(instruction.cycles);
+
+                const operand = this.getArg1(instruction);
+                const result = ((operand << 1) | (operand >> 7)) & 0xff;
+
+                this.setArg1(instruction, result);
+
+                // prettier-ignore
+                this.state.r8[r8.f] =
+                    (result === 0 ? flag.z : 0) |
+                    ((operand & 0x80) >>> 3);
+
+                return instruction.cycles;
+            }
+
+            case Operation.rl: {
+                this.clock.increment(instruction.cycles);
+
+                const operand = this.getArg1(instruction);
+                const result = ((operand << 1) | ((this.state.r8[r8.f] & flag.c) >> 4)) & 0xff;
+
+                this.setArg1(instruction, result);
+
+                // prettier-ignore
+                this.state.r8[r8.f] =
+                    (result === 0 ? flag.z : 0) |
+                    ((operand & 0x80) >>> 3);
+
+                return instruction.cycles;
+            }
+
+            case Operation.rrc: {
+                this.clock.increment(instruction.cycles);
+
+                const operand = this.getArg1(instruction);
+                const result = ((operand >> 1) | (operand << 7)) & 0xff;
+
+                this.setArg1(instruction, result);
+
+                // prettier-ignore
+                this.state.r8[r8.f] =
+                    (result === 0 ? flag.z : 0) |
+                    ((operand & 0x01) << 4);
+
+                return instruction.cycles;
+            }
+
+            case Operation.rr: {
+                this.clock.increment(instruction.cycles);
+
+                const operand = this.getArg1(instruction);
+                const result = ((operand >> 1) | ((this.state.r8[r8.f] & flag.c) << 3)) & 0xff;
+
+                this.setArg1(instruction, result & 0xff);
+
+                // prettier-ignore
+                this.state.r8[r8.f] =
+                    ((result & 0xff) === 0 ? flag.z : 0) |
+                    ((operand & 0x01) << 4);
+
+                return instruction.cycles;
+            }
+
             default:
-                this.system.break('invalid instruction');
+                this.system.break(`invalid instruction ${hex8(instruction.op)} at ${hex16(this.state.p)}`);
                 return 0;
         }
     }
 
     private getArg(par: number, mode: AddressingMode): number {
         switch (mode) {
+            case AddressingMode.implicit:
+                return par;
+
             case AddressingMode.imm8:
                 return this.bus.read((this.state.p + 1) & 0xffff);
 
@@ -385,7 +510,7 @@ export class Cpu {
                 return this.bus.read(this.state.r16[par]);
 
             default:
-                throw new Error('bad addressing mode');
+                throw new Error(`bad addressing mode ${hex8(mode)}`);
         }
     }
 
@@ -426,12 +551,16 @@ export class Cpu {
                 break;
 
             default:
-                throw new Error('bad addressing mode');
+                throw new Error(`bad addressing mode ${hex8(mode)}`);
         }
     }
 
     private setArg1(instruction: Instruction, value: number): void {
         this.setArg(instruction.par1, instruction.mode1, value);
+    }
+
+    private setArg2(instruction: Instruction, value: number): void {
+        this.setArg(instruction.par2, instruction.mode2, value);
     }
 
     private evaluateCondition(instruction: Instruction): boolean {

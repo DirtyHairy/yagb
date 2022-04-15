@@ -1,7 +1,9 @@
 import { AddressingMode, Operation, decodeInstruction, disassembleInstruction } from '../../src/emulator/instruction';
 import { Bus, ReadHandler, WriteHandler } from '../../src/emulator/bus';
 
+import { Cpu } from '../../src/emulator/cpu';
 import { System } from '../../src/emulator/system';
+import { hex8 } from '../../src/helper/format';
 
 describe('The opcode instructions', () => {
     function setup(code: ArrayLike<number>) {
@@ -306,53 +308,10 @@ describe('The opcode instructions', () => {
                 expect(disassembleInstruction(bus, address)).toBe('LD BC, 0xffff');
             });
         });
-    });
-
-    describe('consistency checks', () => {
-        function cyclesForMode(mode: AddressingMode): number {
-            switch (mode) {
-                case AddressingMode.implicit:
-                case AddressingMode.reg8:
-                case AddressingMode.reg8io:
-                case AddressingMode.reg16:
-                case AddressingMode.reg16ind8:
-                    return 0;
-
-                case AddressingMode.imm8:
-                case AddressingMode.imm8io:
-                    return 1;
-
-                case AddressingMode.imm16:
-                case AddressingMode.imm16ind8:
-                    return 2;
-
-                default:
-                    throw new Error('bad addressing mode');
-            }
-        }
-
-        const opcodes = Array.from({ length: 255 }, (_, i) => i);
-        const { bus, address } = setup(opcodes.reduce((acc, x) => acc.concat([x, 0, 0]), [] as Array<number>));
-
-        opcodes.forEach((opcode) => {
-            const instruction = decodeInstruction(bus, address + 3 * opcode);
-
-            // skip not defined (invalid) operations
-            if (instruction.op === Operation.invalid) return;
-
-            describe(disassembleInstruction(bus, address + 3 * opcode), () => {
-                it('has cycles set', () => {
-                    expect(instruction.cycles).toBeGreaterThan(0);
-                });
-
-                it('has correct len set', () => {
-                    expect(instruction.len).toBe(1 + cyclesForMode(instruction.mode1) + cyclesForMode(instruction.mode2));
-                });
-
-                const modes = [AddressingMode.imm8, AddressingMode.imm16ind8, AddressingMode.imm8io, AddressingMode.imm16];
-                it('does not load both parameters from memory', () => {
-                    expect(modes.includes(instruction.mode1) && modes.includes(instruction.mode2)).not.toBe(true);
-                });
+        xdescribe('prefix cb', () => {
+            it('returns CB d8', () => {
+                const { bus, address } = setup([0xcb, 0x94]);
+                expect(disassembleInstruction(bus, address)).toBe('CB 0x94');
             });
         });
     });
