@@ -467,11 +467,62 @@ export class Cpu {
                 const operand = this.getArg1(instruction);
                 const result = ((operand >>> 1) | ((this.state.r8[r8.f] & flag.c) << 3)) & 0xff;
 
-                this.setArg1(instruction, result & 0xff);
+                this.setArg1(instruction, result);
 
                 // prettier-ignore
                 this.state.r8[r8.f] =
-                    ((result & 0xff) === 0 ? flag.z : 0) |
+                    (result === 0 ? flag.z : 0) |
+                    ((operand & 0x01) << 4);
+
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
+                return instruction.cycles;
+            }
+
+            case Operation.sla: {
+                this.clock.increment(instruction.cycles);
+
+                const operand = this.getArg1(instruction);
+                const result = (operand << 1) & 0xff;
+
+                this.setArg1(instruction, result);
+
+                // prettier-ignore
+                this.state.r8[r8.f] =
+                    (result === 0 ? flag.z : 0) |
+                    ((operand & 0x80) >>> 3);
+
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
+                return instruction.cycles;
+            }
+
+            case Operation.srl: {
+                this.clock.increment(instruction.cycles);
+
+                const operand = this.getArg1(instruction);
+                const result = (operand >> 1) & 0xff;
+
+                this.setArg1(instruction, result);
+
+                // prettier-ignore
+                this.state.r8[r8.f] =
+                    (result === 0 ? flag.z : 0) |
+                    ((operand & 0x01) << 4);
+
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
+                return instruction.cycles;
+            }
+
+            case Operation.sra: {
+                this.clock.increment(instruction.cycles);
+
+                const operand = this.getArg1(instruction);
+                const result = ((operand >> 1) | (operand & 0x80)) & 0xff;
+
+                this.setArg1(instruction, result);
+
+                // prettier-ignore
+                this.state.r8[r8.f] =
+                    (result === 0 ? flag.z : 0) |
                     ((operand & 0x01) << 4);
 
                 this.state.p = (this.state.p + instruction.len) & 0xffff;

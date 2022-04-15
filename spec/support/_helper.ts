@@ -7,6 +7,7 @@ import { Ppu } from '../../src/emulator/ppu';
 import { Ram } from '../../src/emulator/ram';
 import { System } from '../../src/emulator/system';
 import { Timer } from '../../src/emulator/timer';
+import { Unmapped } from '../../src/emulator/unmapped';
 
 export interface Environment {
     bus: Bus;
@@ -14,6 +15,7 @@ export interface Environment {
     system: System;
     clock: Clock;
     interrupt: Interrupt;
+    cartridge: Uint8Array;
 }
 
 export function newEnvironment(code: ArrayLike<number>): Environment {
@@ -32,9 +34,12 @@ export function newEnvironment(code: ArrayLike<number>): Environment {
     const ram = new Ram();
     const cpu = new Cpu(bus, clock, interrupt, system);
     const cartridge = new Uint8Array(0x8000);
+    const unmapped = new Unmapped();
 
     const read: ReadHandler = (address) => cartridge[address];
     const write: WriteHandler = (address, value) => (cartridge[address] = value);
+
+    bus.map(0xff00, read, write);
 
     for (let i = 0; i < 0x8000; i++) {
         bus.map(i, read, write);
@@ -43,11 +48,12 @@ export function newEnvironment(code: ArrayLike<number>): Environment {
     ram.install(bus);
     interrupt.install(bus);
     timer.install(bus);
+    unmapped.install(bus);
 
     cartridge.subarray(0x100).set(code);
     cpu.reset();
     interrupt.reset();
     bus.reset();
 
-    return { bus, cpu, system, clock, interrupt };
+    return { bus, cpu, system, clock, interrupt, cartridge };
 }
