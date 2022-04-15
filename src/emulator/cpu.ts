@@ -136,6 +136,44 @@ export class Cpu {
         if (instruction.op !== Operation.invalid) this.onExecute.dispatch(this.state.p);
 
         switch (instruction.op) {
+            case Operation.adc: {
+                this.clock.increment(instruction.cycles);
+
+                const a = this.state.r8[r8.a];
+                const operand = this.getArg1(instruction);
+                const result = a + operand + (this.state.r8[r8.f] & flag.c);
+
+                this.state.r8[r8.a] = result & 0xffff;
+
+                // prettier-ignore
+                this.state.r8[r8.f] =
+                    (result === 0 ? flag.z : 0x00) |
+                    ((((a & 0xf) + (operand & 0xf) + (this.state.r8[r8.f] & flag.c)) > 0xf) ? flag.h : 0x00) |
+                    (result > 0xff ? flag.c : 0x00);
+
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
+                return instruction.cycles;
+            }
+
+            case Operation.add: {
+                this.clock.increment(instruction.cycles);
+
+                const a = this.state.r8[r8.a];
+                const operand = this.getArg1(instruction);
+                const result = a + operand;
+
+                this.state.r8[r8.a] = result & 0xffff;
+
+                // prettier-ignore
+                this.state.r8[r8.f] =
+                    (result === 0 ? flag.z : 0x00) |
+                    ((((a & 0xf) + (operand & 0xf)) > 0xf)  ? flag.h : 0x00) |
+                    (result > 0xff ? flag.c : 0x00);
+
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
+                return instruction.cycles;
+            }
+
             case Operation.and:
                 this.clock.increment(instruction.cycles);
 
@@ -349,6 +387,44 @@ export class Cpu {
 
                 this.state.interruptsEnabled = true;
 
+                return instruction.cycles;
+            }
+
+            case Operation.sbc: {
+                this.clock.increment(instruction.cycles);
+
+                const a = this.state.r8[r8.a];
+                const operand = this.getArg1(instruction);
+                const result = a - operand - (this.state.r8[r8.f] & flag.c);
+
+                this.state.r8[r8.a] = result & 0xffff;
+
+                // prettier-ignore
+                this.state.r8[r8.f] =
+                    (result === 0 ? flag.z : 0x00) |
+                    ((((a & 0xf) - (operand & 0xf) - (this.state.r8[r8.f] & flag.c)) < 0) ? flag.h : 0x00) |
+                    (result < 0x00 ? flag.c : 0x00);
+
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
+                return instruction.cycles;
+            }
+
+            case Operation.sub: {
+                this.clock.increment(instruction.cycles);
+
+                const a = this.state.r8[r8.a];
+                const operand = this.getArg1(instruction);
+                const result = a - operand;
+
+                this.state.r8[r8.a] = result & 0xffff;
+
+                // prettier-ignore
+                this.state.r8[r8.f] =
+                    (result === 0 ? flag.z : 0x00) |
+                    ((((a & 0xf) - (operand & 0xf)) < 0)  ? flag.h : 0x00) |
+                    (result < 0x00 ? flag.c : 0x00);
+
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
                 return instruction.cycles;
             }
 
