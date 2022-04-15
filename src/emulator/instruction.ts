@@ -352,20 +352,44 @@ apply(0xe2, { op: Operation.ld, par1: r8.c, mode1: AddressingMode.reg8io, par2: 
 apply(0xea, { op: Operation.ld, mode1: AddressingMode.imm16ind8, par2: r8.a, mode2: AddressingMode.reg8, cycles: 4, len: 3 });
 apply(0xfa, { op: Operation.ld, par1: r8.a, mode1: AddressingMode.reg8, mode2: AddressingMode.imm16ind8, cycles: 4, len: 3 });
 
-[r8.c, r8.e, r8.l, r8.a].forEach((reg1, i1) =>
-    [r8.a, r8.b, r8.c, r8.d, r8.e, r8.h, r8.l].forEach((reg2, i2) => {
-        if (reg1 !== reg2)
-            apply(((4 + i1) << 4) | (7 + i2), {
-                op: Operation.ld,
-                par1: reg1,
-                mode1: AddressingMode.reg8,
-                par2: reg2,
-                mode2: AddressingMode.reg8,
-                cycles: 1,
-                len: 1,
-            });
-    })
-);
+[r8.b, r8.c, r8.d, r8.e, r8.h, r8.l, -1, r8.a].forEach((reg2, i2) => {
+    [r8.c, r8.e, r8.l, r8.a].forEach((reg1, i1) =>
+        apply(((4 + i1) << 4) | (8 + i2), {
+            op: Operation.ld,
+            par1: reg1,
+            mode1: AddressingMode.reg8,
+            par2: reg2 >= 0 ? reg2 : r16.hl,
+            mode2: reg2 >= 0 ? AddressingMode.reg8 : AddressingMode.reg16ind8,
+            cycles: 1,
+            len: 1,
+        })
+    );
+
+    [r8.b, r8.d, r8.h].forEach((reg1, i1) =>
+        apply(((4 + i1) << 4) | i2, {
+            op: Operation.ld,
+            par1: reg1,
+            mode1: AddressingMode.reg8,
+            par2: reg2 >= 0 ? reg2 : r16.hl,
+            mode2: reg2 >= 0 ? AddressingMode.reg8 : AddressingMode.reg16ind8,
+            cycles: 1,
+            len: 1,
+        })
+    );
+
+    // 0x76 is STOP
+    if (reg2 >= 0) {
+        apply(0x70 | i2, {
+            op: Operation.ld,
+            par1: r16.hl,
+            mode1: AddressingMode.reg16ind8,
+            par2: reg2,
+            mode2: AddressingMode.reg8,
+            cycles: 1,
+            len: 1,
+        });
+    }
+});
 
 // 0x04, 0x14, 0x24
 // 0x05, 0x15, 0x25
