@@ -1,25 +1,12 @@
-import { Bus, ReadHandler, WriteHandler } from '../../src/emulator/bus';
-import { System } from '../../src/emulator/system';
+import { Bus } from '../../src/emulator/bus';
 import { disassembleInstruction } from '../../src/emulator/instruction';
+import { newEnvironment } from '../support/_helper';
 
 describe('The opcode instructions', () => {
-    function setup(code: ArrayLike<number>) {
-        const system = new System((msg) => console.log(msg));
-        const bus = new Bus(system);
+    function setup(code: ArrayLike<number>): { bus:Bus, address:number } {
+        const env = newEnvironment(code);
 
-        const address = 0x100;
-        const cartridge = new Uint8Array(0x8000);
-
-        const read: ReadHandler = (address) => cartridge[address];
-        const write: WriteHandler = (address, value) => (cartridge[address] = value);
-
-        for (let i = 0; i < 0x8000; i++) {
-            bus.map(i, read, write);
-        }
-
-        cartridge.subarray(address).set(code);
-
-        return { bus, address };
+        return { bus: env.bus, address: env.cpu.state.p };
     }
 
     describe('disassembleInstruction', () => {
@@ -303,6 +290,140 @@ describe('The opcode instructions', () => {
             it('returns LD BC, d16', () => {
                 const { bus, address } = setup([0x01, 0xff, 0xff]);
                 expect(disassembleInstruction(bus, address)).toBe('LD BC, 0xffff');
+            });
+        });
+        describe('prefix cb', () => {
+            it('returns BIT 0, B', () => {
+                const { bus, address } = setup([0xcb, 0x40]);
+                expect(disassembleInstruction(bus, address)).toBe('BIT 0, B');
+            });
+            it('returns BIT 0, A', () => {
+                const { bus, address } = setup([0xcb, 0x47]);
+                expect(disassembleInstruction(bus, address)).toBe('BIT 0, A');
+            });
+            it('returns BIT 0, (HL))', () => {
+                const { bus, address } = setup([0xcb, 0x46]);
+                expect(disassembleInstruction(bus, address)).toBe('BIT 0, (HL)');
+            });
+            it('returns RES 0, B', () => {
+                const { bus, address } = setup([0xcb, 0x80]);
+                expect(disassembleInstruction(bus, address)).toBe('RES 0, B');
+            });
+            it('returns RES 0, A', () => {
+                const { bus, address } = setup([0xcb, 0x87]);
+                expect(disassembleInstruction(bus, address)).toBe('RES 0, A');
+            });
+            it('returns RES 0, (HL))', () => {
+                const { bus, address } = setup([0xcb, 0x86]);
+                expect(disassembleInstruction(bus, address)).toBe('RES 0, (HL)');
+            });
+            it('returns SET 0, B', () => {
+                const { bus, address } = setup([0xcb, 0xc0]);
+                expect(disassembleInstruction(bus, address)).toBe('SET 0, B');
+            });
+            it('returns SET 0, A', () => {
+                const { bus, address } = setup([0xcb, 0xc7]);
+                expect(disassembleInstruction(bus, address)).toBe('SET 0, A');
+            });
+            it('returns SET 0, (HL))', () => {
+                const { bus, address } = setup([0xcb, 0xc6]);
+                expect(disassembleInstruction(bus, address)).toBe('SET 0, (HL)');
+            });
+            it('returns RLC B', () => {
+                const { bus, address } = setup([0xcb, 0x00]);
+                expect(disassembleInstruction(bus, address)).toBe('RLC B');
+            });
+            it('returns RLC A', () => {
+                const { bus, address } = setup([0xcb, 0x07]);
+                expect(disassembleInstruction(bus, address)).toBe('RLC A');
+            });
+            it('returns RLC (HL))', () => {
+                const { bus, address } = setup([0xcb, 0x06]);
+                expect(disassembleInstruction(bus, address)).toBe('RLC (HL)');
+            });
+            it('returns RL B', () => {
+                const { bus, address } = setup([0xcb, 0x10]);
+                expect(disassembleInstruction(bus, address)).toBe('RL B');
+            });
+            it('returns RL A', () => {
+                const { bus, address } = setup([0xcb, 0x17]);
+                expect(disassembleInstruction(bus, address)).toBe('RL A');
+            });
+            it('returns RL (HL))', () => {
+                const { bus, address } = setup([0xcb, 0x16]);
+                expect(disassembleInstruction(bus, address)).toBe('RL (HL)');
+            });
+            it('returns SLA B', () => {
+                const { bus, address } = setup([0xcb, 0x20]);
+                expect(disassembleInstruction(bus, address)).toBe('SLA B');
+            });
+            it('returns SLA A', () => {
+                const { bus, address } = setup([0xcb, 0x27]);
+                expect(disassembleInstruction(bus, address)).toBe('SLA A');
+            });
+            it('returns SLA (HL))', () => {
+                const { bus, address } = setup([0xcb, 0x26]);
+                expect(disassembleInstruction(bus, address)).toBe('SLA (HL)');
+            });
+            it('returns SWAP B', () => {
+                const { bus, address } = setup([0xcb, 0x30]);
+                expect(disassembleInstruction(bus, address)).toBe('SWAP B');
+            });
+            it('returns SWAP A', () => {
+                const { bus, address } = setup([0xcb, 0x37]);
+                expect(disassembleInstruction(bus, address)).toBe('SWAP A');
+            });
+            it('returns SWAP (HL))', () => {
+                const { bus, address } = setup([0xcb, 0x36]);
+                expect(disassembleInstruction(bus, address)).toBe('SWAP (HL)');
+            });
+            it('returns RRC B', () => {
+                const { bus, address } = setup([0xcb, 0x08]);
+                expect(disassembleInstruction(bus, address)).toBe('RRC B');
+            });
+            it('returns RRC A', () => {
+                const { bus, address } = setup([0xcb, 0x0f]);
+                expect(disassembleInstruction(bus, address)).toBe('RRC A');
+            });
+            it('returns RRC (HL))', () => {
+                const { bus, address } = setup([0xcb, 0x0e]);
+                expect(disassembleInstruction(bus, address)).toBe('RRC (HL)');
+            });
+            it('returns RR B', () => {
+                const { bus, address } = setup([0xcb, 0x18]);
+                expect(disassembleInstruction(bus, address)).toBe('RR B');
+            });
+            it('returns RR A', () => {
+                const { bus, address } = setup([0xcb, 0x1f]);
+                expect(disassembleInstruction(bus, address)).toBe('RR A');
+            });
+            it('returns RR (HL))', () => {
+                const { bus, address } = setup([0xcb, 0x1e]);
+                expect(disassembleInstruction(bus, address)).toBe('RR (HL)');
+            });
+            it('returns SRA B', () => {
+                const { bus, address } = setup([0xcb, 0x28]);
+                expect(disassembleInstruction(bus, address)).toBe('SRA B');
+            });
+            it('returns SRA A', () => {
+                const { bus, address } = setup([0xcb, 0x2f]);
+                expect(disassembleInstruction(bus, address)).toBe('SRA A');
+            });
+            it('returns SRA (HL))', () => {
+                const { bus, address } = setup([0xcb, 0x2e]);
+                expect(disassembleInstruction(bus, address)).toBe('SRA (HL)');
+            });
+            it('returns SRL B', () => {
+                const { bus, address } = setup([0xcb, 0x38]);
+                expect(disassembleInstruction(bus, address)).toBe('SRL B');
+            });
+            it('returns SRL A', () => {
+                const { bus, address } = setup([0xcb, 0x3f]);
+                expect(disassembleInstruction(bus, address)).toBe('SRL A');
+            });
+            it('returns SRL (HL))', () => {
+                const { bus, address } = setup([0xcb, 0x3e]);
+                expect(disassembleInstruction(bus, address)).toBe('SRL (HL)');
             });
         });
     });

@@ -18,7 +18,7 @@ export interface Environment {
     cartridge: Uint8Array;
 }
 
-export function newEnvironment(code: ArrayLike<number>): Environment {
+export function newEnvironment(code: ArrayLike<number>, address = 0x100): Environment {
     const system = new System((msg) => console.log(msg));
     system.onBreak.addHandler((msg) => {
         throw new Error(msg);
@@ -50,10 +50,12 @@ export function newEnvironment(code: ArrayLike<number>): Environment {
     timer.install(bus);
     unmapped.install(bus);
 
-    cartridge.subarray(0x100).set(code);
+    cartridge.subarray(address).set(code);
     cpu.reset();
     interrupt.reset();
     bus.reset();
+
+    cpu.state.p = address;
 
     return { bus, cpu, system, clock, interrupt, cartridge };
 }

@@ -5,15 +5,7 @@ import { hex8 } from '../../src/helper/format';
 
 describe('The opcode instructions', () => {
     function setup(code: ArrayLike<number>): Environment {
-        const env = newEnvironment([0xcb, 0x40]);
-
-        const address = 0x2000;
-
-        env.cpu.state.p = address;
-
-        env.cartridge.subarray(address).set(code);
-
-        return env;
+        return newEnvironment(code);
     }
 
     describe('consistency checks', () => {
