@@ -426,7 +426,7 @@ export class Cpu {
                 this.clock.increment(instruction.cycles);
 
                 const operand = this.getArg1(instruction);
-                const result = (operand << 1) + (this.state.r8[r8.f] & flag.c ? 1 : 0);
+                const result = (operand << 1) + ((this.state.r8[r8.f] & flag.c) >> 4);
 
                 this.setArg1(instruction, result & 0xff);
 
