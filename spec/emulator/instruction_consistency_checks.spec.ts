@@ -75,7 +75,7 @@ describe('The opcode instructions', () => {
                     expect(modes.includes(instruction.mode1) && modes.includes(instruction.mode2)).not.toBe(true);
                 });
 
-                const jumpOperations = [Operation.jp, Operation.jr, Operation.call, Operation.ret, Operation.reti];
+                const jumpOperations = [Operation.jp, Operation.jr, Operation.call, Operation.ret, Operation.reti, Operation.rst];
                 it('moves the process pointer', () => {
                     cpu.state.p = currentAddress;
 
