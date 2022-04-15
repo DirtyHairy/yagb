@@ -370,7 +370,7 @@ export class Cpu {
                 this.state.r8[r8.f] =
                     (this.state.r8[r8.f] & flag.c) |
                     flag.h |
-                    (operand & bitMask ? 0x0 : 0x80);
+                    (operand & bitMask ? 0x0 : flag.z);
 
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
                 return instruction.cycles;
