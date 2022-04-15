@@ -308,11 +308,5 @@ describe('The opcode instructions', () => {
                 expect(disassembleInstruction(bus, address)).toBe('LD BC, 0xffff');
             });
         });
-        xdescribe('prefix cb', () => {
-            it('returns CB d8', () => {
-                const { bus, address } = setup([0xcb, 0x94]);
-                expect(disassembleInstruction(bus, address)).toBe('CB 0x94');
-            });
-        });
     });
 });
