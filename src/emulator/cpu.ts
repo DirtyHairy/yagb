@@ -311,8 +311,6 @@ export class Cpu {
             case Operation.pop:
                 this.clock.increment(instruction.cycles);
 
-                this.readStack();
-
                 this.setArg1(instruction, this.readStack());
                 this.state.r8[r8.f] &= 0xf0;
 
