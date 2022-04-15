@@ -401,7 +401,7 @@ export class Cpu {
 
                 this.setArg1(instruction, result);
 
-                this.state.r8[r8.f] = (result & 0xff) === 0 ? flag.z : 0;
+                this.state.r8[r8.f] = result === 0 ? flag.z : 0;
 
                 return instruction.cycles;
             }
@@ -410,14 +410,14 @@ export class Cpu {
                 this.clock.increment(instruction.cycles);
 
                 const operand = this.getArg1(instruction);
-                const result = (operand << 1) + (operand >> 7);
+                const result = ((operand << 1) | (operand >> 7)) & 0xff;
 
-                this.setArg1(instruction, result & 0xff);
+                this.setArg1(instruction, result);
 
                 // prettier-ignore
                 this.state.r8[r8.f] =
-                    ((result & 0xff) === 0 ? flag.z : 0) |
-                    ((result > 0xff) ? flag.c : 0 );
+                    (result === 0 ? flag.z : 0) |
+                    ((operand & 0x80) >>> 3);
 
                 return instruction.cycles;
             }
@@ -426,13 +426,13 @@ export class Cpu {
                 this.clock.increment(instruction.cycles);
 
                 const operand = this.getArg1(instruction);
-                const result = (operand << 1) + ((this.state.r8[r8.f] & flag.c) >> 4);
+                const result = ((operand << 1) | ((this.state.r8[r8.f] & flag.c) >> 4)) & 0xff;
 
-                this.setArg1(instruction, result & 0xff);
+                this.setArg1(instruction, result);
 
                 // prettier-ignore
                 this.state.r8[r8.f] =
-                    ((result & 0xff) === 0 ? flag.z : 0) |
+                    (result === 0 ? flag.z : 0) |
                     ((operand & 0x80) >>> 3);
 
                 return instruction.cycles;
