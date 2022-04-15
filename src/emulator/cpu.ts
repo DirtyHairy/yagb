@@ -556,7 +556,6 @@ export class Cpu {
             case AddressingMode.bit:
                 return par;
 
-
             case AddressingMode.imm8:
                 return this.bus.read((this.state.p + 0x01) & 0xffff);
 
