@@ -28,7 +28,7 @@ describe('The opcode instructions', () => {
     describe('consistency checks', () => {
         function cyclesForMode(mode: AddressingMode): number {
             switch (mode) {
-                case AddressingMode.implicit:
+                case AddressingMode.none:
                 case AddressingMode.explicit:
                 case AddressingMode.reg8:
                 case AddressingMode.reg8io:

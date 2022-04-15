@@ -42,7 +42,7 @@ export const enum Operation {
 }
 
 export const enum AddressingMode {
-    implicit,
+    none,
     explicit,
     cb,
 
@@ -93,10 +93,10 @@ export function disassembleInstruction(bus: Bus, address: number): string {
     const condition = disassembleCondition(instruction.condition);
 
     switch (true) {
-        case instruction.mode1 === AddressingMode.implicit && instruction.mode2 === AddressingMode.implicit:
+        case instruction.mode1 === AddressingMode.none && instruction.mode2 === AddressingMode.none:
             return `${op}${condition !== '' ? ` ${condition}` : ''}`;
 
-        case instruction.mode2 === AddressingMode.implicit: {
+        case instruction.mode2 === AddressingMode.none: {
             const par1 = disassembleOperationParameter(bus, address, instruction.par1, instruction.mode1);
             return `${op}${condition !== '' ? ` ${condition},` : ''} ${par1}`;
         }
@@ -297,9 +297,9 @@ for (let i = 0; i < 0x200; i++)
         opcode: i,
         op: Operation.invalid,
         par1: 0,
-        mode1: AddressingMode.implicit,
+        mode1: AddressingMode.none,
         par2: 0,
-        mode2: AddressingMode.implicit,
+        mode2: AddressingMode.none,
         cycles: 0,
         len: 1,
         condition: Condition.always,
