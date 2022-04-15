@@ -454,6 +454,22 @@ export class Cpu {
                 return instruction.cycles;
             }
 
+            case Operation.rr: {
+                this.clock.increment(instruction.cycles);
+
+                const operand = this.getArg1(instruction);
+                const result = ((operand >> 1) | ((this.state.r8[r8.f] & flag.c) << 3)) & 0xff;
+
+                this.setArg1(instruction, result & 0xff);
+
+                // prettier-ignore
+                this.state.r8[r8.f] =
+                    ((result & 0xff) === 0 ? flag.z : 0) |
+                    ((operand & 0x01) << 4);
+
+                return instruction.cycles;
+            }
+
             default:
                 this.system.break(`invalid instruction ${hex8(instruction.op)} at ${hex16(this.state.p)}`);
                 return 0;
