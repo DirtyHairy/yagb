@@ -109,7 +109,7 @@ export class Cpu {
         this.interrupt.clear(irq);
         this.state.interruptsEnabled = false;
 
-        this.writeStack(this.state.p);
+        this.stackPush(this.state.p);
 
         this.state.p = getIrqVector(irq);
         this.clock.increment(5);
@@ -117,7 +117,7 @@ export class Cpu {
         return 5;
     }
 
-    private writeStack(value: number): void {
+    private stackPush(value: number): void {
         value = value & 0xffff;
         this.state.r16[r16.sp] = (this.state.r16[r16.sp] - 1) & 0xffff;
         this.bus.write(this.state.r16[r16.sp], value >>> 8);
@@ -125,7 +125,7 @@ export class Cpu {
         this.bus.write(this.state.r16[r16.sp], value & 0xff);
     }
 
-    private readStack(): number {
+    private stackPop(): number {
         const value = this.bus.read16(this.state.r16[r16.sp]) & 0xffff;
         this.state.r16[r16.sp] = (this.state.r16[r16.sp] + 2) & 0xffff;
 
@@ -150,7 +150,7 @@ export class Cpu {
 
                 const returnTo = (this.state.p + instruction.len) & 0xffff;
 
-                this.writeStack(returnTo);
+                this.stackPush(returnTo);
 
                 this.state.p = this.getArg1(instruction);
 
@@ -311,7 +311,7 @@ export class Cpu {
             case Operation.pop:
                 this.clock.increment(instruction.cycles);
 
-                this.setArg1(instruction, this.readStack());
+                this.setArg1(instruction, this.stackPop());
                 this.state.r8[r8.f] &= 0xf0;
 
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
@@ -322,7 +322,7 @@ export class Cpu {
 
                 const operand = this.getArg1(instruction);
 
-                this.writeStack(operand);
+                this.stackPush(operand);
 
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
                 return instruction.cycles;
@@ -335,7 +335,7 @@ export class Cpu {
 
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
                 if (condition) {
-                    this.state.p = this.readStack();
+                    this.state.p = this.stackPop();
                 }
 
                 return cycles;
@@ -344,7 +344,7 @@ export class Cpu {
             case Operation.reti: {
                 this.clock.increment(instruction.cycles);
 
-                this.state.p = this.readStack();
+                this.state.p = this.stackPop();
 
                 this.state.interruptsEnabled = true;
 
