@@ -107,7 +107,9 @@ export class Emulator {
         const busLocked = this.bus.isLocked();
         this.bus.unlock();
 
-        const traceLines = (count === undefined ? trace : trace.slice(trace.length - count, trace.length)).map((address) => this.disassemblyLineAt(address)).join('\n');
+        const traceLines = (count === undefined ? trace : trace.slice(trace.length - count, trace.length))
+            .map((address) => this.disassemblyLineAt(address))
+            .join('\n');
 
         if (busLocked) this.bus.lock();
         return traceLines;

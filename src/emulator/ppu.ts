@@ -95,9 +95,9 @@ export class Ppu {
     }
 
     printState(): string {
-        return `scanline=${this.scanline} mode=${this.mode} clockInMode=${this.clockInMode} frame=${this.frame} lcdc=${hex8(
-            this.reg[reg.lcdc]
-        )} dma=${this.dmaInProgress ? 1 : 0} dmaCycle=${this.dmaCycle}`;
+        return `scanline=${this.scanline} mode=${this.mode} clockInMode=${this.clockInMode} frame=${this.frame} lcdc=${hex8(this.reg[reg.lcdc])} dma=${
+            this.dmaInProgress ? 1 : 0
+        } dmaCycle=${this.dmaCycle}`;
     }
 
     getFrame(): number {
