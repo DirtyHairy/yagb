@@ -11,6 +11,7 @@ describe('interrupts', () => {
 
         interrupt.install(bus);
         interrupt.reset();
+        bus.reset();
 
         bus.write(0xff0f, iflag);
         bus.write(0xffff, imask);
