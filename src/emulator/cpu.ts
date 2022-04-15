@@ -400,7 +400,7 @@ export class Cpu {
                 this.clock.increment(instruction.cycles);
 
                 const operand = this.getArg1(instruction);
-                const result = ((operand & 0xf0) >> 4) | ((operand & 0x0f) << 4);
+                const result = ((operand & 0xf0) >>> 4) | ((operand & 0x0f) << 4);
 
                 this.setArg1(instruction, result);
 
@@ -414,7 +414,7 @@ export class Cpu {
                 this.clock.increment(instruction.cycles);
 
                 const operand = this.getArg1(instruction);
-                const result = ((operand << 1) | (operand >> 7)) & 0xff;
+                const result = ((operand << 1) | (operand >>> 7)) & 0xff;
 
                 this.setArg1(instruction, result);
 
@@ -431,7 +431,7 @@ export class Cpu {
                 this.clock.increment(instruction.cycles);
 
                 const operand = this.getArg1(instruction);
-                const result = ((operand << 1) | ((this.state.r8[r8.f] & flag.c) >> 4)) & 0xff;
+                const result = ((operand << 1) | ((this.state.r8[r8.f] & flag.c) >>> 4)) & 0xff;
 
                 this.setArg1(instruction, result);
 
@@ -448,7 +448,7 @@ export class Cpu {
                 this.clock.increment(instruction.cycles);
 
                 const operand = this.getArg1(instruction);
-                const result = ((operand >> 1) | (operand << 7)) & 0xff;
+                const result = ((operand >>> 1) | (operand << 7)) & 0xff;
 
                 this.setArg1(instruction, result);
 
@@ -465,7 +465,7 @@ export class Cpu {
                 this.clock.increment(instruction.cycles);
 
                 const operand = this.getArg1(instruction);
-                const result = ((operand >> 1) | ((this.state.r8[r8.f] & flag.c) << 3)) & 0xff;
+                const result = ((operand >>> 1) | ((this.state.r8[r8.f] & flag.c) << 3)) & 0xff;
 
                 this.setArg1(instruction, result & 0xff);
 
