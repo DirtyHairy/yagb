@@ -63,7 +63,7 @@ describe('The glorious CPU', () => {
             expect(cpu.state.r8[r8.f] & flag.n & flag.h).toBe(0);
         });
 
-        it('sets C if bit 7', () => {
+        it('sets C if bit 0', () => {
             const { cpu } = setup(0x01, true);
 
             cpu.step(1);
@@ -71,8 +71,8 @@ describe('The glorious CPU', () => {
             expect(cpu.state.r8[r8.f] & flag.c).toBe(flag.c);
         });
 
-        it('does not set C if bit 7 is zero', () => {
-            const { cpu } = setup(0x80, true);
+        it('does not set C if bit 0 is zero', () => {
+            const { cpu } = setup(0x02, true);
 
             cpu.step(1);
 
