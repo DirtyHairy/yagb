@@ -31,6 +31,8 @@ describe('The opcode instructions', () => {
                 description: 'with no parameters',
                 entries: [
                     { op: 'NOP', expected: 'NOP', opcode: 0x00, par1: 0x00, par2: 0x00 },
+                    { op: 'STOP', expected: 'STOP', opcode: 0x10, par1: 0x00, par2: 0x00 },
+                    { op: 'HALT', expected: 'HALT', opcode: 0x76, par1: 0x00, par2: 0x00 },
                     { op: 'DI', expected: 'DI', opcode: 0xf3, par1: 0x00, par2: 0x00 },
                     { op: 'EI', expected: 'EI', opcode: 0xfb, par1: 0x00, par2: 0x00 },
                     { op: 'RET', expected: 'RET', opcode: 0xc9, par1: 0x00, par2: 0x00 },
@@ -102,6 +104,7 @@ describe('The opcode instructions', () => {
             },
             {
                 description: 'with one reg16 value',
+                // prettier-ignore
                 entries: [
                     { op: 'JP HL', expected: 'JP HL', opcode: 0xe9, par1: 0x00, par2: 0x00 },
                 ],

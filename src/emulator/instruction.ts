@@ -14,6 +14,7 @@ export const enum Operation {
     dec,
     di,
     ei,
+    halt,
     inc,
     invalid,
     jp,
@@ -29,6 +30,7 @@ export const enum Operation {
     reti,
     rst,
     sbc,
+    stop,
     sub,
     xor,
 
@@ -167,6 +169,9 @@ function disassembleOperation(operation: Operation): string {
         case Operation.ei:
             return 'EI';
 
+        case Operation.halt:
+            return 'HALT';
+
         case Operation.inc:
             return 'INC';
 
@@ -212,6 +217,9 @@ function disassembleOperation(operation: Operation): string {
         case Operation.sbc:
             return 'SBC';
 
+        case Operation.stop:
+            return 'STOP';
+
         case Operation.xor:
             return 'XOR';
 
@@ -249,7 +257,7 @@ function disassembleOperation(operation: Operation): string {
             return 'SET';
 
         default:
-            throw new Error('bad operation');
+            throw new Error(`bad operation (${operation})`);
     }
 }
 
@@ -335,6 +343,11 @@ for (let i = 0; i < 0x200; i++)
     };
 
 apply(0, { op: Operation.nop, cycles: 1, len: 1 });
+apply(0x10, { op: Operation.stop, cycles: 1, len: 1 });
+apply(0x76, { op: Operation.halt, cycles: 1, len: 1 });
+apply(0xf3, { op: Operation.di, cycles: 1, len: 1 });
+apply(0xfb, { op: Operation.ei, cycles: 1, len: 1 });
+
 apply(0xc3, { op: Operation.jp, mode1: AddressingMode.imm16, cycles: 4, len: 3 });
 apply(0xe9, { op: Operation.jp, par1: r16.hl, mode1: AddressingMode.reg16, cycles: 1, len: 1 });
 
@@ -431,7 +444,7 @@ apply(0xfa, { op: Operation.ld, par1: r8.a, mode1: AddressingMode.reg8, mode2: A
 
 // 0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x77
 [r8.b, r8.c, r8.d, r8.e, r8.h, r8.l, -1, r8.a].forEach((reg, i) => {
-    if (reg === -1) return; // 0x76 is STOP
+    if (reg === -1) return; // 0x76 is HALT
     apply((0x07 << 4) | i, { op: Operation.ld, par1: r16.hl, mode1: AddressingMode.reg16ind8, par2: reg, mode2: AddressingMode.reg8, cycles: 2, len: 1 });
 });
 
@@ -470,9 +483,6 @@ apply(0x20, { op: Operation.jr, mode1: AddressingMode.imm8, condition: Condition
 apply(0x28, { op: Operation.jr, mode1: AddressingMode.imm8, condition: Condition.z, cycles: 2, len: 2 });
 apply(0x30, { op: Operation.jr, mode1: AddressingMode.imm8, condition: Condition.nc, cycles: 2, len: 2 });
 apply(0x38, { op: Operation.jr, mode1: AddressingMode.imm8, condition: Condition.c, cycles: 2, len: 2 });
-
-apply(0xf3, { op: Operation.di, cycles: 1, len: 1 });
-apply(0xfb, { op: Operation.ei, cycles: 1, len: 1 });
 
 apply(0xcd, { op: Operation.call, mode1: AddressingMode.imm16, cycles: 8, len: 3 });
 

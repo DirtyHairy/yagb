@@ -38,6 +38,8 @@ export interface CpuState {
     r16: Uint16Array;
     p: number;
     interruptsEnabled: boolean;
+    stopped: boolean;
+    halted: boolean;
 }
 
 function extendSign8(x: number): number {
@@ -65,6 +67,8 @@ export class Cpu {
             r16,
             p: 0x00,
             interruptsEnabled: false,
+            stopped: false,
+            halted: false,
         };
     }
 
@@ -76,6 +80,8 @@ export class Cpu {
         this.state.p = 0x0100;
         this.state.r16[r16.sp] = 0xfffe;
         this.state.interruptsEnabled = false;
+        this.state.stopped = false;
+        this.state.halted = false;
     }
 
     step(count: number): number {
@@ -264,6 +270,14 @@ export class Cpu {
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
                 return instruction.cycles;
 
+            case Operation.halt:
+                this.clock.increment(instruction.cycles);
+
+                this.state.halted = true;
+
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
+                return instruction.cycles;
+
             case Operation.inc: {
                 this.clock.increment(instruction.cycles);
 
@@ -410,6 +424,15 @@ export class Cpu {
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
                 return instruction.cycles;
             }
+
+            case Operation.stop:
+                this.clock.increment(instruction.cycles);
+
+                this.state.stopped = true;
+                this.state.interruptsEnabled = true;
+
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
+                return instruction.cycles;
 
             case Operation.sub: {
                 this.clock.increment(instruction.cycles);
