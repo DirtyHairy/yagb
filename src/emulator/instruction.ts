@@ -389,6 +389,27 @@ apply(0xda, { op: Operation.jp, mode1: AddressingMode.imm16, condition: Conditio
 
 apply(0xe9, { op: Operation.jp, par1: r16.hl, mode1: AddressingMode.reg16, cycles: 1, len: 1 });
 
+apply(0x18, { op: Operation.jr, mode1: AddressingMode.imm8, cycles: 2, len: 2 });
+apply(0x20, { op: Operation.jr, mode1: AddressingMode.imm8, condition: Condition.nz, cycles: 2, len: 2 });
+apply(0x28, { op: Operation.jr, mode1: AddressingMode.imm8, condition: Condition.z, cycles: 2, len: 2 });
+apply(0x30, { op: Operation.jr, mode1: AddressingMode.imm8, condition: Condition.nc, cycles: 2, len: 2 });
+apply(0x38, { op: Operation.jr, mode1: AddressingMode.imm8, condition: Condition.c, cycles: 2, len: 2 });
+
+apply(0xcd, { op: Operation.call, mode1: AddressingMode.imm16, cycles: 3, len: 3 });
+apply(0xc4, { op: Operation.call, mode1: AddressingMode.imm16, condition: Condition.nz, cycles: 3, len: 3 });
+apply(0xd4, { op: Operation.call, mode1: AddressingMode.imm16, condition: Condition.z, cycles: 3, len: 3 });
+apply(0xcc, { op: Operation.call, mode1: AddressingMode.imm16, condition: Condition.nc, cycles: 3, len: 3 });
+apply(0xdc, { op: Operation.call, mode1: AddressingMode.imm16, condition: Condition.c, cycles: 3, len: 3 });
+
+apply(0xc9, { op: Operation.ret, cycles: 4, len: 1 });
+apply(0xc0, { op: Operation.ret, condition: Condition.nz, cycles: 2, len: 1 });
+apply(0xc8, { op: Operation.ret, condition: Condition.z, cycles: 2, len: 1 });
+apply(0xd0, { op: Operation.ret, condition: Condition.nc, cycles: 2, len: 1 });
+apply(0xd8, { op: Operation.ret, condition: Condition.c, cycles: 2, len: 1 });
+apply(0xd9, { op: Operation.reti, cycles: 4, len: 1 });
+
+apply(0x2f, { op: Operation.cpl, cycles: 1, len: 1 });
+
 // 0x80, 0x81, 0x82, 0x83, 0x84, 0x85
 // 0x88, 0x89, 0x8a, 0x8b, 0x8c, 0x8d
 // 0x90, 0x91, 0x92, 0x93, 0x94, 0x95
@@ -527,27 +548,6 @@ apply(0x1f, { op: Operation.rra, cycles: 1, len: 1 });
     apply((i << 4) | 0x03, { op: Operation.inc, par1: reg, mode1: AddressingMode.reg16, cycles: 2, len: 1 });
     apply((i << 4) | 0x0b, { op: Operation.dec, par1: reg, mode1: AddressingMode.reg16, cycles: 2, len: 1 });
 });
-
-apply(0x18, { op: Operation.jr, mode1: AddressingMode.imm8, cycles: 2, len: 2 });
-apply(0x20, { op: Operation.jr, mode1: AddressingMode.imm8, condition: Condition.nz, cycles: 2, len: 2 });
-apply(0x28, { op: Operation.jr, mode1: AddressingMode.imm8, condition: Condition.z, cycles: 2, len: 2 });
-apply(0x30, { op: Operation.jr, mode1: AddressingMode.imm8, condition: Condition.nc, cycles: 2, len: 2 });
-apply(0x38, { op: Operation.jr, mode1: AddressingMode.imm8, condition: Condition.c, cycles: 2, len: 2 });
-
-apply(0xcd, { op: Operation.call, mode1: AddressingMode.imm16, cycles: 6, len: 3 });
-apply(0xc4, { op: Operation.call, mode1: AddressingMode.imm16, condition: Condition.nz, cycles: 3, len: 3 });
-apply(0xd4, { op: Operation.call, mode1: AddressingMode.imm16, condition: Condition.z, cycles: 3, len: 3 });
-apply(0xcc, { op: Operation.call, mode1: AddressingMode.imm16, condition: Condition.nc, cycles: 3, len: 3 });
-apply(0xdc, { op: Operation.call, mode1: AddressingMode.imm16, condition: Condition.c, cycles: 3, len: 3 });
-
-apply(0xc9, { op: Operation.ret, cycles: 4, len: 1 });
-apply(0xc0, { op: Operation.ret, condition: Condition.nz, cycles: 2, len: 1 });
-apply(0xc8, { op: Operation.ret, condition: Condition.z, cycles: 2, len: 1 });
-apply(0xd0, { op: Operation.ret, condition: Condition.nc, cycles: 2, len: 1 });
-apply(0xd8, { op: Operation.ret, condition: Condition.c, cycles: 2, len: 1 });
-apply(0xd9, { op: Operation.reti, cycles: 4, len: 1 });
-
-apply(0x2f, { op: Operation.cpl, cycles: 1, len: 1 });
 
 [r16.bc, r16.de, r16.hl, r16.af].forEach((reg, i) => {
     apply(((i + 0xc) << 4) | 0x05, { op: Operation.push, par1: reg, mode1: AddressingMode.reg16, cycles: 4, len: 1 });
