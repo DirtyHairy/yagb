@@ -141,10 +141,10 @@ export class Cpu {
 
                 const operand1 = this.getArg1(instruction);
                 const operand2 = this.getArg2(instruction);
-                const flagc = ((this.state.r8[r8.f] & flag.c) >>> 4);
+                const flagc = (this.state.r8[r8.f] & flag.c) >>> 4;
                 const result = operand1 + operand2 + flagc;
 
-                this.setArg1(instruction, result & 0xffff)
+                this.setArg1(instruction, result & 0xffff);
 
                 // prettier-ignore
                 this.state.r8[r8.f] =
@@ -163,7 +163,7 @@ export class Cpu {
                 const operand2 = this.getArg2(instruction);
                 const result = operand1 + operand2;
 
-                this.setArg1(instruction, result & 0xffff)
+                this.setArg1(instruction, result & 0xffff);
 
                 // prettier-ignore
                 this.state.r8[r8.f] =
@@ -396,10 +396,10 @@ export class Cpu {
 
                 const operand1 = this.getArg1(instruction);
                 const operand2 = this.getArg2(instruction);
-                const flagc = ((this.state.r8[r8.f] & flag.c) >>> 4)
+                const flagc = (this.state.r8[r8.f] & flag.c) >>> 4;
                 const result = operand1 - operand2 - flagc;
 
-                this.setArg1(instruction, result & 0xffff)
+                this.setArg1(instruction, result & 0xffff);
 
                 // prettier-ignore
                 this.state.r8[r8.f] =
@@ -414,11 +414,11 @@ export class Cpu {
             case Operation.sub: {
                 this.clock.increment(instruction.cycles);
 
-                const operand1 = this.getArg1(instruction);
-                const operand2 = this.getArg2(instruction);
+                const operand1 = this.state.r8[r8.a];
+                const operand2 = this.getArg1(instruction);
                 const result = operand1 - operand2;
 
-                this.setArg1(instruction, result & 0xffff)
+                this.state.r8[r8.a] = result & 0xffff;
 
                 // prettier-ignore
                 this.state.r8[r8.f] =
