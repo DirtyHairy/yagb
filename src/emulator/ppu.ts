@@ -248,7 +248,7 @@ export class Ppu {
         let pixelAddress = 160 * this.scanline;
 
         for (let x = 0; x < 160; x++) {
-            const indexedBG = ((bgTilePlaneLow >>> 7) | (bgTilePlaneHigh >>> 6)) & 0x03; // TODO: one shift can be saved if we reverse the byte
+            const indexedBG = ((bgTilePlaneLow & 0x80) >>> 7) | ((bgTilePlaneHigh & 0x80) >>> 6); // TODO: one shift can be saved if we reverse the byte
             this.backBuffer[pixelAddress++] = this.paletteBG[indexedBG];
 
             if (bgTileX === 7) {
@@ -260,8 +260,8 @@ export class Ppu {
                 bgTilePlaneHigh = this.vram[bgTileAddress + 1];
             } else {
                 bgTileX++;
-                bgTilePlaneLow >>>= 1;
-                bgTilePlaneHigh >>>= 1;
+                bgTilePlaneLow <<= 1;
+                bgTilePlaneHigh <<= 1;
             }
         }
     }
