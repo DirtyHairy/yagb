@@ -548,6 +548,18 @@ export class Cpu {
                 return instruction.cycles;
             }
 
+            case Operation.scf: {
+                this.clock.increment(instruction.cycles);
+
+                // prettier-ignore
+                this.state.r8[r8.f] =
+                    (this.state.r8[r8.f] & flag.z) |
+                    flag.c;
+
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
+                return instruction.cycles;
+            }
+
             case Operation.stop:
                 this.clock.increment(instruction.cycles);
 

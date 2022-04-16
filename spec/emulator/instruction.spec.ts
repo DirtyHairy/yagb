@@ -35,6 +35,7 @@ describe('The opcode instructions', () => {
                     { op: 'HALT', expected: 'HALT', opcode: 0x76, par1: 0x00, par2: 0x00 },
                     { op: 'DI', expected: 'DI', opcode: 0xf3, par1: 0x00, par2: 0x00 },
                     { op: 'EI', expected: 'EI', opcode: 0xfb, par1: 0x00, par2: 0x00 },
+                    { op: 'SCF', expected: 'SCF', opcode: 0x37, par1: 0x00, par2: 0x00 },
                     { op: 'RET', expected: 'RET', opcode: 0xc9, par1: 0x00, par2: 0x00 },
                     { op: 'RETI', expected: 'RETI', opcode: 0xd9, par1: 0x00, par2: 0x00 },
                     { op: 'CPL', expected: 'CPL', opcode: 0x2f, par1: 0x00, par2: 0x00 },

@@ -39,6 +39,7 @@ export const enum Operation {
     rrca,
     rst,
     sbc,
+    scf,
     stop,
     sub,
     xor,
@@ -244,6 +245,9 @@ function disassembleOperation(operation: Operation): string {
         case Operation.sbc:
             return 'SBC';
 
+        case Operation.scf:
+            return 'SCF';
+
         case Operation.stop:
             return 'STOP';
 
@@ -381,8 +385,9 @@ apply(0xf4, { op: Operation.none, cycles: 1, len: 1 });
 apply(0xfc, { op: Operation.none, cycles: 1, len: 1 });
 apply(0xfd, { op: Operation.none, cycles: 1, len: 1 });
 
-apply(0, { op: Operation.nop, cycles: 1, len: 1 });
+apply(0x00, { op: Operation.nop, cycles: 1, len: 1 });
 apply(0x10, { op: Operation.stop, cycles: 1, len: 1 });
+apply(0x37, { op: Operation.scf, cycles: 1, len: 1 });
 apply(0x76, { op: Operation.halt, cycles: 1, len: 1 });
 apply(0xf3, { op: Operation.di, cycles: 1, len: 1 });
 apply(0xfb, { op: Operation.ei, cycles: 1, len: 1 });
