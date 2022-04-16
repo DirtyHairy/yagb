@@ -1,6 +1,5 @@
 import { hex16, hex8 } from '../helper/format';
 import { r16, r8 } from './cpu';
-
 import { Bus } from './bus';
 
 export const enum Operation {
@@ -499,6 +498,11 @@ apply(0xcb, { op: Operation.cb, mode1: AddressingMode.cb, cycles: 1, len: 1 });
 // 0xcf, 0xdf, 0xef, 0xff
 [0x08, 0x18, 0x28, 0x38].forEach((target, i) =>
     apply(((0xc + i) << 4) | 0xf, { op: Operation.rst, mode1: AddressingMode.implicit, par1: target, cycles: 4, len: 1 })
+);
+
+// 0xcf, 0xdf, 0xef, 0xff
+[r16.bc, r16.de, r16.hl, r16.sp].forEach((reg, i) =>
+    apply((i << 4) | 0x09, { op: Operation.add, par1: r16.hl, mode1: AddressingMode.reg16, par2: reg, mode2: AddressingMode.reg16, cycles: 2, len: 1 })
 );
 
 /*********************/

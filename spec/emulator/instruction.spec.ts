@@ -197,15 +197,24 @@ describe('The opcode instructions', () => {
                 ]
             },
             {
-                description: 'with first reg16ind8 value and second imm8 value',
-                entries: [
-                    { op: 'LD (HL), d8', expected: 'LD (HL), 0x00', opcode: 0x36, par1: 0x00, par2: 0x00 },
-                ]
-            },
-            {
                 description: 'with first reg16 value and second imm16 value',
                 entries: [
                     { op: 'LD BC, d16', expected: 'LD BC, 0x0000', opcode: 0x01, par1: 0x00, par2: 0x00 },
+                ]
+            },
+            {
+                description: 'with first reg16 value and second reg16 value',
+                entries: [
+                    { op: 'ADD HL, BC', expected: 'ADD HL, BC', opcode: 0x09, par1: 0x00, par2: 0x00 },
+                    { op: 'ADD HL, DE', expected: 'ADD HL, DE', opcode: 0x19, par1: 0x00, par2: 0x00 },
+                    { op: 'ADD HL, HL', expected: 'ADD HL, HL', opcode: 0x29, par1: 0x00, par2: 0x00 },
+                    { op: 'ADD HL, SP', expected: 'ADD HL, SP', opcode: 0x39, par1: 0x00, par2: 0x00 },
+                ]
+            },
+            {
+                description: 'with first reg16ind8 value and second imm8 value',
+                entries: [
+                    { op: 'LD (HL), d8', expected: 'LD (HL), 0x00', opcode: 0x36, par1: 0x00, par2: 0x00 },
                 ]
             },
             {
