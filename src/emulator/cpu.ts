@@ -427,7 +427,6 @@ export class Cpu {
 
                 // prettier-ignore
                 this.state.r8[r8.f] =
-                    (result === 0 ? flag.z : 0x00) |
                     ((operand & 0x80) >>> 3);
 
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
@@ -444,7 +443,6 @@ export class Cpu {
 
                 // prettier-ignore
                 this.state.r8[r8.f] =
-                    (result === 0 ? flag.z : 0x00) |
                     ((operand & 0x80) >>> 3);
 
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
@@ -461,7 +459,6 @@ export class Cpu {
 
                 // prettier-ignore
                 this.state.r8[r8.f] =
-                    (result === 0 ? flag.z : 0x00) |
                     ((operand & 0x01) << 4);
 
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
@@ -478,7 +475,6 @@ export class Cpu {
 
                 // prettier-ignore
                 this.state.r8[r8.f] =
-                    (result === 0 ? flag.z : 0x00) |
                     ((operand & 0x01) << 4);
 
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
