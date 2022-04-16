@@ -41,7 +41,7 @@ export interface CpuState {
 }
 
 function extendSign8(x: number): number {
-    return x & 0x80 ? -((~x + 1) & 0xff) : x;
+    return x & 0x80 ? -((~x + 0x01) & 0xff) : x;
 }
 
 function getIrqVector(interrupt: irq): number {
@@ -63,7 +63,7 @@ export class Cpu {
         this.state = {
             r8,
             r16,
-            p: 0,
+            p: 0x00,
             interruptsEnabled: false,
         };
     }
@@ -109,10 +109,7 @@ export class Cpu {
         this.interrupt.clear(irq);
         this.state.interruptsEnabled = false;
 
-        this.state.r16[r16.sp] = (this.state.r16[r16.sp] - 1) & 0xffff;
-        this.bus.write(this.state.r16[r16.sp], this.state.p >>> 8);
-        this.state.r16[r16.sp] = (this.state.r16[r16.sp] - 1) & 0xffff;
-        this.bus.write(this.state.r16[r16.sp], this.state.p & 0xff);
+        this.stackPush16(this.state.p);
 
         this.state.p = getIrqVector(irq);
         this.clock.increment(5);
@@ -120,15 +117,69 @@ export class Cpu {
         return 5;
     }
 
+    private stackPush16(value: number): void {
+        value = value & 0xffff;
+        this.state.r16[r16.sp] = (this.state.r16[r16.sp] - 0x01) & 0xffff;
+        this.bus.write(this.state.r16[r16.sp], value >>> 8);
+        this.state.r16[r16.sp] = (this.state.r16[r16.sp] - 0x01) & 0xffff;
+        this.bus.write(this.state.r16[r16.sp], value & 0xff);
+    }
+
+    private stackPop16(): number {
+        const value = this.bus.read16(this.state.r16[r16.sp]) & 0xffff;
+        this.state.r16[r16.sp] = (this.state.r16[r16.sp] + 2) & 0xffff;
+
+        return value;
+    }
+
     private dispatch(instruction: Instruction): number {
         if (instruction.op !== Operation.invalid) this.onExecute.dispatch(this.state.p);
 
         switch (instruction.op) {
+            case Operation.adc: {
+                this.clock.increment(instruction.cycles);
+
+                const operand1 = this.getArg1(instruction);
+                const operand2 = this.getArg2(instruction);
+                const flagc = (this.state.r8[r8.f] & flag.c) >>> 4;
+                const result = operand1 + operand2 + flagc;
+
+                this.setArg1(instruction, result & 0xffff);
+
+                // prettier-ignore
+                this.state.r8[r8.f] =
+                    (result === 0 ? flag.z : 0x00) |
+                    ((((operand1 & 0xf) + (operand2 & 0xf) + flagc) > 0xf) ? flag.h : 0x00) |
+                    (result > 0xff ? flag.c : 0x00);
+
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
+                return instruction.cycles;
+            }
+
+            case Operation.add: {
+                this.clock.increment(instruction.cycles);
+
+                const operand1 = this.getArg1(instruction);
+                const operand2 = this.getArg2(instruction);
+                const result = operand1 + operand2;
+
+                this.setArg1(instruction, result & 0xffff);
+
+                // prettier-ignore
+                this.state.r8[r8.f] =
+                    (result === 0 ? flag.z : 0x00) |
+                    ((((operand1 & 0xf) + (operand2 & 0xf)) > 0xf)  ? flag.h : 0x00) |
+                    (result > 0xff ? flag.c : 0x00);
+
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
+                return instruction.cycles;
+            }
+
             case Operation.and:
                 this.clock.increment(instruction.cycles);
 
                 this.state.r8[r8.a] &= this.getArg1(instruction);
-                this.state.r8[r8.f] = 0 | flag.h | (this.state.r8[r8.a] === 0 ? flag.z : 0);
+                this.state.r8[r8.f] = flag.h | (this.state.r8[r8.a] === 0 ? flag.z : 0x00);
 
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
                 return instruction.cycles;
@@ -138,10 +189,7 @@ export class Cpu {
 
                 const returnTo = (this.state.p + instruction.len) & 0xffff;
 
-                this.state.r16[r16.sp] = (this.state.r16[r16.sp] - 1) & 0xffff;
-                this.bus.write(this.state.r16[r16.sp], returnTo >>> 8);
-                this.state.r16[r16.sp] = (this.state.r16[r16.sp] - 1) & 0xffff;
-                this.bus.write(this.state.r16[r16.sp], returnTo & 0xff);
+                this.stackPush16(returnTo);
 
                 this.state.p = this.getArg1(instruction);
 
@@ -150,6 +198,7 @@ export class Cpu {
 
             case Operation.cb:
                 this.system.break('can not call CB');
+
                 return 0;
 
             case Operation.cp: {
@@ -160,10 +209,10 @@ export class Cpu {
 
                 // prettier-ignore
                 this.state.r8[r8.f] =
-                    (a === operand ? flag.z : 0) |
+                    (a === operand ? flag.z : 0x00) |
                     flag.n |
-                    ((a & 0xf) < (operand & 0xf) ? flag.h : 0) |
-                    (a < operand ? flag.c : 0);
+                    ((a & 0xf) < (operand & 0xf) ? flag.h : 0x00) |
+                    (a < operand ? flag.c : 0x00);
 
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
                 return instruction.cycles;
@@ -184,7 +233,7 @@ export class Cpu {
                 this.clock.increment(instruction.cycles);
 
                 const operand = this.getArg1(instruction);
-                const result = operand - 1;
+                const result = operand - 0x01;
 
                 this.setArg1(instruction, result);
 
@@ -192,8 +241,8 @@ export class Cpu {
                 this.state.r8[r8.f] =
                     (this.state.r8[r8.f] & flag.c) |
                     flag.n |
-                    ((result & 0xff) === 0 ? flag.z : 0) |
-                    ((((operand & 0x0f) - 1) & 0xf0) !== 0 ? flag.h : 0);
+                    ((result & 0xff) === 0 ? flag.z : 0x00) |
+                    ((((operand & 0x0f) - 0x01) & 0xf0) !== 0 ? flag.h : 0x00);
 
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
                 return instruction.cycles;
@@ -219,25 +268,25 @@ export class Cpu {
                 this.clock.increment(instruction.cycles);
 
                 const operand = this.getArg1(instruction);
-                const result = operand + 1;
+                const result = operand + 0x01;
 
                 this.setArg1(instruction, result);
 
                 // prettier-ignore
                 this.state.r8[r8.f] =
                     (this.state.r8[r8.f] & flag.c) |
-                    ((result & 0xff) === 0 ? flag.z : 0) |
-                    ((((operand & 0x0f) + 1) & 0xf0) !== 0 ? flag.h : 0);
+                    ((result & 0xff) === 0 ? flag.z : 0x00) |
+                    ((((operand & 0x0f) + 0x01) & 0xf0) !== 0 ? flag.h : 0x00);
 
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
                 return instruction.cycles;
             }
 
             case Operation.jp:
-            case Operation.rst:
                 this.clock.increment(instruction.cycles);
 
                 this.state.p = this.getArg1(instruction);
+
                 return instruction.cycles;
 
             case Operation.jr: {
@@ -268,7 +317,7 @@ export class Cpu {
                 this.clock.increment(instruction.cycles);
 
                 this.setArg1(instruction, this.getArg2(instruction));
-                this.state.r16[r16.hl] = (this.state.r16[r16.hl] - 1) & 0xffff;
+                this.state.r16[r16.hl] = (this.state.r16[r16.hl] - 0x01) & 0xffff;
 
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
                 return instruction.cycles;
@@ -278,7 +327,7 @@ export class Cpu {
                 this.clock.increment(instruction.cycles);
 
                 this.setArg1(instruction, this.getArg2(instruction));
-                this.state.r16[r16.hl] = (this.state.r16[r16.hl] + 1) & 0xffff;
+                this.state.r16[r16.hl] = (this.state.r16[r16.hl] + 0x01) & 0xffff;
 
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
                 return instruction.cycles;
@@ -294,7 +343,7 @@ export class Cpu {
                 this.clock.increment(instruction.cycles);
 
                 this.state.r8[r8.a] |= this.getArg1(instruction);
-                this.state.r8[r8.f] = this.state.r8[r8.a] === 0 ? flag.z : 0;
+                this.state.r8[r8.f] = this.state.r8[r8.a] === 0 ? flag.z : 0x00;
 
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
                 return instruction.cycles;
@@ -302,8 +351,7 @@ export class Cpu {
             case Operation.pop:
                 this.clock.increment(instruction.cycles);
 
-                this.setArg1(instruction, this.bus.read16(this.state.r16[r16.sp]));
-                this.state.r16[r16.sp] = (this.state.r16[r16.sp] + 2) & 0xffff;
+                this.setArg1(instruction, this.stackPop16());
                 this.state.r8[r8.f] &= 0xf0;
 
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
@@ -314,10 +362,7 @@ export class Cpu {
 
                 const operand = this.getArg1(instruction);
 
-                this.state.r16[r16.sp] = (this.state.r16[r16.sp] - 1) & 0xffff;
-                this.bus.write(this.state.r16[r16.sp], operand >>> 8);
-                this.state.r16[r16.sp] = (this.state.r16[r16.sp] - 1) & 0xffff;
-                this.bus.write(this.state.r16[r16.sp], operand & 0xff);
+                this.stackPush16(operand);
 
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
                 return instruction.cycles;
@@ -330,8 +375,7 @@ export class Cpu {
 
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
                 if (condition) {
-                    this.state.p = this.bus.read16(this.state.r16[r16.sp]);
-                    this.state.r16[r16.sp] = (this.state.r16[r16.sp] + 2) & 0xffff;
+                    this.state.p = this.stackPop16();
                 }
 
                 return cycles;
@@ -340,11 +384,49 @@ export class Cpu {
             case Operation.reti: {
                 this.clock.increment(instruction.cycles);
 
-                this.state.p = this.bus.read16(this.state.r16[r16.sp]);
-                this.state.r16[r16.sp] = (this.state.r16[r16.sp] + 2) & 0xffff;
+                this.state.p = this.stackPop16();
 
                 this.state.interruptsEnabled = true;
 
+                return instruction.cycles;
+            }
+
+            case Operation.sbc: {
+                this.clock.increment(instruction.cycles);
+
+                const operand1 = this.getArg1(instruction);
+                const operand2 = this.getArg2(instruction);
+                const flagc = (this.state.r8[r8.f] & flag.c) >>> 4;
+                const result = operand1 - operand2 - flagc;
+
+                this.setArg1(instruction, result & 0xffff);
+
+                // prettier-ignore
+                this.state.r8[r8.f] =
+                    (result === 0 ? flag.z : 0x00) |
+                    ((((operand1 & 0xf) - (operand2 & 0xf) - flagc) < 0) ? flag.h : 0x00) |
+                    (result < 0x00 ? flag.c : 0x00);
+
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
+                return instruction.cycles;
+            }
+
+            case Operation.sub: {
+                this.clock.increment(instruction.cycles);
+
+                const operand1 = this.state.r8[r8.a];
+                const operand2 = this.getArg1(instruction);
+                const result = operand1 - operand2;
+
+                this.state.r8[r8.a] = result & 0xffff;
+
+                // prettier-ignore
+                this.state.r8[r8.f] =
+                    (result === 0 ? flag.z : 0x00) |
+                    ((((operand1 & 0xf) - (operand2 & 0xf)) < 0)  ? flag.h : 0x00) |
+                    (result < 0x00 ? flag.c : 0x00);
+
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
                 return instruction.cycles;
             }
 
@@ -352,7 +434,7 @@ export class Cpu {
                 this.clock.increment(instruction.cycles);
 
                 this.state.r8[r8.a] = this.state.r8[r8.a] ^ this.getArg1(instruction);
-                this.state.r8[r8.f] = this.state.r8[r8.a] ? 0 : flag.z;
+                this.state.r8[r8.f] = this.state.r8[r8.a] ? 0x00 : flag.z;
 
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
                 return instruction.cycles;
@@ -367,7 +449,7 @@ export class Cpu {
                 this.state.r8[r8.f] =
                     (this.state.r8[r8.f] & flag.c) |
                     flag.h |
-                    (operand & bitMask ? 0x0 : 0x80);
+                    (operand & bitMask ? 0x00 : flag.z);
 
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
                 return instruction.cycles;
@@ -405,7 +487,7 @@ export class Cpu {
 
                 this.setArg1(instruction, result);
 
-                this.state.r8[r8.f] = result === 0 ? flag.z : 0;
+                this.state.r8[r8.f] = result === 0 ? flag.z : 0x00;
 
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
                 return instruction.cycles;
@@ -421,7 +503,7 @@ export class Cpu {
 
                 // prettier-ignore
                 this.state.r8[r8.f] =
-                    (result === 0 ? flag.z : 0) |
+                    (result === 0 ? flag.z : 0x00) |
                     ((operand & 0x80) >>> 3);
 
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
@@ -438,7 +520,7 @@ export class Cpu {
 
                 // prettier-ignore
                 this.state.r8[r8.f] =
-                    (result === 0 ? flag.z : 0) |
+                    (result === 0 ? flag.z : 0x00) |
                     ((operand & 0x80) >>> 3);
 
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
@@ -455,7 +537,7 @@ export class Cpu {
 
                 // prettier-ignore
                 this.state.r8[r8.f] =
-                    (result === 0 ? flag.z : 0) |
+                    (result === 0 ? flag.z : 0x00) |
                     ((operand & 0x01) << 4);
 
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
@@ -472,7 +554,7 @@ export class Cpu {
 
                 // prettier-ignore
                 this.state.r8[r8.f] =
-                    (result === 0 ? flag.z : 0) |
+                    (result === 0 ? flag.z : 0x00) |
                     ((operand & 0x01) << 4);
 
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
@@ -489,7 +571,7 @@ export class Cpu {
 
                 // prettier-ignore
                 this.state.r8[r8.f] =
-                    (result === 0 ? flag.z : 0) |
+                    (result === 0 ? flag.z : 0x00) |
                     ((operand & 0x80) >>> 3);
 
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
@@ -506,7 +588,7 @@ export class Cpu {
 
                 // prettier-ignore
                 this.state.r8[r8.f] =
-                    (result === 0 ? flag.z : 0) |
+                    (result === 0 ? flag.z : 0x00) |
                     ((operand & 0x01) << 4);
 
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
@@ -523,10 +605,20 @@ export class Cpu {
 
                 // prettier-ignore
                 this.state.r8[r8.f] =
-                    (result === 0 ? flag.z : 0) |
+                    (result === 0 ? flag.z : 0x00) |
                     ((operand & 0x01) << 4);
 
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
+                return instruction.cycles;
+            }
+
+            case Operation.rst: {
+                this.clock.increment(instruction.cycles);
+
+                this.stackPush16(this.state.p);
+
+                this.state.p = this.getArg1(instruction);
+
                 return instruction.cycles;
             }
 
@@ -539,13 +631,14 @@ export class Cpu {
     private getArg(par: number, mode: AddressingMode): number {
         switch (mode) {
             case AddressingMode.implicit:
+            case AddressingMode.bit:
                 return par;
 
             case AddressingMode.imm8:
-                return this.bus.read((this.state.p + 1) & 0xffff);
+                return this.bus.read((this.state.p + 0x01) & 0xffff);
 
             case AddressingMode.imm8io: {
-                const index = this.bus.read((this.state.p + 1) & 0xffff);
+                const index = this.bus.read((this.state.p + 0x01) & 0xffff);
                 return this.bus.read(0xff00 + index);
             }
 
@@ -556,10 +649,10 @@ export class Cpu {
                 return this.bus.read(0xff00 + this.state.r8[par]);
 
             case AddressingMode.imm16:
-                return this.bus.read16((this.state.p + 1) & 0xffff);
+                return this.bus.read16((this.state.p + 0x01) & 0xffff);
 
             case AddressingMode.imm16ind8: {
-                const index = this.bus.read16((this.state.p + 1) & 0xffff);
+                const index = this.bus.read16((this.state.p + 0x01) & 0xffff);
                 return this.bus.read(index);
             }
 
@@ -585,7 +678,7 @@ export class Cpu {
     private setArg(par: number, mode: AddressingMode, value: number): void {
         switch (mode) {
             case AddressingMode.imm8io: {
-                const index = this.bus.read((this.state.p + 1) & 0xffff);
+                const index = this.bus.read((this.state.p + 0x01) & 0xffff);
                 this.bus.write(0xff00 + index, value);
                 break;
             }
@@ -599,7 +692,7 @@ export class Cpu {
                 break;
 
             case AddressingMode.imm16ind8:
-                this.bus.write(this.bus.read16((this.state.p + 1) & 0xffff), value & 0xff);
+                this.bus.write(this.bus.read16((this.state.p + 0x01) & 0xffff), value & 0xff);
                 break;
 
             case AddressingMode.reg16ind8:
@@ -626,16 +719,16 @@ export class Cpu {
     private evaluateCondition(instruction: Instruction): boolean {
         switch (instruction.condition) {
             case Condition.c:
-                return (this.state.r8[r8.f] & flag.c) !== 0;
+                return (this.state.r8[r8.f] & flag.c) !== 0x00;
 
             case Condition.nc:
-                return (this.state.r8[r8.f] & flag.c) === 0;
+                return (this.state.r8[r8.f] & flag.c) === 0x00;
 
             case Condition.z:
-                return (this.state.r8[r8.f] & flag.z) !== 0;
+                return (this.state.r8[r8.f] & flag.z) !== 0x00;
 
             case Condition.nz:
-                return (this.state.r8[r8.f] & flag.z) === 0;
+                return (this.state.r8[r8.f] & flag.z) === 0x00;
         }
 
         return true;

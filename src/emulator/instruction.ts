@@ -4,7 +4,8 @@ import { r16, r8 } from './cpu';
 import { Bus } from './bus';
 
 export const enum Operation {
-    invalid,
+    adc,
+    add,
     and,
     call,
     cb,
@@ -14,6 +15,7 @@ export const enum Operation {
     di,
     ei,
     inc,
+    invalid,
     jp,
     jr,
     ld,
@@ -25,6 +27,9 @@ export const enum Operation {
     push,
     ret,
     reti,
+    rst,
+    sbc,
+    sub,
     xor,
 
     // prefix cb
@@ -34,7 +39,6 @@ export const enum Operation {
     rlc,
     rr,
     rrc,
-    rst,
     set,
     sla,
     sra,
@@ -45,7 +49,9 @@ export const enum Operation {
 export const enum AddressingMode {
     none,
     implicit,
+
     cb,
+    bit,
 
     imm8,
     imm8io,
@@ -131,6 +137,12 @@ function disassembleCondition(condition: Condition): string {
 
 function disassembleOperation(operation: Operation): string {
     switch (operation) {
+        case Operation.adc:
+            return 'ADC';
+
+        case Operation.add:
+            return 'ADD';
+
         case Operation.and:
             return 'AND';
 
@@ -191,6 +203,15 @@ function disassembleOperation(operation: Operation): string {
         case Operation.reti:
             return 'RETI';
 
+        case Operation.rst:
+            return 'RST';
+
+        case Operation.sub:
+            return 'SUB';
+
+        case Operation.sbc:
+            return 'SBC';
+
         case Operation.xor:
             return 'XOR';
 
@@ -224,9 +245,6 @@ function disassembleOperation(operation: Operation): string {
         case Operation.res:
             return 'RES';
 
-        case Operation.rst:
-            return 'RST';
-
         case Operation.set:
             return 'SET';
 
@@ -239,6 +257,9 @@ function disassembleOperationParameter(bus: Bus, address: number, par: number, m
     switch (mode) {
         case AddressingMode.implicit:
             return `${hex8(par)}`;
+
+        case AddressingMode.bit:
+            return `${par}`;
 
         case AddressingMode.cb:
             return `${hex8(bus.read((address + 1) & 0xffff))}`;
@@ -287,6 +308,10 @@ function disassembleR16(reg: r16): string {
 function apply(opcode: number, instruction: Partial<Instruction>): void {
     opcode = (opcode & 0xff00) >>> 8 === 0xcb ? (opcode & 0x00ff) + 0x100 : opcode;
 
+    if (instructions[opcode].op !== Operation.invalid) {
+        throw new Error(`OpCode ${hex8(opcode)} is already assign`);
+    }
+
     instructions[opcode] = {
         ...instructions[opcode],
         ...instruction,
@@ -312,27 +337,47 @@ for (let i = 0; i < 0x200; i++)
 apply(0, { op: Operation.nop, cycles: 1, len: 1 });
 apply(0xc3, { op: Operation.jp, mode1: AddressingMode.imm16, cycles: 4, len: 3 });
 
+// 0x80, 0x81, 0x82, 0x83, 0x84, 0x85
+// 0x88, 0x89, 0x8a, 0x8b, 0x8c, 0x8d
+// 0x90, 0x91, 0x92, 0x93, 0x94, 0x95
+// 0x98, 0x99, 0x9a, 0x9b, 0x9c, 0x9d
 // 0xa0, 0xa1, 0xa2, 0xa3, 0xa4, 0xa5
 // 0xa8, 0xa9, 0xaa, 0xab, 0xac, 0xad
 // 0xb0, 0xb1, 0xb2, 0xb3, 0xb4, 0xb5
 // 0x88, 0x89, 0x8a, 0x8b, 0x8c, 0x8d
 [r8.b, r8.c, r8.d, r8.e, r8.h, r8.l].forEach((reg, i) => {
+    apply(0x80 + i, { op: Operation.add, par1: r8.a, mode1: AddressingMode.reg8, par2: reg, mode2: AddressingMode.reg8, cycles: 1, len: 1 });
+    apply(0x88 + i, { op: Operation.adc, par1: r8.a, mode1: AddressingMode.reg8, par2: reg, mode2: AddressingMode.reg8, cycles: 1, len: 1 });
+    apply(0x90 + i, { op: Operation.sub, par1: reg, mode1: AddressingMode.reg8, cycles: 1, len: 1 });
+    apply(0x98 + i, { op: Operation.sbc, par1: r8.a, mode1: AddressingMode.reg8, par2: reg, mode2: AddressingMode.reg8, cycles: 1, len: 1 });
     apply(0xa0 + i, { op: Operation.and, par1: reg, mode1: AddressingMode.reg8, cycles: 1, len: 1 });
     apply(0xa8 + i, { op: Operation.xor, par1: reg, mode1: AddressingMode.reg8, cycles: 1, len: 1 });
     apply(0xb0 + i, { op: Operation.or, par1: reg, mode1: AddressingMode.reg8, cycles: 1, len: 1 });
     apply(0xb8 + i, { op: Operation.cp, par1: reg, mode1: AddressingMode.reg8, cycles: 1, len: 1 });
 });
 
+apply(0x87, { op: Operation.add, par1: r8.a, mode1: AddressingMode.reg8, par2: r8.a, mode2: AddressingMode.reg8, cycles: 1, len: 1 });
+apply(0x8f, { op: Operation.adc, par1: r8.a, mode1: AddressingMode.reg8, par2: r8.a, mode2: AddressingMode.reg8, cycles: 1, len: 1 });
+apply(0x97, { op: Operation.sub, par1: r8.a, mode1: AddressingMode.reg8, cycles: 1, len: 1 });
+apply(0x9f, { op: Operation.sub, par1: r8.a, mode1: AddressingMode.reg8, par2: r8.a, mode2: AddressingMode.reg8, cycles: 1, len: 1 });
 apply(0xa7, { op: Operation.and, par1: r8.a, mode1: AddressingMode.reg8, cycles: 1, len: 1 });
 apply(0xaf, { op: Operation.xor, par1: r8.a, mode1: AddressingMode.reg8, cycles: 1, len: 1 });
 apply(0xb7, { op: Operation.or, par1: r8.a, mode1: AddressingMode.reg8, cycles: 1, len: 1 });
 apply(0xbf, { op: Operation.cp, par1: r8.a, mode1: AddressingMode.reg8, cycles: 1, len: 1 });
 
+apply(0x86, { op: Operation.add, par1: r8.a, mode1: AddressingMode.reg8, par2: r16.hl, mode2: AddressingMode.reg16ind8, cycles: 2, len: 1 });
+apply(0x8e, { op: Operation.adc, par1: r8.a, mode1: AddressingMode.reg8, par2: r16.hl, mode2: AddressingMode.reg16ind8, cycles: 2, len: 1 });
+apply(0x96, { op: Operation.sub, par1: r16.hl, mode1: AddressingMode.reg16ind8, cycles: 2, len: 1 });
+apply(0x9e, { op: Operation.sbc, par1: r8.a, mode1: AddressingMode.reg8, par2: r16.hl, mode2: AddressingMode.reg16ind8, cycles: 2, len: 1 });
 apply(0xa6, { op: Operation.and, par1: r16.hl, mode1: AddressingMode.reg16ind8, cycles: 2, len: 1 });
 apply(0xae, { op: Operation.xor, par1: r16.hl, mode1: AddressingMode.reg16ind8, cycles: 2, len: 1 });
 apply(0xb6, { op: Operation.or, par1: r16.hl, mode1: AddressingMode.reg16ind8, cycles: 2, len: 1 });
 apply(0xbe, { op: Operation.cp, par1: r16.hl, mode1: AddressingMode.reg16ind8, cycles: 2, len: 1 });
 
+apply(0xc6, { op: Operation.add, par1: r8.a, mode1: AddressingMode.reg8, mode2: AddressingMode.imm8, cycles: 2, len: 2 });
+apply(0xce, { op: Operation.adc, par1: r8.a, mode1: AddressingMode.reg8, mode2: AddressingMode.imm8, cycles: 2, len: 2 });
+apply(0xd6, { op: Operation.sub, mode1: AddressingMode.imm8, cycles: 2, len: 2 });
+apply(0xde, { op: Operation.sbc, par1: r8.a, mode1: AddressingMode.reg8, mode2: AddressingMode.imm8, cycles: 2, len: 2 });
 apply(0xe6, { op: Operation.and, mode1: AddressingMode.imm8, cycles: 2, len: 2 });
 apply(0xee, { op: Operation.xor, mode1: AddressingMode.imm8, cycles: 2, len: 2 });
 apply(0xf6, { op: Operation.or, mode1: AddressingMode.imm8, cycles: 2, len: 2 });
@@ -446,11 +491,14 @@ apply(0x2f, { op: Operation.cpl, cycles: 1, len: 1 });
 
 apply(0xcb, { op: Operation.cb, mode1: AddressingMode.cb, cycles: 1, len: 1 });
 
-[0x08, 0x18, 0x28, 0x38].forEach((target, i) =>
-    apply(((0xc + i) << 4) | 0xf, { op: Operation.rst, mode1: AddressingMode.implicit, par1: target, cycles: 4, len: 1 })
-);
+// 0xc7, 0xd7, 0xe7, 0xf7
 [0x00, 0x10, 0x20, 0x30].forEach((target, i) =>
     apply(((0xc + i) << 4) | 0x7, { op: Operation.rst, mode1: AddressingMode.implicit, par1: target, cycles: 4, len: 1 })
+);
+
+// 0xcf, 0xdf, 0xef, 0xff
+[0x08, 0x18, 0x28, 0x38].forEach((target, i) =>
+    apply(((0xc + i) << 4) | 0xf, { op: Operation.rst, mode1: AddressingMode.implicit, par1: target, cycles: 4, len: 1 })
 );
 
 /*********************/
@@ -483,32 +531,32 @@ apply(0xcb, { op: Operation.cb, mode1: AddressingMode.cb, cycles: 1, len: 1 });
     apply(0xcb30 + i, { op: Operation.swap, par1: reg, mode1: AddressingMode.reg8, cycles: 2, len: 2 });
     apply(0xcb38 + i, { op: Operation.srl, par1: reg, mode1: AddressingMode.reg8, cycles: 2, len: 2 });
 
-    apply(0xcb40 + i, { op: Operation.bit, par1: 0, mode1: AddressingMode.implicit, par2: reg, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
-    apply(0xcb48 + i, { op: Operation.bit, par1: 1, mode1: AddressingMode.implicit, par2: reg, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
-    apply(0xcb50 + i, { op: Operation.bit, par1: 2, mode1: AddressingMode.implicit, par2: reg, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
-    apply(0xcb58 + i, { op: Operation.bit, par1: 3, mode1: AddressingMode.implicit, par2: reg, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
-    apply(0xcb60 + i, { op: Operation.bit, par1: 4, mode1: AddressingMode.implicit, par2: reg, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
-    apply(0xcb68 + i, { op: Operation.bit, par1: 5, mode1: AddressingMode.implicit, par2: reg, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
-    apply(0xcb70 + i, { op: Operation.bit, par1: 6, mode1: AddressingMode.implicit, par2: reg, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
-    apply(0xcb78 + i, { op: Operation.bit, par1: 7, mode1: AddressingMode.implicit, par2: reg, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
+    apply(0xcb40 + i, { op: Operation.bit, par1: 0, mode1: AddressingMode.bit, par2: reg, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
+    apply(0xcb48 + i, { op: Operation.bit, par1: 1, mode1: AddressingMode.bit, par2: reg, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
+    apply(0xcb50 + i, { op: Operation.bit, par1: 2, mode1: AddressingMode.bit, par2: reg, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
+    apply(0xcb58 + i, { op: Operation.bit, par1: 3, mode1: AddressingMode.bit, par2: reg, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
+    apply(0xcb60 + i, { op: Operation.bit, par1: 4, mode1: AddressingMode.bit, par2: reg, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
+    apply(0xcb68 + i, { op: Operation.bit, par1: 5, mode1: AddressingMode.bit, par2: reg, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
+    apply(0xcb70 + i, { op: Operation.bit, par1: 6, mode1: AddressingMode.bit, par2: reg, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
+    apply(0xcb78 + i, { op: Operation.bit, par1: 7, mode1: AddressingMode.bit, par2: reg, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
 
-    apply(0xcb80 + i, { op: Operation.res, par1: 0, mode1: AddressingMode.implicit, par2: reg, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
-    apply(0xcb88 + i, { op: Operation.res, par1: 1, mode1: AddressingMode.implicit, par2: reg, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
-    apply(0xcb90 + i, { op: Operation.res, par1: 2, mode1: AddressingMode.implicit, par2: reg, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
-    apply(0xcb98 + i, { op: Operation.res, par1: 3, mode1: AddressingMode.implicit, par2: reg, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
-    apply(0xcba0 + i, { op: Operation.res, par1: 4, mode1: AddressingMode.implicit, par2: reg, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
-    apply(0xcba8 + i, { op: Operation.res, par1: 5, mode1: AddressingMode.implicit, par2: reg, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
-    apply(0xcbb0 + i, { op: Operation.res, par1: 6, mode1: AddressingMode.implicit, par2: reg, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
-    apply(0xcbb8 + i, { op: Operation.res, par1: 7, mode1: AddressingMode.implicit, par2: reg, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
+    apply(0xcb80 + i, { op: Operation.res, par1: 0, mode1: AddressingMode.bit, par2: reg, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
+    apply(0xcb88 + i, { op: Operation.res, par1: 1, mode1: AddressingMode.bit, par2: reg, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
+    apply(0xcb90 + i, { op: Operation.res, par1: 2, mode1: AddressingMode.bit, par2: reg, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
+    apply(0xcb98 + i, { op: Operation.res, par1: 3, mode1: AddressingMode.bit, par2: reg, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
+    apply(0xcba0 + i, { op: Operation.res, par1: 4, mode1: AddressingMode.bit, par2: reg, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
+    apply(0xcba8 + i, { op: Operation.res, par1: 5, mode1: AddressingMode.bit, par2: reg, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
+    apply(0xcbb0 + i, { op: Operation.res, par1: 6, mode1: AddressingMode.bit, par2: reg, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
+    apply(0xcbb8 + i, { op: Operation.res, par1: 7, mode1: AddressingMode.bit, par2: reg, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
 
-    apply(0xcbc0 + i, { op: Operation.set, par1: 0, mode1: AddressingMode.implicit, par2: reg, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
-    apply(0xcbc8 + i, { op: Operation.set, par1: 1, mode1: AddressingMode.implicit, par2: reg, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
-    apply(0xcbd0 + i, { op: Operation.set, par1: 2, mode1: AddressingMode.implicit, par2: reg, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
-    apply(0xcbd8 + i, { op: Operation.set, par1: 3, mode1: AddressingMode.implicit, par2: reg, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
-    apply(0xcbe0 + i, { op: Operation.set, par1: 4, mode1: AddressingMode.implicit, par2: reg, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
-    apply(0xcbe8 + i, { op: Operation.set, par1: 5, mode1: AddressingMode.implicit, par2: reg, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
-    apply(0xcbf0 + i, { op: Operation.set, par1: 6, mode1: AddressingMode.implicit, par2: reg, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
-    apply(0xcbf8 + i, { op: Operation.set, par1: 7, mode1: AddressingMode.implicit, par2: reg, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
+    apply(0xcbc0 + i, { op: Operation.set, par1: 0, mode1: AddressingMode.bit, par2: reg, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
+    apply(0xcbc8 + i, { op: Operation.set, par1: 1, mode1: AddressingMode.bit, par2: reg, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
+    apply(0xcbd0 + i, { op: Operation.set, par1: 2, mode1: AddressingMode.bit, par2: reg, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
+    apply(0xcbd8 + i, { op: Operation.set, par1: 3, mode1: AddressingMode.bit, par2: reg, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
+    apply(0xcbe0 + i, { op: Operation.set, par1: 4, mode1: AddressingMode.bit, par2: reg, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
+    apply(0xcbe8 + i, { op: Operation.set, par1: 5, mode1: AddressingMode.bit, par2: reg, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
+    apply(0xcbf0 + i, { op: Operation.set, par1: 6, mode1: AddressingMode.bit, par2: reg, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
+    apply(0xcbf8 + i, { op: Operation.set, par1: 7, mode1: AddressingMode.bit, par2: reg, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
 });
 
 apply(0xcb07, { op: Operation.rlc, par1: r8.a, mode1: AddressingMode.reg8, cycles: 2, len: 2 });
@@ -520,32 +568,32 @@ apply(0xcb2f, { op: Operation.sra, par1: r8.a, mode1: AddressingMode.reg8, cycle
 apply(0xcb37, { op: Operation.swap, par1: r8.a, mode1: AddressingMode.reg8, cycles: 2, len: 2 });
 apply(0xcb3f, { op: Operation.srl, par1: r8.a, mode1: AddressingMode.reg8, cycles: 2, len: 2 });
 
-apply(0xcb47, { op: Operation.bit, par1: 0, mode1: AddressingMode.implicit, par2: r8.a, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
-apply(0xcb4f, { op: Operation.bit, par1: 1, mode1: AddressingMode.implicit, par2: r8.a, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
-apply(0xcb57, { op: Operation.bit, par1: 2, mode1: AddressingMode.implicit, par2: r8.a, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
-apply(0xcb5f, { op: Operation.bit, par1: 3, mode1: AddressingMode.implicit, par2: r8.a, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
-apply(0xcb67, { op: Operation.bit, par1: 4, mode1: AddressingMode.implicit, par2: r8.a, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
-apply(0xcb6f, { op: Operation.bit, par1: 5, mode1: AddressingMode.implicit, par2: r8.a, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
-apply(0xcb77, { op: Operation.bit, par1: 6, mode1: AddressingMode.implicit, par2: r8.a, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
-apply(0xcb7f, { op: Operation.bit, par1: 7, mode1: AddressingMode.implicit, par2: r8.a, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
+apply(0xcb47, { op: Operation.bit, par1: 0, mode1: AddressingMode.bit, par2: r8.a, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
+apply(0xcb4f, { op: Operation.bit, par1: 1, mode1: AddressingMode.bit, par2: r8.a, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
+apply(0xcb57, { op: Operation.bit, par1: 2, mode1: AddressingMode.bit, par2: r8.a, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
+apply(0xcb5f, { op: Operation.bit, par1: 3, mode1: AddressingMode.bit, par2: r8.a, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
+apply(0xcb67, { op: Operation.bit, par1: 4, mode1: AddressingMode.bit, par2: r8.a, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
+apply(0xcb6f, { op: Operation.bit, par1: 5, mode1: AddressingMode.bit, par2: r8.a, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
+apply(0xcb77, { op: Operation.bit, par1: 6, mode1: AddressingMode.bit, par2: r8.a, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
+apply(0xcb7f, { op: Operation.bit, par1: 7, mode1: AddressingMode.bit, par2: r8.a, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
 
-apply(0xcb87, { op: Operation.res, par1: 0, mode1: AddressingMode.implicit, par2: r8.a, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
-apply(0xcb8f, { op: Operation.res, par1: 1, mode1: AddressingMode.implicit, par2: r8.a, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
-apply(0xcb97, { op: Operation.res, par1: 2, mode1: AddressingMode.implicit, par2: r8.a, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
-apply(0xcb9f, { op: Operation.res, par1: 3, mode1: AddressingMode.implicit, par2: r8.a, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
-apply(0xcba7, { op: Operation.res, par1: 4, mode1: AddressingMode.implicit, par2: r8.a, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
-apply(0xcbaf, { op: Operation.res, par1: 5, mode1: AddressingMode.implicit, par2: r8.a, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
-apply(0xcbb7, { op: Operation.res, par1: 6, mode1: AddressingMode.implicit, par2: r8.a, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
-apply(0xcbbf, { op: Operation.res, par1: 7, mode1: AddressingMode.implicit, par2: r8.a, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
+apply(0xcb87, { op: Operation.res, par1: 0, mode1: AddressingMode.bit, par2: r8.a, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
+apply(0xcb8f, { op: Operation.res, par1: 1, mode1: AddressingMode.bit, par2: r8.a, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
+apply(0xcb97, { op: Operation.res, par1: 2, mode1: AddressingMode.bit, par2: r8.a, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
+apply(0xcb9f, { op: Operation.res, par1: 3, mode1: AddressingMode.bit, par2: r8.a, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
+apply(0xcba7, { op: Operation.res, par1: 4, mode1: AddressingMode.bit, par2: r8.a, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
+apply(0xcbaf, { op: Operation.res, par1: 5, mode1: AddressingMode.bit, par2: r8.a, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
+apply(0xcbb7, { op: Operation.res, par1: 6, mode1: AddressingMode.bit, par2: r8.a, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
+apply(0xcbbf, { op: Operation.res, par1: 7, mode1: AddressingMode.bit, par2: r8.a, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
 
-apply(0xcbc7, { op: Operation.set, par1: 0, mode1: AddressingMode.implicit, par2: r8.a, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
-apply(0xcbcf, { op: Operation.set, par1: 1, mode1: AddressingMode.implicit, par2: r8.a, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
-apply(0xcbd7, { op: Operation.set, par1: 2, mode1: AddressingMode.implicit, par2: r8.a, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
-apply(0xcbdf, { op: Operation.set, par1: 3, mode1: AddressingMode.implicit, par2: r8.a, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
-apply(0xcbe7, { op: Operation.set, par1: 4, mode1: AddressingMode.implicit, par2: r8.a, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
-apply(0xcbef, { op: Operation.set, par1: 5, mode1: AddressingMode.implicit, par2: r8.a, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
-apply(0xcbf7, { op: Operation.set, par1: 6, mode1: AddressingMode.implicit, par2: r8.a, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
-apply(0xcbff, { op: Operation.set, par1: 7, mode1: AddressingMode.implicit, par2: r8.a, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
+apply(0xcbc7, { op: Operation.set, par1: 0, mode1: AddressingMode.bit, par2: r8.a, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
+apply(0xcbcf, { op: Operation.set, par1: 1, mode1: AddressingMode.bit, par2: r8.a, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
+apply(0xcbd7, { op: Operation.set, par1: 2, mode1: AddressingMode.bit, par2: r8.a, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
+apply(0xcbdf, { op: Operation.set, par1: 3, mode1: AddressingMode.bit, par2: r8.a, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
+apply(0xcbe7, { op: Operation.set, par1: 4, mode1: AddressingMode.bit, par2: r8.a, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
+apply(0xcbef, { op: Operation.set, par1: 5, mode1: AddressingMode.bit, par2: r8.a, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
+apply(0xcbf7, { op: Operation.set, par1: 6, mode1: AddressingMode.bit, par2: r8.a, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
+apply(0xcbff, { op: Operation.set, par1: 7, mode1: AddressingMode.bit, par2: r8.a, mode2: AddressingMode.reg8, cycles: 2, len: 2 });
 
 apply(0xcb06, { op: Operation.rlc, par1: r16.hl, mode1: AddressingMode.reg16ind8, cycles: 4, len: 2 });
 apply(0xcb0e, { op: Operation.rrc, par1: r16.hl, mode1: AddressingMode.reg16ind8, cycles: 4, len: 2 });
@@ -556,29 +604,29 @@ apply(0xcb2e, { op: Operation.sra, par1: r16.hl, mode1: AddressingMode.reg16ind8
 apply(0xcb36, { op: Operation.swap, par1: r16.hl, mode1: AddressingMode.reg16ind8, cycles: 4, len: 2 });
 apply(0xcb3e, { op: Operation.srl, par1: r16.hl, mode1: AddressingMode.reg16ind8, cycles: 4, len: 2 });
 
-apply(0xcb46, { op: Operation.bit, par1: 0, mode1: AddressingMode.implicit, par2: r16.hl, mode2: AddressingMode.reg16ind8, cycles: 4, len: 2 });
-apply(0xcb4e, { op: Operation.bit, par1: 1, mode1: AddressingMode.implicit, par2: r16.hl, mode2: AddressingMode.reg16ind8, cycles: 4, len: 2 });
-apply(0xcb56, { op: Operation.bit, par1: 2, mode1: AddressingMode.implicit, par2: r16.hl, mode2: AddressingMode.reg16ind8, cycles: 4, len: 2 });
-apply(0xcb5e, { op: Operation.bit, par1: 3, mode1: AddressingMode.implicit, par2: r16.hl, mode2: AddressingMode.reg16ind8, cycles: 4, len: 2 });
-apply(0xcb66, { op: Operation.bit, par1: 4, mode1: AddressingMode.implicit, par2: r16.hl, mode2: AddressingMode.reg16ind8, cycles: 4, len: 2 });
-apply(0xcb6e, { op: Operation.bit, par1: 5, mode1: AddressingMode.implicit, par2: r16.hl, mode2: AddressingMode.reg16ind8, cycles: 4, len: 2 });
-apply(0xcb76, { op: Operation.bit, par1: 6, mode1: AddressingMode.implicit, par2: r16.hl, mode2: AddressingMode.reg16ind8, cycles: 4, len: 2 });
-apply(0xcb7e, { op: Operation.bit, par1: 7, mode1: AddressingMode.implicit, par2: r16.hl, mode2: AddressingMode.reg16ind8, cycles: 4, len: 2 });
+apply(0xcb46, { op: Operation.bit, par1: 0, mode1: AddressingMode.bit, par2: r16.hl, mode2: AddressingMode.reg16ind8, cycles: 4, len: 2 });
+apply(0xcb4e, { op: Operation.bit, par1: 1, mode1: AddressingMode.bit, par2: r16.hl, mode2: AddressingMode.reg16ind8, cycles: 4, len: 2 });
+apply(0xcb56, { op: Operation.bit, par1: 2, mode1: AddressingMode.bit, par2: r16.hl, mode2: AddressingMode.reg16ind8, cycles: 4, len: 2 });
+apply(0xcb5e, { op: Operation.bit, par1: 3, mode1: AddressingMode.bit, par2: r16.hl, mode2: AddressingMode.reg16ind8, cycles: 4, len: 2 });
+apply(0xcb66, { op: Operation.bit, par1: 4, mode1: AddressingMode.bit, par2: r16.hl, mode2: AddressingMode.reg16ind8, cycles: 4, len: 2 });
+apply(0xcb6e, { op: Operation.bit, par1: 5, mode1: AddressingMode.bit, par2: r16.hl, mode2: AddressingMode.reg16ind8, cycles: 4, len: 2 });
+apply(0xcb76, { op: Operation.bit, par1: 6, mode1: AddressingMode.bit, par2: r16.hl, mode2: AddressingMode.reg16ind8, cycles: 4, len: 2 });
+apply(0xcb7e, { op: Operation.bit, par1: 7, mode1: AddressingMode.bit, par2: r16.hl, mode2: AddressingMode.reg16ind8, cycles: 4, len: 2 });
 
-apply(0xcb86, { op: Operation.res, par1: 0, mode1: AddressingMode.implicit, par2: r16.hl, mode2: AddressingMode.reg16ind8, cycles: 4, len: 2 });
-apply(0xcb8e, { op: Operation.res, par1: 1, mode1: AddressingMode.implicit, par2: r16.hl, mode2: AddressingMode.reg16ind8, cycles: 4, len: 2 });
-apply(0xcb96, { op: Operation.res, par1: 2, mode1: AddressingMode.implicit, par2: r16.hl, mode2: AddressingMode.reg16ind8, cycles: 4, len: 2 });
-apply(0xcb9e, { op: Operation.res, par1: 3, mode1: AddressingMode.implicit, par2: r16.hl, mode2: AddressingMode.reg16ind8, cycles: 4, len: 2 });
-apply(0xcba6, { op: Operation.res, par1: 4, mode1: AddressingMode.implicit, par2: r16.hl, mode2: AddressingMode.reg16ind8, cycles: 4, len: 2 });
-apply(0xcbae, { op: Operation.res, par1: 5, mode1: AddressingMode.implicit, par2: r16.hl, mode2: AddressingMode.reg16ind8, cycles: 4, len: 2 });
-apply(0xcbb6, { op: Operation.res, par1: 6, mode1: AddressingMode.implicit, par2: r16.hl, mode2: AddressingMode.reg16ind8, cycles: 4, len: 2 });
-apply(0xcbbe, { op: Operation.res, par1: 7, mode1: AddressingMode.implicit, par2: r16.hl, mode2: AddressingMode.reg16ind8, cycles: 4, len: 2 });
+apply(0xcb86, { op: Operation.res, par1: 0, mode1: AddressingMode.bit, par2: r16.hl, mode2: AddressingMode.reg16ind8, cycles: 4, len: 2 });
+apply(0xcb8e, { op: Operation.res, par1: 1, mode1: AddressingMode.bit, par2: r16.hl, mode2: AddressingMode.reg16ind8, cycles: 4, len: 2 });
+apply(0xcb96, { op: Operation.res, par1: 2, mode1: AddressingMode.bit, par2: r16.hl, mode2: AddressingMode.reg16ind8, cycles: 4, len: 2 });
+apply(0xcb9e, { op: Operation.res, par1: 3, mode1: AddressingMode.bit, par2: r16.hl, mode2: AddressingMode.reg16ind8, cycles: 4, len: 2 });
+apply(0xcba6, { op: Operation.res, par1: 4, mode1: AddressingMode.bit, par2: r16.hl, mode2: AddressingMode.reg16ind8, cycles: 4, len: 2 });
+apply(0xcbae, { op: Operation.res, par1: 5, mode1: AddressingMode.bit, par2: r16.hl, mode2: AddressingMode.reg16ind8, cycles: 4, len: 2 });
+apply(0xcbb6, { op: Operation.res, par1: 6, mode1: AddressingMode.bit, par2: r16.hl, mode2: AddressingMode.reg16ind8, cycles: 4, len: 2 });
+apply(0xcbbe, { op: Operation.res, par1: 7, mode1: AddressingMode.bit, par2: r16.hl, mode2: AddressingMode.reg16ind8, cycles: 4, len: 2 });
 
-apply(0xcbc6, { op: Operation.set, par1: 0, mode1: AddressingMode.implicit, par2: r16.hl, mode2: AddressingMode.reg16ind8, cycles: 4, len: 2 });
-apply(0xcbce, { op: Operation.set, par1: 1, mode1: AddressingMode.implicit, par2: r16.hl, mode2: AddressingMode.reg16ind8, cycles: 4, len: 2 });
-apply(0xcbd6, { op: Operation.set, par1: 2, mode1: AddressingMode.implicit, par2: r16.hl, mode2: AddressingMode.reg16ind8, cycles: 4, len: 2 });
-apply(0xcbde, { op: Operation.set, par1: 3, mode1: AddressingMode.implicit, par2: r16.hl, mode2: AddressingMode.reg16ind8, cycles: 4, len: 2 });
-apply(0xcbe6, { op: Operation.set, par1: 4, mode1: AddressingMode.implicit, par2: r16.hl, mode2: AddressingMode.reg16ind8, cycles: 4, len: 2 });
-apply(0xcbee, { op: Operation.set, par1: 5, mode1: AddressingMode.implicit, par2: r16.hl, mode2: AddressingMode.reg16ind8, cycles: 4, len: 2 });
-apply(0xcbf6, { op: Operation.set, par1: 6, mode1: AddressingMode.implicit, par2: r16.hl, mode2: AddressingMode.reg16ind8, cycles: 4, len: 2 });
-apply(0xcbfe, { op: Operation.set, par1: 7, mode1: AddressingMode.implicit, par2: r16.hl, mode2: AddressingMode.reg16ind8, cycles: 4, len: 2 });
+apply(0xcbc6, { op: Operation.set, par1: 0, mode1: AddressingMode.bit, par2: r16.hl, mode2: AddressingMode.reg16ind8, cycles: 4, len: 2 });
+apply(0xcbce, { op: Operation.set, par1: 1, mode1: AddressingMode.bit, par2: r16.hl, mode2: AddressingMode.reg16ind8, cycles: 4, len: 2 });
+apply(0xcbd6, { op: Operation.set, par1: 2, mode1: AddressingMode.bit, par2: r16.hl, mode2: AddressingMode.reg16ind8, cycles: 4, len: 2 });
+apply(0xcbde, { op: Operation.set, par1: 3, mode1: AddressingMode.bit, par2: r16.hl, mode2: AddressingMode.reg16ind8, cycles: 4, len: 2 });
+apply(0xcbe6, { op: Operation.set, par1: 4, mode1: AddressingMode.bit, par2: r16.hl, mode2: AddressingMode.reg16ind8, cycles: 4, len: 2 });
+apply(0xcbee, { op: Operation.set, par1: 5, mode1: AddressingMode.bit, par2: r16.hl, mode2: AddressingMode.reg16ind8, cycles: 4, len: 2 });
+apply(0xcbf6, { op: Operation.set, par1: 6, mode1: AddressingMode.bit, par2: r16.hl, mode2: AddressingMode.reg16ind8, cycles: 4, len: 2 });
+apply(0xcbfe, { op: Operation.set, par1: 7, mode1: AddressingMode.bit, par2: r16.hl, mode2: AddressingMode.reg16ind8, cycles: 4, len: 2 });
