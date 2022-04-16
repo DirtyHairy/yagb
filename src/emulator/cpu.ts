@@ -141,14 +141,15 @@ export class Cpu {
 
                 const operand1 = this.getArg1(instruction);
                 const operand2 = this.getArg2(instruction);
-                const result = operand1 + operand2 + ((this.state.r8[r8.f] & flag.c) >>> 4);
+                const flagc = ((this.state.r8[r8.f] & flag.c) >>> 4);
+                const result = operand1 + operand2 + flagc;
 
                 this.setArg1(instruction, result & 0xffff)
 
                 // prettier-ignore
                 this.state.r8[r8.f] =
                     (result === 0 ? flag.z : 0x00) |
-                    ((((operand1 & 0xf) + (operand2 & 0xf) + ((this.state.r8[r8.f] & flag.c) >>> 4)) > 0xf) ? flag.h : 0x00) |
+                    ((((operand1 & 0xf) + (operand2 & 0xf) + flagc) > 0xf) ? flag.h : 0x00) |
                     (result > 0xff ? flag.c : 0x00);
 
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
@@ -395,14 +396,15 @@ export class Cpu {
 
                 const operand1 = this.getArg1(instruction);
                 const operand2 = this.getArg2(instruction);
-                const result = operand1 - operand2 - ((this.state.r8[r8.f] & flag.c) >>> 4);
+                const flagc = ((this.state.r8[r8.f] & flag.c) >>> 4)
+                const result = operand1 - operand2 - flagc;
 
                 this.setArg1(instruction, result & 0xffff)
 
                 // prettier-ignore
                 this.state.r8[r8.f] =
                     (result === 0 ? flag.z : 0x00) |
-                    ((((operand1 & 0xf) - (operand2 & 0xf) - ((this.state.r8[r8.f] & flag.c) >>> 4)) < 0) ? flag.h : 0x00) |
+                    ((((operand1 & 0xf) - (operand2 & 0xf) - flagc) < 0) ? flag.h : 0x00) |
                     (result < 0x00 ? flag.c : 0x00);
 
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
