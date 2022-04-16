@@ -52,7 +52,7 @@ export class TestEnvironment {
             this.bus.map(i, read, write);
         }
 
-        for(let i= 0xf00; i < 0xff80; i++) {
+        for (let i = 0xf00; i < 0xff80; i++) {
             this.bus.map(i, read, write);
         }
 
@@ -61,7 +61,7 @@ export class TestEnvironment {
         this.timer.install(this.bus);
         this.unmapped.install(this.bus);
 
-        this.reset()
+        this.reset();
     }
 
     public reset(): void {

@@ -53,7 +53,6 @@ describe('The opcode instructions', () => {
             env.reset();
         });
 
-
         opcodes.forEach((opcode) => {
             const instruction = decodeInstruction(bus, address + 3 * opcode);
             const currentAddress = address + 3 * opcode;
