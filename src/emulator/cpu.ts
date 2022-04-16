@@ -191,15 +191,19 @@ export class Cpu {
                 return instruction.cycles;
 
             case Operation.call: {
-                this.clock.increment(instruction.cycles);
+                const condition = this.evaluateCondition(instruction);
+                const cycles = instruction.cycles + (condition ? 3 : 0);
+                this.clock.increment(cycles);
 
-                const returnTo = (this.state.p + instruction.len) & 0xffff;
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
 
-                this.stackPush16(returnTo);
+                if (condition) {
+                    const returnTo = (this.state.p + instruction.len) & 0xffff;
+                    this.stackPush16(returnTo);
+                    this.state.p = this.getArg1(instruction);
+                }
 
-                this.state.p = this.getArg1(instruction);
-
-                return instruction.cycles;
+                return cycles;
             }
 
             case Operation.cb:
@@ -301,10 +305,9 @@ export class Cpu {
                 const cycles = instruction.cycles + (condition ? 1 : 0);
                 this.clock.increment(cycles);
 
-                const displacement = this.getArg1(instruction);
-
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
                 if (condition) {
+                    const displacement = this.getArg1(instruction);
                     this.state.p = (this.state.p + displacement) & 0xffff;
                 }
 
@@ -316,10 +319,9 @@ export class Cpu {
                 const cycles = instruction.cycles + (condition ? 1 : 0);
                 this.clock.increment(cycles);
 
-                const displacement = extendSign8(this.getArg1(instruction));
-
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
                 if (condition) {
+                    const displacement = extendSign8(this.getArg1(instruction));
                     this.state.p = (this.state.p + displacement) & 0xffff;
                 }
 
@@ -392,7 +394,7 @@ export class Cpu {
 
             case Operation.ret: {
                 const condition = this.evaluateCondition(instruction);
-                const cycles = instruction.cycles + (instruction.opcode !== 0xc9 ? (condition ? 1 : -2) : 0);
+                const cycles = instruction.cycles + ((instruction.opcode !== 0xc9 && condition) ? 3 : 0);
                 this.clock.increment(cycles);
 
                 this.state.p = (this.state.p + instruction.len) & 0xffff;

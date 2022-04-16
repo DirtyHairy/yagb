@@ -516,14 +516,18 @@ apply(0x28, { op: Operation.jr, mode1: AddressingMode.imm8, condition: Condition
 apply(0x30, { op: Operation.jr, mode1: AddressingMode.imm8, condition: Condition.nc, cycles: 2, len: 2 });
 apply(0x38, { op: Operation.jr, mode1: AddressingMode.imm8, condition: Condition.c, cycles: 2, len: 2 });
 
-apply(0xcd, { op: Operation.call, mode1: AddressingMode.imm16, cycles: 8, len: 3 });
+apply(0xcd, { op: Operation.call, mode1: AddressingMode.imm16, cycles: 6, len: 3 });
+apply(0xc4, { op: Operation.call, mode1: AddressingMode.imm16, condition: Condition.nz, cycles: 3, len: 3 });
+apply(0xd4, { op: Operation.call, mode1: AddressingMode.imm16, condition: Condition.z, cycles: 3, len: 3 });
+apply(0xcc, { op: Operation.call, mode1: AddressingMode.imm16, condition: Condition.nc, cycles: 3, len: 3 });
+apply(0xdc, { op: Operation.call, mode1: AddressingMode.imm16, condition: Condition.c, cycles: 3, len: 3 });
 
 apply(0xc9, { op: Operation.ret, cycles: 4, len: 1 });
+apply(0xc0, { op: Operation.ret, condition: Condition.nz, cycles: 2, len: 1 });
+apply(0xc8, { op: Operation.ret, condition: Condition.z, cycles: 2, len: 1 });
+apply(0xd0, { op: Operation.ret, condition: Condition.nc, cycles: 2, len: 1 });
+apply(0xd8, { op: Operation.ret, condition: Condition.c, cycles: 2, len: 1 });
 apply(0xd9, { op: Operation.reti, cycles: 4, len: 1 });
-apply(0xc0, { op: Operation.ret, condition: Condition.nz, cycles: 4, len: 1 });
-apply(0xc8, { op: Operation.ret, condition: Condition.z, cycles: 4, len: 1 });
-apply(0xd0, { op: Operation.ret, condition: Condition.nc, cycles: 4, len: 1 });
-apply(0xd8, { op: Operation.ret, condition: Condition.c, cycles: 4, len: 1 });
 
 apply(0x2f, { op: Operation.cpl, cycles: 1, len: 1 });
 
