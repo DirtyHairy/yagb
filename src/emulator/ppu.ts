@@ -30,6 +30,13 @@ export const enum ppuMode {
 
 const enum lcdc {
     enable = 0x80,
+    windowTileMapArea = 0x40,
+    windowEnable = 0x20,
+    bgTileDataArea = 0x10,
+    bgTileMapArea = 0x08,
+    objSize = 0x04,
+    objEnable = 0x02,
+    bgEnable = 0x02,
 }
 
 const enum stat {
@@ -141,6 +148,7 @@ export class Ppu {
 
                     this.mode = ppuMode.hblank;
                     this.clockInMode = 0;
+                    this.renderLine();
 
                     return consumed;
                 } else {
@@ -176,7 +184,6 @@ export class Ppu {
                     this.scanline = 0;
 
                     if (!this.skipFrame) {
-                        this.frame++;
                         this.swapBuffers();
                     }
 
@@ -222,6 +229,57 @@ export class Ppu {
 
         this.frontBuffer = this.backBuffer;
         this.backBuffer = frontBuffer;
+        this.frame = (this.frame + 1) | 0;
+    }
+
+    private renderLine(): void {
+        const backgroundX = this.reg[reg.scx];
+        const backgroundY = this.reg[reg.scy] + this.scanline;
+
+        const bgTileNY = (backgroundY / 8) | 0;
+        const bgTileY = backgroundY % 8;
+        let bgTileX = backgroundX % 8;
+        let bgTileNX = (backgroundX / 8) | 0;
+
+        let bgTileAddress = this.backgroundTileAddress(this.backgroundTileIndex(bgTileNX, bgTileNY), bgTileY);
+        let bgTilePlaneLow = this.vram[bgTileAddress] << bgTileX;
+        let bgTilePlaneHigh = this.vram[bgTileAddress + 1] << bgTileX;
+
+        let pixelAddress = 160 * this.scanline;
+
+        for (let x = 0; x < 160; x++) {
+            const indexedBG = ((bgTilePlaneLow >>> 7) | (bgTilePlaneHigh >>> 6)) & 0x03; // TODO: one shift can be saved if we reverse the byte
+            this.backBuffer[pixelAddress++] = this.paletteBG[indexedBG];
+
+            if (bgTileX === 7) {
+                bgTileNX++;
+                bgTileX = 0;
+
+                bgTileAddress = this.backgroundTileAddress(this.backgroundTileIndex(bgTileNX, bgTileNY), bgTileY);
+                bgTilePlaneLow = this.vram[bgTileAddress];
+                bgTilePlaneHigh = this.vram[bgTileAddress + 1];
+            } else {
+                bgTileX++;
+                bgTilePlaneLow >>>= 1;
+                bgTilePlaneHigh >>>= 1;
+            }
+        }
+    }
+
+    private backgroundTileIndex(nx: number, ny: number): number {
+        const base = this.reg[reg.lcdc] & lcdc.bgTileMapArea ? 0x1c00 : 0x1800;
+
+        return this.vram[base + (ny % 32) * 32 + (nx % 32)];
+    }
+
+    private backgroundTileAddress(index: number, y: number) {
+        if (index >= 0x80) {
+            return this.vram[0x0800 + 16 * index + 2 * y];
+        } else {
+            const base = this.reg[reg.lcdc] & lcdc.bgTileDataArea ? 0x0000 : 0x1000;
+
+            return this.vram[base + 16 * index + 2 * y];
+        }
     }
 
     private stubWrite: WriteHandler = () => undefined;
@@ -268,6 +326,11 @@ export class Ppu {
 
         if (~oldValue & this.reg[reg.lcdc] & lcdc.enable) {
             this.skipFrame = true;
+        }
+
+        if (oldValue & ~this.reg[reg.lcdc] & lcdc.enable) {
+            this.backBuffer.fill(PALETTE_CLASSIC[4]);
+            this.swapBuffers();
         }
     };
 

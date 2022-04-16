@@ -152,6 +152,8 @@ state-on-step [0|1]                     Print state on every step`);
         if (!assertEmulator()) return;
 
         emulator.reset();
+        lastFrame = -1;
+        updateCanvas();
         print('system reset');
     },
     'breakpoint-add': function (...args: Array<string | number | undefined>) {
