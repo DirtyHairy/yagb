@@ -8,16 +8,19 @@ export const enum Operation {
 
     adc,
     add,
+    add16,
     and,
     call,
     cb,
     cp,
     cpl,
     dec,
+    dec16,
     di,
     ei,
     halt,
     inc,
+    inc16,
     invalid,
     jp,
     jr,
@@ -152,6 +155,7 @@ function disassembleOperation(operation: Operation): string {
             return 'ADC';
 
         case Operation.add:
+        case Operation.add16:
             return 'ADD';
 
         case Operation.and:
@@ -170,6 +174,7 @@ function disassembleOperation(operation: Operation): string {
             return 'CPL';
 
         case Operation.dec:
+        case Operation.dec16:
             return 'DEC';
 
         case Operation.di:
@@ -182,6 +187,7 @@ function disassembleOperation(operation: Operation): string {
             return 'HALT';
 
         case Operation.inc:
+        case Operation.inc16:
             return 'INC';
 
         case Operation.jp:
@@ -543,10 +549,13 @@ apply(0x17, { op: Operation.rla, cycles: 1, len: 1 });
 apply(0x0f, { op: Operation.rrca, cycles: 1, len: 1 });
 apply(0x1f, { op: Operation.rra, cycles: 1, len: 1 });
 
+// 0x03, 0x13, 0x23, 0x33
+// 0x09, 0x19, 0x29, 0x39
 // 0x0b, 0x1b, 0x2b, 0x3b
 [r16.bc, r16.de, r16.hl, r16.sp].forEach((reg, i) => {
-    apply((i << 4) | 0x03, { op: Operation.inc, par1: reg, mode1: AddressingMode.reg16, cycles: 2, len: 1 });
-    apply((i << 4) | 0x0b, { op: Operation.dec, par1: reg, mode1: AddressingMode.reg16, cycles: 2, len: 1 });
+    apply((i << 4) | 0x03, { op: Operation.inc16, par1: reg, mode1: AddressingMode.reg16, cycles: 2, len: 1 });
+    apply((i << 4) | 0x09, { op: Operation.add16, par1: r16.hl, mode1: AddressingMode.reg16, par2: reg, mode2: AddressingMode.reg16, cycles: 2, len: 1 });
+    apply((i << 4) | 0x0b, { op: Operation.dec16, par1: reg, mode1: AddressingMode.reg16, cycles: 2, len: 1 });
 });
 
 [r16.bc, r16.de, r16.hl, r16.af].forEach((reg, i) => {
@@ -564,11 +573,6 @@ apply(0xcb, { op: Operation.cb, mode1: AddressingMode.cb, cycles: 1, len: 1 });
 // 0xcf, 0xdf, 0xef, 0xff
 [0x08, 0x18, 0x28, 0x38].forEach((target, i) =>
     apply(((0xc + i) << 4) | 0xf, { op: Operation.rst, mode1: AddressingMode.implicit, par1: target, cycles: 4, len: 1 })
-);
-
-// 0x09, 0x19, 0x29, 0x39
-[r16.bc, r16.de, r16.hl, r16.sp].forEach((reg, i) =>
-    apply((i << 4) | 0x09, { op: Operation.add, par1: r16.hl, mode1: AddressingMode.reg16, par2: reg, mode2: AddressingMode.reg16, cycles: 2, len: 1 })
 );
 
 /*********************/

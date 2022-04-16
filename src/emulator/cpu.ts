@@ -181,6 +181,25 @@ export class Cpu {
                 return instruction.cycles;
             }
 
+            case Operation.add16: {
+                this.clock.increment(instruction.cycles);
+
+                const operand1 = this.getArg1(instruction);
+                const operand2 = this.getArg2(instruction);
+                const result = operand1 + operand2;
+
+                this.setArg1(instruction, result & 0xffff);
+
+                // prettier-ignore
+                this.state.r8[r8.f] =
+                    this.state.r8[r8.f] & flag.z |
+                    ((((operand1 & 0xffff) + (operand2 & 0xffff)) > 0x0fff) ? flag.h : 0x00) |
+                    (result > 0xffff ? flag.c : 0x00);
+
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
+                return instruction.cycles;
+            }
+
             case Operation.and:
                 this.clock.increment(instruction.cycles);
 
@@ -258,6 +277,20 @@ export class Cpu {
                 return instruction.cycles;
             }
 
+            case Operation.dec16: {
+                this.clock.increment(instruction.cycles);
+
+                const operand = this.getArg1(instruction);
+                const result = operand - 0x01;
+
+                this.setArg1(instruction, result);
+
+                this.state.r8[r8.f] = 0;
+
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
+                return instruction.cycles;
+            }
+
             case Operation.di:
                 this.clock.increment(instruction.cycles);
 
@@ -300,9 +333,23 @@ export class Cpu {
                 return instruction.cycles;
             }
 
+            case Operation.inc16: {
+                this.clock.increment(instruction.cycles);
+
+                const operand = this.getArg1(instruction);
+                const result = operand + 0x01;
+
+                this.setArg1(instruction, result);
+
+                this.state.r8[r8.f] = 0;
+
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
+                return instruction.cycles;
+            }
+
             case Operation.jp: {
                 const condition = this.evaluateCondition(instruction);
-                const cycles = instruction.cycles + ((instruction.opcode !== 0xe9 && condition) ? 1 : 0);
+                const cycles = instruction.cycles + (instruction.opcode !== 0xe9 && condition ? 1 : 0);
                 this.clock.increment(cycles);
 
                 const target = this.getArg1(instruction);
