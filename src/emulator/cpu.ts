@@ -305,11 +305,11 @@ export class Cpu {
                 const cycles = instruction.cycles + ((instruction.opcode !== 0xe9 && condition) ? 1 : 0);
                 this.clock.increment(cycles);
 
-                const displacement = this.getArg1(instruction);
+                const target = this.getArg1(instruction);
 
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
                 if (condition) {
-                    this.state.p = displacement & 0xffff;
+                    this.state.p = target & 0xffff;
                 }
 
                 return cycles;
