@@ -12,7 +12,7 @@ describe('The opcode instructions', () => {
     describe('disassembleInstruction', () => {
         describe.each([
             {
-                description: 'not existing opcode',
+                description: 'not supported opcode',
                 entries: [
                     { op: 'DB d8', expected: 'DB 0xd3', opcode: 0xd3, par1: 0x00, par2: 0x00 },
                     { op: 'DB d8', expected: 'DB 0xdb', opcode: 0xdb, par1: 0x00, par2: 0x00 },
