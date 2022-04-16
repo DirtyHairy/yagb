@@ -139,16 +139,16 @@ export class Cpu {
             case Operation.adc: {
                 this.clock.increment(instruction.cycles);
 
-                const a = this.state.r8[r8.a];
-                const operand = this.getArg1(instruction);
-                const result = a + operand + (this.state.r8[r8.f] & flag.c);
+                const operand1 = this.getArg1(instruction);
+                const operand2 = this.getArg2(instruction);
+                const result = operand1 + operand2 + (this.state.r8[r8.f] & flag.c);
 
-                this.state.r8[r8.a] = result & 0xffff;
+                this.setArg1(instruction, result & 0xffff)
 
                 // prettier-ignore
                 this.state.r8[r8.f] =
                     (result === 0 ? flag.z : 0x00) |
-                    ((((a & 0xf) + (operand & 0xf) + (this.state.r8[r8.f] & flag.c)) > 0xf) ? flag.h : 0x00) |
+                    ((((operand1 & 0xf) + (operand2 & 0xf) + (this.state.r8[r8.f] & flag.c)) > 0xf) ? flag.h : 0x00) |
                     (result > 0xff ? flag.c : 0x00);
 
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
@@ -158,16 +158,16 @@ export class Cpu {
             case Operation.add: {
                 this.clock.increment(instruction.cycles);
 
-                const a = this.state.r8[r8.a];
-                const operand = this.getArg1(instruction);
-                const result = a + operand;
+                const operand1 = this.getArg1(instruction);
+                const operand2 = this.getArg2(instruction);
+                const result = operand1 + operand2;
 
-                this.state.r8[r8.a] = result & 0xffff;
+                this.setArg1(instruction, result & 0xffff)
 
                 // prettier-ignore
                 this.state.r8[r8.f] =
                     (result === 0 ? flag.z : 0x00) |
-                    ((((a & 0xf) + (operand & 0xf)) > 0xf)  ? flag.h : 0x00) |
+                    ((((operand1 & 0xf) + (operand2 & 0xf)) > 0xf)  ? flag.h : 0x00) |
                     (result > 0xff ? flag.c : 0x00);
 
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
@@ -393,16 +393,16 @@ export class Cpu {
             case Operation.sbc: {
                 this.clock.increment(instruction.cycles);
 
-                const a = this.state.r8[r8.a];
-                const operand = this.getArg1(instruction);
-                const result = a - operand - (this.state.r8[r8.f] & flag.c);
+                const operand1 = this.getArg1(instruction);
+                const operand2 = this.getArg2(instruction);
+                const result = operand1 - operand2 - (this.state.r8[r8.f] & flag.c);
 
-                this.state.r8[r8.a] = result & 0xffff;
+                this.setArg1(instruction, result & 0xffff)
 
                 // prettier-ignore
                 this.state.r8[r8.f] =
                     (result === 0 ? flag.z : 0x00) |
-                    ((((a & 0xf) - (operand & 0xf) - (this.state.r8[r8.f] & flag.c)) < 0) ? flag.h : 0x00) |
+                    ((((operand1 & 0xf) - (operand2 & 0xf) - (this.state.r8[r8.f] & flag.c)) < 0) ? flag.h : 0x00) |
                     (result < 0x00 ? flag.c : 0x00);
 
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
@@ -412,16 +412,16 @@ export class Cpu {
             case Operation.sub: {
                 this.clock.increment(instruction.cycles);
 
-                const a = this.state.r8[r8.a];
-                const operand = this.getArg1(instruction);
-                const result = a - operand;
+                const operand1 = this.getArg1(instruction);
+                const operand2 = this.getArg2(instruction);
+                const result = operand1 - operand2;
 
-                this.state.r8[r8.a] = result & 0xffff;
+                this.setArg1(instruction, result & 0xffff)
 
                 // prettier-ignore
                 this.state.r8[r8.f] =
                     (result === 0 ? flag.z : 0x00) |
-                    ((((a & 0xf) - (operand & 0xf)) < 0)  ? flag.h : 0x00) |
+                    ((((operand1 & 0xf) - (operand2 & 0xf)) < 0)  ? flag.h : 0x00) |
                     (result < 0x00 ? flag.c : 0x00);
 
                 this.state.p = (this.state.p + instruction.len) & 0xffff;

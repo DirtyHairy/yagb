@@ -139,6 +139,10 @@ describe('The opcode instructions', () => {
             });
         });
         describe('with one reg8 value', () => {
+            it('returns SUB B', () => {
+                const { bus, address } = setup([0x90, 0x01]);
+                expect(disassembleInstruction(bus, address)).toBe('SUB B');
+            });
             it('returns AND B', () => {
                 const { bus, address } = setup([0xa0, 0x01]);
                 expect(disassembleInstruction(bus, address)).toBe('AND B');
@@ -265,6 +269,18 @@ describe('The opcode instructions', () => {
             });
         });
         describe('with first reg8 value and second reg8 value', () => {
+            it('returns ADD A, B', () => {
+                const { bus, address } = setup([0x80]);
+                expect(disassembleInstruction(bus, address)).toBe('ADD A, B');
+            });
+            it('returns ADC A, B', () => {
+                const { bus, address } = setup([0x88]);
+                expect(disassembleInstruction(bus, address)).toBe('ADC A, B');
+            });
+            it('returns SBC A, B', () => {
+                const { bus, address } = setup([0x98]);
+                expect(disassembleInstruction(bus, address)).toBe('SBC A, B');
+            });
             it('returns LD C, B', () => {
                 const { bus, address } = setup([0x48]);
                 expect(disassembleInstruction(bus, address)).toBe('LD C, B');
