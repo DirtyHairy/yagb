@@ -28,6 +28,10 @@ export const enum Operation {
     push,
     ret,
     reti,
+    rla,
+    rlca,
+    rra,
+    rrca,
     rst,
     sbc,
     stop,
@@ -207,6 +211,18 @@ function disassembleOperation(operation: Operation): string {
 
         case Operation.reti:
             return 'RETI';
+
+        case Operation.rlca:
+            return 'RLCA';
+
+        case Operation.rrca:
+            return 'RRCA';
+
+        case Operation.rla:
+            return 'RLA';
+
+        case Operation.rra:
+            return 'RRA';
 
         case Operation.rst:
             return 'RST';
@@ -474,6 +490,12 @@ apply(0x32, { op: Operation.ldd, par1: r16.hl, mode1: AddressingMode.reg16ind8, 
 
 apply(0x2a, { op: Operation.ldi, par1: r8.a, mode1: AddressingMode.reg8, par2: r16.hl, mode2: AddressingMode.reg16ind8, cycles: 2, len: 1 });
 apply(0x3a, { op: Operation.ldd, par1: r8.a, mode1: AddressingMode.reg8, par2: r16.hl, mode2: AddressingMode.reg16ind8, cycles: 2, len: 1 });
+
+apply(0x07, { op: Operation.rlca, cycles: 1, len: 1 });
+apply(0x17, { op: Operation.rla, cycles: 1, len: 1 });
+
+apply(0x0f, { op: Operation.rrca, cycles: 1, len: 1 });
+apply(0x1f, { op: Operation.rra, cycles: 1, len: 1 });
 
 // 0x0b, 0x1b, 0x2b, 0x3b
 [r16.bc, r16.de, r16.hl, r16.sp].forEach((reg, i) => {

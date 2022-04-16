@@ -405,6 +405,74 @@ export class Cpu {
                 return instruction.cycles;
             }
 
+            case Operation.rlca: {
+                this.clock.increment(instruction.cycles);
+
+                const operand = this.state.r8[r8.a];
+                const result = ((operand << 1) | (operand >>> 7)) & 0xff;
+
+                this.state.r8[r8.a] = result;
+
+                // prettier-ignore
+                this.state.r8[r8.f] =
+                    (result === 0 ? flag.z : 0x00) |
+                    ((operand & 0x80) >>> 3);
+
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
+                return instruction.cycles;
+            }
+
+            case Operation.rla: {
+                this.clock.increment(instruction.cycles);
+
+                const operand = this.state.r8[r8.a];
+                const result = ((operand << 1) | ((this.state.r8[r8.f] & flag.c) >>> 4)) & 0xff;
+
+                this.state.r8[r8.a] = result;
+
+                // prettier-ignore
+                this.state.r8[r8.f] =
+                    (result === 0 ? flag.z : 0x00) |
+                    ((operand & 0x80) >>> 3);
+
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
+                return instruction.cycles;
+            }
+
+            case Operation.rrca: {
+                this.clock.increment(instruction.cycles);
+
+                const operand = this.state.r8[r8.a];
+                const result = ((operand >>> 1) | (operand << 7)) & 0xff;
+
+                this.state.r8[r8.a] = result;
+
+                // prettier-ignore
+                this.state.r8[r8.f] =
+                    (result === 0 ? flag.z : 0x00) |
+                    ((operand & 0x01) << 4);
+
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
+                return instruction.cycles;
+            }
+
+            case Operation.rra: {
+                this.clock.increment(instruction.cycles);
+
+                const operand = this.state.r8[r8.a];
+                const result = ((operand >>> 1) | ((this.state.r8[r8.f] & flag.c) << 3)) & 0xff;
+
+                this.state.r8[r8.a] = result;
+
+                // prettier-ignore
+                this.state.r8[r8.f] =
+                    (result === 0 ? flag.z : 0x00) |
+                    ((operand & 0x01) << 4);
+
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
+                return instruction.cycles;
+            }
+
             case Operation.sbc: {
                 this.clock.increment(instruction.cycles);
 
