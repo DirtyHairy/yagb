@@ -81,8 +81,8 @@ export class Ppu {
         this.reg[reg.lcdc] = lcdc.enable;
 
         this.paletteBG.set(PALETTE_CLASSIC.subarray(0, 4));
-        this.frontBufferData.fill(PALETTE_CLASSIC[4]);
-        this.backBufferData.fill(PALETTE_CLASSIC[4]);
+        this.frontBuffer.fill(PALETTE_CLASSIC[4]);
+        this.backBuffer.fill(PALETTE_CLASSIC[4]);
     }
 
     cycle(systemClocks: number): void {
@@ -112,8 +112,8 @@ export class Ppu {
         return this.frame;
     }
 
-    getFrameData(): ImageData {
-        return this.frontBuffer;
+    getFrameData(): ArrayBuffer {
+        return this.frontBuffer.buffer;
     }
 
     getMode(): ppuMode {
@@ -219,13 +219,9 @@ export class Ppu {
 
     private swapBuffers(): void {
         const frontBuffer = this.frontBuffer;
-        const frontBufferData = this.frontBufferData;
 
         this.frontBuffer = this.backBuffer;
-        this.frontBufferData = this.backBufferData;
-
         this.backBuffer = frontBuffer;
-        this.backBufferData = frontBufferData;
     }
 
     private stubWrite: WriteHandler = () => undefined;
@@ -293,9 +289,6 @@ export class Ppu {
 
     private paletteBG = PALETTE_CLASSIC.slice();
 
-    private frontBuffer = new ImageData(160, 144);
-    private backBuffer = new ImageData(160, 144);
-
-    private frontBufferData = new Uint32Array(this.frontBuffer.data.buffer);
-    private backBufferData = new Uint32Array(this.backBuffer.data.buffer);
+    private frontBuffer = new Uint32Array(160 * 144);
+    private backBuffer = new Uint32Array(160 * 144);
 }

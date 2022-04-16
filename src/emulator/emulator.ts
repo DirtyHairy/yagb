@@ -181,7 +181,7 @@ export class Emulator {
         return this.ppu.getFrameIndex();
     }
 
-    getFrameData(): ImageData {
+    getFrameData(): ArrayBuffer {
         return this.ppu.getFrameData();
     }
 

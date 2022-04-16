@@ -36,6 +36,7 @@ function loadCartridge(data: Uint8Array, name: string) {
     try {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         emulator = new Emulator(data, print);
+        updateCanvas();
         print(`loaded cartridge image: ${name}`);
     } catch (e) {
         print((e as Error).message);
@@ -77,8 +78,10 @@ function updateCanvas(): void {
         throw new Error('unable to retrieve rendering context');
     }
 
+    const imageData = new ImageData(new Uint8ClampedArray(emulator.getFrameData()), 160, 144);
+
     ctx.imageSmoothingEnabled = false;
-    ctx.putImageData(emulator.getFrameData(), 0, 0);
+    ctx.putImageData(imageData, 0, 0);
     lastFrame = emulator.getFrameIndex();
 }
 
