@@ -401,7 +401,7 @@ apply(0xd4, { op: Operation.call, mode1: AddressingMode.imm16, condition: Condit
 apply(0xcc, { op: Operation.call, mode1: AddressingMode.imm16, condition: Condition.nc, cycles: 3, len: 3 });
 apply(0xdc, { op: Operation.call, mode1: AddressingMode.imm16, condition: Condition.c, cycles: 3, len: 3 });
 
-apply(0xc9, { op: Operation.ret, cycles: 4, len: 1 });
+apply(0xc9, { op: Operation.ret, cycles: 1, len: 1 });
 apply(0xc0, { op: Operation.ret, condition: Condition.nz, cycles: 2, len: 1 });
 apply(0xc8, { op: Operation.ret, condition: Condition.z, cycles: 2, len: 1 });
 apply(0xd0, { op: Operation.ret, condition: Condition.nc, cycles: 2, len: 1 });
