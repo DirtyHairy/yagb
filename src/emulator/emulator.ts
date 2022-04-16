@@ -177,6 +177,14 @@ export class Emulator {
         return this.bus;
     }
 
+    getFrameIndex(): number {
+        return this.ppu.getFrameIndex();
+    }
+
+    getFrameData(): ImageData {
+        return this.ppu.getFrameData();
+    }
+
     private disassemblyLineAt(address: number): string {
         return `${this.breakpoints.has(address) ? ' *' : '  '} ${hex16(address)}: ${disassembleInstruction(this.bus, address)}`;
     }

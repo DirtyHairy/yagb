@@ -15,6 +15,7 @@ const STORAGE_KEY_YAGB_CARTERIDGE_NAME = 'yagb-cartridge-name';
 const fileHandler = new FileHandler();
 let emulator: Emulator;
 let stateOnStep = false;
+let lastFrame = -1;
 
 function print(msg: string): void {
     terminal.echo(msg);
@@ -65,6 +66,22 @@ function assertEmulator(): boolean {
     return true;
 }
 
+function updateCanvas(): void {
+    if (!assertEmulator()) return;
+    if (emulator.getFrameIndex() === lastFrame) return;
+
+    const canvas: HTMLCanvasElement | null = document.getElementById('canvas') as HTMLCanvasElement;
+    const ctx = canvas?.getContext('2d');
+
+    if (!ctx) {
+        throw new Error('unable to retrieve rendering context');
+    }
+
+    ctx.imageSmoothingEnabled = false;
+    ctx.putImageData(emulator.getFrameData(), 0, 0);
+    lastFrame = emulator.getFrameIndex();
+}
+
 const interpreter = {
     help(): void {
         print(`Available commands:
@@ -111,6 +128,7 @@ state-on-step [0|1]                     Print state on every step`);
         if (!assertEmulator()) return;
 
         const [isBreak, cycles] = emulator.step(uintval(count, 1));
+        updateCanvas();
 
         if (!isBreak) print(emulator.lastBreakMessage());
         print(`done in ${cycles} cycles\n`);

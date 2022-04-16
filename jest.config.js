@@ -1,7 +1,7 @@
 /** @type {import('ts-jest/dist/types').InitialOptionsTsJest} */
 module.exports = {
     preset: 'ts-jest',
-    testEnvironment: 'node',
+    testEnvironment: 'jsdom',
     roots: ['./spec/'],
     coveragePathIgnorePatterns: ['./spec/'],
     reporters: [
@@ -18,4 +18,5 @@ module.exports = {
             },
         ],
     ],
+    setupFiles: ['jest-canvas-mock'],
 };

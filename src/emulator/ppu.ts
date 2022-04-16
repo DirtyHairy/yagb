@@ -1,6 +1,7 @@
 import { Bus, ReadHandler, WriteHandler } from './bus';
 import { Interrupt, irq } from './interrupt';
 
+import { PALETTE_CLASSIC } from './palette';
 import { SystemInterface } from './system';
 import { hex8 } from '../helper/format';
 
@@ -54,9 +55,11 @@ export class Ppu {
             bus.map(reg.base + i, this.registerRead, this.registerWrite);
         }
 
+        bus.map(reg.base + reg.lcdc, this.registerRead, this.lcdcWrite);
         bus.map(reg.base + reg.ly, this.lyRead, this.stubWrite);
         bus.map(reg.base + reg.stat, this.statRead, this.registerWrite);
         bus.map(reg.base + reg.dma, this.registerRead, this.dmaWrite);
+        bus.map(reg.base + reg.bgp, this.registerRead, this.bgpWrite);
 
         this.bus = bus;
     }
@@ -69,12 +72,17 @@ export class Ppu {
         this.stat = false;
         this.dmaInProgress = false;
         this.dmaCycle = 0;
+        this.skipFrame = false;
 
         this.vram.fill(0);
         this.oam.fill(0);
         this.reg.fill(0);
 
         this.reg[reg.lcdc] = lcdc.enable;
+
+        this.paletteBG.set(PALETTE_CLASSIC.subarray(0, 4));
+        this.frontBufferData.fill(PALETTE_CLASSIC[4]);
+        this.backBufferData.fill(PALETTE_CLASSIC[4]);
     }
 
     cycle(systemClocks: number): void {
@@ -100,8 +108,12 @@ export class Ppu {
         } dmaCycle=${this.dmaCycle}`;
     }
 
-    getFrame(): number {
+    getFrameIndex(): number {
         return this.frame;
+    }
+
+    getFrameData(): ImageData {
+        return this.frontBuffer;
     }
 
     getMode(): ppuMode {
@@ -162,7 +174,13 @@ export class Ppu {
                     this.mode = ppuMode.oamScan;
                     this.clockInMode = 0;
                     this.scanline = 0;
-                    this.frame++;
+
+                    if (!this.skipFrame) {
+                        this.frame++;
+                        this.swapBuffers();
+                    }
+
+                    this.skipFrame = false;
 
                     return consumed;
                 } else {
@@ -199,6 +217,17 @@ export class Ppu {
         }
     }
 
+    private swapBuffers(): void {
+        const frontBuffer = this.frontBuffer;
+        const frontBufferData = this.frontBufferData;
+
+        this.frontBuffer = this.backBuffer;
+        this.frontBufferData = this.backBufferData;
+
+        this.backBuffer = frontBuffer;
+        this.backBufferData = frontBufferData;
+    }
+
     private stubWrite: WriteHandler = () => undefined;
 
     private vramRead: ReadHandler = (address) => ((this.reg[reg.lcdc] & lcdc.enable) === 0 || this.mode !== ppuMode.draw ? this.vram[address & 0x1fff] : 0xff);
@@ -228,10 +257,29 @@ export class Ppu {
         this.bus.lock();
     };
 
+    private bgpWrite: WriteHandler = (_, value) => {
+        value &= 0xff;
+        this.reg[reg.bgp] = value;
+
+        for (let i = 0; i < 4; i++) {
+            this.paletteBG[i] = (value >> (2 * i)) & 0x03;
+        }
+    };
+
+    private lcdcWrite: WriteHandler = (_, value) => {
+        const oldValue = this.reg[reg.lcdc];
+        this.reg[reg.lcdc] = value;
+
+        if (~oldValue & this.reg[reg.lcdc] & lcdc.enable) {
+            this.skipFrame = true;
+        }
+    };
+
     private clockInMode = 0;
     private scanline = 0;
     private frame = 0;
     private mode: ppuMode = ppuMode.oamScan;
+    private skipFrame = false;
 
     private vram = new Uint8Array(0x2000);
     private oam = new Uint8Array(0xa0);
@@ -242,4 +290,12 @@ export class Ppu {
 
     private reg = new Uint8Array(reg.wx + 1);
     private bus!: Bus;
+
+    private paletteBG = PALETTE_CLASSIC.slice();
+
+    private frontBuffer = new ImageData(160, 144);
+    private backBuffer = new ImageData(160, 144);
+
+    private frontBufferData = new Uint32Array(this.frontBuffer.data.buffer);
+    private backBufferData = new Uint32Array(this.backBuffer.data.buffer);
 }

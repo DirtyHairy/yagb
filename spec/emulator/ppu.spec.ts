@@ -111,13 +111,13 @@ describe('PPU', () => {
 
                 expect(ppu.getMode()).toBe(ppuMode.vblank);
                 expect(bus.read(0xff44)).toBe(153);
-                expect(ppu.getFrame()).toBe(0);
+                expect(ppu.getFrameIndex()).toBe(0);
 
                 increment(ppu, 1);
 
                 expect(ppu.getMode()).toBe(ppuMode.oamScan);
                 expect(bus.read(0xff44)).toBe(0);
-                expect(ppu.getFrame()).toBe(1);
+                expect(ppu.getFrameIndex()).toBe(1);
             });
         }
 
