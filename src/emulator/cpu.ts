@@ -296,12 +296,20 @@ export class Cpu {
                 return instruction.cycles;
             }
 
-            case Operation.jp:
-                this.clock.increment(instruction.cycles);
+            case Operation.jp: {
+                const condition = this.evaluateCondition(instruction);
+                const cycles = instruction.cycles + (condition ? 1 : 0);
+                this.clock.increment(cycles);
 
-                this.state.p = this.getArg1(instruction);
+                const displacement = this.getArg1(instruction);
 
-                return instruction.cycles;
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
+                if (condition) {
+                    this.state.p = (this.state.p + displacement) & 0xffff;
+                }
+
+                return cycles;
+            }
 
             case Operation.jr: {
                 const condition = this.evaluateCondition(instruction);
