@@ -302,7 +302,7 @@ export class Cpu {
 
             case Operation.jp: {
                 const condition = this.evaluateCondition(instruction);
-                const cycles = instruction.cycles + (condition ? 1 : 0);
+                const cycles = instruction.cycles + ((instruction.opcode !== 0xe9 && condition) ? 1 : 0);
                 this.clock.increment(cycles);
 
                 const displacement = this.getArg1(instruction);

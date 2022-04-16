@@ -381,11 +381,12 @@ apply(0x76, { op: Operation.halt, cycles: 1, len: 1 });
 apply(0xf3, { op: Operation.di, cycles: 1, len: 1 });
 apply(0xfb, { op: Operation.ei, cycles: 1, len: 1 });
 
-apply(0xc3, { op: Operation.jp, mode1: AddressingMode.imm16, cycles: 4, len: 3 });
+apply(0xc3, { op: Operation.jp, mode1: AddressingMode.imm16, cycles: 3, len: 3 });
 apply(0xc2, { op: Operation.jp, mode1: AddressingMode.imm16, condition: Condition.nz, cycles: 3, len: 3 });
 apply(0xca, { op: Operation.jp, mode1: AddressingMode.imm16, condition: Condition.z, cycles: 3, len: 3 });
 apply(0xd2, { op: Operation.jp, mode1: AddressingMode.imm16, condition: Condition.nc, cycles: 3, len: 3 });
 apply(0xda, { op: Operation.jp, mode1: AddressingMode.imm16, condition: Condition.c, cycles: 3, len: 3 });
+
 apply(0xe9, { op: Operation.jp, par1: r16.hl, mode1: AddressingMode.reg16, cycles: 1, len: 1 });
 
 // 0x80, 0x81, 0x82, 0x83, 0x84, 0x85
