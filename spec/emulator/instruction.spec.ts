@@ -101,6 +101,12 @@ describe('The opcode instructions', () => {
                 ],
             },
             {
+                description: 'with one reg16 value',
+                entries: [
+                    { op: 'JP HL', expected: 'JP HL', opcode: 0xe9, par1: 0x00, par2: 0x00 },
+                ],
+            },
+            {
                 description: 'with one reg16ind8 value',
                 entries: [
                     { op: 'AND (HL)', expected: 'AND (HL)', opcode: 0xa6, par1: 0x00, par2: 0x00 },

@@ -336,6 +336,7 @@ for (let i = 0; i < 0x200; i++)
 
 apply(0, { op: Operation.nop, cycles: 1, len: 1 });
 apply(0xc3, { op: Operation.jp, mode1: AddressingMode.imm16, cycles: 4, len: 3 });
+apply(0xe9, { op: Operation.jp, par1: r16.hl, mode1: AddressingMode.reg16, cycles: 1, len: 1 });
 
 // 0x80, 0x81, 0x82, 0x83, 0x84, 0x85
 // 0x88, 0x89, 0x8a, 0x8b, 0x8c, 0x8d
