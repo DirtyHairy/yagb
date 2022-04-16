@@ -272,13 +272,13 @@ export class Ppu {
         return this.vram[base + (ny % 32) * 32 + (nx % 32)];
     }
 
-    private backgroundTileAddress(index: number, y: number) {
+    private backgroundTileAddress(index: number, y: number): number {
         if (index >= 0x80) {
-            return this.vram[0x0800 + 16 * index + 2 * y];
+            return 0x0800 + 16 * (index - 0x80) + 2 * y;
         } else {
             const base = this.reg[reg.lcdc] & lcdc.bgTileDataArea ? 0x0000 : 0x1000;
 
-            return this.vram[base + 16 * index + 2 * y];
+            return base + 16 * index + 2 * y;
         }
     }
 
