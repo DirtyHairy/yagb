@@ -34,7 +34,7 @@ describe('The opcode instructions', () => {
         }
 
         const opcodes = Array.from({ length: 0x1ff }, (_, i) => i);
-        const { bus, cpu } = setup(
+        const { bus, cpu, env } = setup(
             opcodes.reduce((acc, x) => {
                 let y = 0;
                 if (x > 0xff) {
@@ -48,6 +48,11 @@ describe('The opcode instructions', () => {
 
         const modes = [AddressingMode.imm8, AddressingMode.imm16ind8, AddressingMode.imm8io, AddressingMode.imm16];
         const jumpOperations = [Operation.jp, Operation.jr, Operation.call, Operation.ret, Operation.reti, Operation.rst];
+
+        afterEach(() => {
+            env.reset();
+        });
+
 
         opcodes.forEach((opcode) => {
             const instruction = decodeInstruction(bus, address + 3 * opcode);
@@ -70,7 +75,7 @@ describe('The opcode instructions', () => {
                     expect(modes.includes(instruction.mode1) && modes.includes(instruction.mode2)).not.toBe(true);
                 });
 
-                xit('moves the process pointer', () => {
+                it('moves the process pointer', () => {
                     cpu.state.p = currentAddress;
 
                     let expectedAddress = currentAddress + 1;
