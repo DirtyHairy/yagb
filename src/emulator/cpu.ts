@@ -195,10 +195,10 @@ export class Cpu {
                 const cycles = instruction.cycles + (condition ? 3 : 0);
                 this.clock.increment(cycles);
 
-                this.state.p = (this.state.p + instruction.len) & 0xffff;
+                const returnTo = (this.state.p + instruction.len) & 0xffff;
 
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
                 if (condition) {
-                    const returnTo = (this.state.p + instruction.len) & 0xffff;
                     this.stackPush16(returnTo);
                     this.state.p = this.getArg1(instruction);
                 }
@@ -305,10 +305,11 @@ export class Cpu {
                 const cycles = instruction.cycles + (condition ? 1 : 0);
                 this.clock.increment(cycles);
 
+                const displacement = this.getArg1(instruction);
+
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
                 if (condition) {
-                    const displacement = this.getArg1(instruction);
-                    this.state.p = (this.state.p + displacement) & 0xffff;
+                    this.state.p = displacement & 0xffff;
                 }
 
                 return cycles;
@@ -319,9 +320,10 @@ export class Cpu {
                 const cycles = instruction.cycles + (condition ? 1 : 0);
                 this.clock.increment(cycles);
 
+                const displacement = extendSign8(this.getArg1(instruction));
+
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
                 if (condition) {
-                    const displacement = extendSign8(this.getArg1(instruction));
                     this.state.p = (this.state.p + displacement) & 0xffff;
                 }
 
