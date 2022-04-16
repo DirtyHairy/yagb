@@ -502,7 +502,7 @@ apply(0xcb, { op: Operation.cb, mode1: AddressingMode.cb, cycles: 1, len: 1 });
     apply(((0xc + i) << 4) | 0xf, { op: Operation.rst, mode1: AddressingMode.implicit, par1: target, cycles: 4, len: 1 })
 );
 
-// 0xcf, 0xdf, 0xef, 0xff
+// 0x09, 0x19, 0x29, 0x39
 [r16.bc, r16.de, r16.hl, r16.sp].forEach((reg, i) =>
     apply((i << 4) | 0x09, { op: Operation.add, par1: r16.hl, mode1: AddressingMode.reg16, par2: reg, mode2: AddressingMode.reg16, cycles: 2, len: 1 })
 );
