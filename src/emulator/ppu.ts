@@ -2,7 +2,7 @@ import { Bus, ReadHandler, WriteHandler } from './bus';
 import { Interrupt, irq } from './interrupt';
 
 import { PALETTE_CLASSIC } from './palette';
-import { SystemInterface } from './system';
+import { System } from './system';
 import { hex8 } from '../helper/format';
 
 const enum reg {
@@ -47,7 +47,7 @@ const enum stat {
 }
 
 export class Ppu {
-    constructor(private system: SystemInterface, private interrupt: Interrupt) {}
+    constructor(private system: System, private interrupt: Interrupt) {}
 
     install(bus: Bus): void {
         for (let i = 0x8000; i < 0xa000; i++) {

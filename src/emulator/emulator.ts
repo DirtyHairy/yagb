@@ -16,7 +16,7 @@ import { Trace } from './trace';
 import { Unmapped } from './unmapped';
 import { hex16 } from '../helper/format';
 
-export interface Trap {
+export interface BusTrap {
     address: number;
     trapRead: boolean;
     trapWrite: boolean;
@@ -54,28 +54,30 @@ export class Emulator {
         this.joypad.install(this.bus);
         unmapped.install(this.bus);
 
-        this.system.onBreak.addHandler((message) => {
-            this.break = true;
-            this.breakMessage = message;
-        });
-
         this.cpu.onExecute.addHandler((address) => this.trace.add(address));
-        this.bus.onRead.addHandler((address) => this.traps.get(address)?.trapRead && this.system.break(`trap read from ${hex16(address)}`));
-        this.bus.onWrite.addHandler((address) => this.traps.get(address)?.trapWrite && this.system.break(`trap write to ${hex16(address)}`));
+        this.bus.onRead.addHandler((address) => this.busTraps.get(address)?.trapRead && this.system.trap(`trap read from ${hex16(address)}`));
+        this.bus.onWrite.addHandler((address) => this.busTraps.get(address)?.trapWrite && this.system.trap(`trap write to ${hex16(address)}`));
 
         this.reset();
     }
 
     addBreakpoint(address: number): void {
         this.breakpoints.add(address);
+
+        if (!this.cpu.onAfterExecute.isHandlerAttached(this.onAfterExecuteHandler)) {
+            this.cpu.onAfterExecute.addHandler(this.onAfterExecuteHandler);
+        }
     }
 
     clearBreakpoint(address: number): void {
         this.breakpoints.delete(address);
+
+        if (this.breakpoints.size === 0) this.cpu.onAfterExecute.removeHandler(this.onAfterExecuteHandler);
     }
 
     clearBreakpoints(): void {
         this.breakpoints.clear();
+        this.cpu.onAfterExecute.removeHandler(this.onAfterExecuteHandler);
     }
 
     getBreakpoints(): Array<number> {
@@ -83,23 +85,23 @@ export class Emulator {
     }
 
     addTrapWrite(address: number): void {
-        this.traps.set(address, { ...(this.traps.get(address) || { address, trapRead: false, trapWrite: false }), trapWrite: true });
+        this.busTraps.set(address, { ...(this.busTraps.get(address) || { address, trapRead: false, trapWrite: false }), trapWrite: true });
     }
 
     addTrapRead(address: number): void {
-        this.traps.set(address, { ...(this.traps.get(address) || { address, trapRead: false, trapWrite: false }), trapRead: true });
+        this.busTraps.set(address, { ...(this.busTraps.get(address) || { address, trapRead: false, trapWrite: false }), trapRead: true });
     }
 
     clearTrap(address: number) {
-        this.traps.delete(address);
+        this.busTraps.delete(address);
     }
 
     clearTraps(): void {
-        this.traps.clear();
+        this.busTraps.clear();
     }
 
-    getTraps(): Array<Trap> {
-        return Array.from(this.traps.values()).sort((t1, t2) => t1.address - t2.address);
+    getTraps(): Array<BusTrap> {
+        return Array.from(this.busTraps.values()).sort((t1, t2) => t1.address - t2.address);
     }
 
     getTrace(count?: number): string {
@@ -116,20 +118,10 @@ export class Emulator {
     }
 
     step(count: number): [boolean, number] {
-        this.break = false;
-        let cycles = 0;
+        this.system.clearTrap();
+        const cycles = this.cpu.step(count);
 
-        for (let i = 0; i < count; i++) {
-            cycles += this.cpu.step(1);
-
-            if (this.breakpoints.has(this.cpu.state.p)) {
-                this.system.break(`breakpoint at ${hex16(this.cpu.state.p)}`);
-            }
-
-            if (this.break) break;
-        }
-
-        return [!this.break, cycles];
+        return [!this.system.isTrap, cycles];
     }
 
     reset(): void {
@@ -165,8 +157,8 @@ export class Emulator {
         return disassembledInstructions;
     }
 
-    lastBreakMessage(): string {
-        return this.breakMessage;
+    lastTrapMessage(): string {
+        return this.system.getTrapMessage();
     }
 
     getCpu(): Cpu {
@@ -189,6 +181,10 @@ export class Emulator {
         return `${this.breakpoints.has(address) ? ' *' : '  '} ${hex16(address)}: ${disassembleInstruction(this.bus, address)}`;
     }
 
+    private onAfterExecuteHandler = (p: number): void => {
+        if (this.breakpoints.has(p)) this.system.trap(`hit breakpoint at ${hex16(p)}`);
+    };
+
     private system: System;
 
     private bus: Bus;
@@ -205,9 +201,6 @@ export class Emulator {
 
     private trace: Trace = new Trace();
 
-    private break = false;
-    private breakMessage = '';
-
     private breakpoints = new Set<number>();
-    private traps = new Map<number, Trap>();
+    private busTraps = new Map<number, BusTrap>();
 }

@@ -129,10 +129,10 @@ state-on-step [0|1]                     Print state on every step`);
     step(count?: string): void {
         if (!assertEmulator()) return;
 
-        const [isBreak, cycles] = emulator.step(uintval(count, 1));
+        const [isTrap, cycles] = emulator.step(uintval(count, 1));
         updateCanvas();
 
-        if (!isBreak) print(emulator.lastBreakMessage());
+        if (!isTrap) print(emulator.lastTrapMessage());
         print(`done in ${cycles} cycles\n`);
 
         if (stateOnStep) {

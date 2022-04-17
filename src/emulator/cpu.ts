@@ -5,7 +5,7 @@ import { hex16, hex8 } from '../helper/format';
 import { Bus } from './bus';
 import { Clock } from './clock';
 import { Event } from 'microevent.ts';
-import { SystemInterface } from './system';
+import { System } from './system';
 
 export const enum r8 {
     f = 0,
@@ -38,8 +38,6 @@ export interface CpuState {
     r16: Uint16Array;
     p: number;
     interruptsEnabled: boolean;
-    stopped: boolean;
-    halted: boolean;
 }
 
 function extendSign8(x: number): number {
@@ -58,7 +56,7 @@ function getIrqVector(interrupt: irq): number {
 }
 
 export class Cpu {
-    constructor(private bus: Bus, private clock: Clock, private interrupt: Interrupt, private system: SystemInterface) {
+    constructor(private bus: Bus, private clock: Clock, private interrupt: Interrupt, private system: System) {
         const r16 = new Uint16Array(5);
         const r8 = new Uint8Array(r16.buffer);
 
@@ -67,8 +65,6 @@ export class Cpu {
             r16,
             p: 0x00,
             interruptsEnabled: false,
-            stopped: false,
-            halted: false,
         };
     }
 
@@ -80,21 +76,22 @@ export class Cpu {
         this.state.p = 0x0100;
         this.state.r16[r16.sp] = 0xfffe;
         this.state.interruptsEnabled = false;
-        this.state.stopped = false;
-        this.state.halted = false;
     }
 
     step(count: number): number {
         let cycles = 0;
 
         for (let i = 0; i < count; i++) {
+            if (this.system.isTrap) break;
+
             const irqCycles = this.handleInterrupts();
             if (irqCycles !== 0) {
                 cycles += irqCycles;
-                continue;
+            } else {
+                cycles += this.dispatch(decodeInstruction(this.bus, this.state.p));
             }
 
-            cycles += this.dispatch(decodeInstruction(this.bus, this.state.p));
+            this.onAfterExecute.dispatch(this.state.p);
         }
 
         return cycles;
@@ -139,7 +136,7 @@ export class Cpu {
     }
 
     private dispatch(instruction: Instruction): number {
-        if (instruction.op !== Operation.invalid) this.onExecute.dispatch(this.state.p);
+        this.onExecute.dispatch(this.state.p);
 
         switch (instruction.op) {
             case Operation.adc: {
@@ -227,7 +224,7 @@ export class Cpu {
             }
 
             case Operation.cb:
-                this.system.break('can not call CB');
+                this.system.trap('can not call CB');
 
                 return 0;
 
@@ -309,9 +306,8 @@ export class Cpu {
                 return instruction.cycles;
 
             case Operation.halt:
+                this.system.trap('encountered HALT');
                 this.clock.increment(instruction.cycles);
-
-                this.state.halted = true;
 
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
                 return instruction.cycles;
@@ -560,10 +556,8 @@ export class Cpu {
             }
 
             case Operation.stop:
+                this.system.trap('encountered STOP');
                 this.clock.increment(instruction.cycles);
-
-                this.state.stopped = true;
-                this.state.interruptsEnabled = true;
 
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
                 return instruction.cycles;
@@ -780,7 +774,7 @@ export class Cpu {
             }
 
             default:
-                this.system.break(`invalid instruction ${hex8(instruction.op)} at ${hex16(this.state.p)}`);
+                this.system.trap(`invalid instruction ${hex8(instruction.op)} at ${hex16(this.state.p)}`);
                 return 0;
         }
     }
@@ -892,6 +886,7 @@ export class Cpu {
     }
 
     readonly onExecute = new Event<number>();
+    readonly onAfterExecute = new Event<number>();
 
     readonly state: CpuState;
 }

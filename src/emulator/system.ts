@@ -6,16 +6,7 @@ export const enum LogLevel {
     info = 2,
 }
 
-export interface SystemInterface {
-    log(message: string, level?: number): void;
-    error(message: string): void;
-    warning(message: string): void;
-    info(message: string): void;
-
-    break(message: string): void;
-}
-
-export class System implements SystemInterface {
+export class System {
     constructor(private printCb: (message: string) => void) {}
 
     log(message: string, level = LogLevel.info): void {
@@ -36,11 +27,25 @@ export class System implements SystemInterface {
         this.log(message, LogLevel.info);
     }
 
-    break(message: string): void {
+    trap(message: string): void {
+        this.isTrap = true;
+        this.breakMessage = message;
+
         this.onBreak.dispatch(message);
     }
 
+    getTrapMessage(): string {
+        return this.breakMessage;
+    }
+
+    clearTrap(): void {
+        this.isTrap = false;
+    }
+
     readonly onBreak = new Event<string>();
+    isTrap = false;
+
+    private breakMessage = '';
 
     private logLevel = LogLevel.info;
 }

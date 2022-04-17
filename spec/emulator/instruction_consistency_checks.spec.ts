@@ -7,7 +7,7 @@ describe('The opcode instructions', () => {
     }
 
     describe('consistency checks', () => {
-        const { bus, cpu, env } = setup(opcodeMemoryMap());
+        const { bus, cpu, env, system } = setup(opcodeMemoryMap());
         const address = cpu.state.p;
 
         const modes = [AddressingMode.imm8, AddressingMode.imm16ind8, AddressingMode.imm8io, AddressingMode.imm16];
@@ -48,6 +48,7 @@ describe('The opcode instructions', () => {
                     }
 
                     try {
+                        system.clearTrap();
                         cpu.step(1);
 
                         expect(cpu.state.p).toBeGreaterThanOrEqual(expectedAddress);

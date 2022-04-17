@@ -70,10 +70,13 @@ export const opcodesTestsMap = function (bus: Bus, address: number) {
                 const instruction = decodeInstruction(bus, currentAddress);
 
                 // skip not defined (invalid) operations
-                if (instruction.op === Operation.invalid) return;
-
-                // skip not supported operations
-                if (instruction.op === Operation.none) return;
+                switch (instruction.op) {
+                    case Operation.invalid:
+                    case Operation.halt:
+                    case Operation.stop:
+                    case Operation.reserved:
+                        return;
+                }
 
                 const description = disassembleInstruction(bus, currentAddress);
 

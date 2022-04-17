@@ -1,14 +1,14 @@
 import { Bus, ReadHandler, WriteHandler } from './bus';
 import { hex16, hex8 } from '../helper/format';
 
-import { SystemInterface } from './system';
+import { System } from './system';
 
 export interface Cartridge {
     install(bus: Bus): void;
     reset(): void;
 }
 
-export function createCartridge(image: Uint8Array, system: SystemInterface): Cartridge | undefined {
+export function createCartridge(image: Uint8Array, system: System): Cartridge | undefined {
     if (image.length !== 0x8000) return undefined;
 
     let checksum = 0;
@@ -32,7 +32,7 @@ export function createCartridge(image: Uint8Array, system: SystemInterface): Car
 }
 
 class CartridgeNoMbc implements Cartridge {
-    constructor(image: Uint8Array, private system: SystemInterface) {
+    constructor(image: Uint8Array, private system: System) {
         this.rom.set(image);
     }
 

@@ -1,13 +1,13 @@
 import { hex16, hex8 } from '../helper/format';
 
 import { Event } from 'microevent.ts';
-import { SystemInterface } from './system';
+import { System } from './system';
 
 export type ReadHandler = (address: number) => number;
 export type WriteHandler = (address: number, value: number) => void;
 
 export class Bus {
-    constructor(private system: SystemInterface) {
+    constructor(private system: System) {
         for (let i = 0; i < 0x10000; i++) {
             this.readMap[i] = this.invalidRead;
             this.writeMap[i] = this.invalidWrite;
@@ -56,13 +56,13 @@ export class Bus {
     }
 
     private invalidRead: ReadHandler = (address) => {
-        this.system.break(`unmapped read from ${hex16(address)}`);
+        this.system.trap(`unmapped read from ${hex16(address)}`);
 
         return 0;
     };
 
     private invalidWrite: WriteHandler = (address, value) => {
-        this.system.break(`unmapped write of ${hex8(value)} to ${hex16(address)}`);
+        this.system.trap(`unmapped write of ${hex8(value)} to ${hex16(address)}`);
     };
 
     readonly onRead = new Event<number>();
