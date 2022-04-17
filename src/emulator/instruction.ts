@@ -373,17 +373,17 @@ for (let i = 0; i < 0x200; i++)
         condition: Condition.always,
     };
 
-apply(0xd3, { op: Operation.reserved, cycles: 0, len: 0 });
-apply(0xdb, { op: Operation.reserved, cycles: 0, len: 0 });
-apply(0xdd, { op: Operation.reserved, cycles: 0, len: 0 });
-apply(0xe3, { op: Operation.reserved, cycles: 0, len: 0 });
-apply(0xe4, { op: Operation.reserved, cycles: 0, len: 0 });
-apply(0xeb, { op: Operation.reserved, cycles: 0, len: 0 });
-apply(0xec, { op: Operation.reserved, cycles: 0, len: 0 });
-apply(0xed, { op: Operation.reserved, cycles: 0, len: 0 });
-apply(0xf4, { op: Operation.reserved, cycles: 0, len: 0 });
-apply(0xfc, { op: Operation.reserved, cycles: 0, len: 0 });
-apply(0xfd, { op: Operation.reserved, cycles: 0, len: 0 });
+apply(0xd3, { op: Operation.reserved });
+apply(0xdb, { op: Operation.reserved });
+apply(0xdd, { op: Operation.reserved });
+apply(0xe3, { op: Operation.reserved });
+apply(0xe4, { op: Operation.reserved });
+apply(0xeb, { op: Operation.reserved });
+apply(0xec, { op: Operation.reserved });
+apply(0xed, { op: Operation.reserved });
+apply(0xf4, { op: Operation.reserved });
+apply(0xfc, { op: Operation.reserved });
+apply(0xfd, { op: Operation.reserved });
 
 apply(0x00, { op: Operation.nop, cycles: 1, len: 1 });
 apply(0x10, { op: Operation.stop, cycles: 1, len: 1 });
