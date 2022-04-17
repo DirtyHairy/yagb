@@ -241,44 +241,37 @@ export class Ppu {
         let bgTileX = backgroundX % 8;
         let bgTileNX = (backgroundX / 8) | 0;
 
-        let bgTileAddress = this.backgroundTileAddress(this.backgroundTileIndex(bgTileNX, bgTileNY), bgTileY);
-        let bgTilePlaneLow = this.vram[bgTileAddress] << bgTileX;
-        let bgTilePlaneHigh = this.vram[bgTileAddress + 1] << bgTileX;
+        let bgTileData = this.backgroundTileData(bgTileNX, bgTileNY, bgTileY) << bgTileX;
 
         let pixelAddress = 160 * this.scanline;
 
         for (let x = 0; x < 160; x++) {
-            const indexedBG = ((bgTilePlaneLow & 0x80) >>> 7) | ((bgTilePlaneHigh & 0x80) >>> 6); // TODO: one shift can be saved if we reverse the byte
+            // this assumes a little endian host
+            const indexedBG = ((bgTileData & 0x8000) >>> 14) | ((bgTileData & 0x80) >>> 7);
             this.backBuffer[pixelAddress++] = this.paletteBG[indexedBG];
 
             if (bgTileX === 7) {
                 bgTileNX++;
                 bgTileX = 0;
 
-                bgTileAddress = this.backgroundTileAddress(this.backgroundTileIndex(bgTileNX, bgTileNY), bgTileY);
-                bgTilePlaneLow = this.vram[bgTileAddress];
-                bgTilePlaneHigh = this.vram[bgTileAddress + 1];
+                bgTileData = this.backgroundTileData(bgTileNX, bgTileNY, bgTileY);
             } else {
                 bgTileX++;
-                bgTilePlaneLow <<= 1;
-                bgTilePlaneHigh <<= 1;
+                bgTileData <<= 1;
             }
         }
     }
 
-    private backgroundTileIndex(nx: number, ny: number): number {
-        const base = this.reg[reg.lcdc] & lcdc.bgTileMapArea ? 0x1c00 : 0x1800;
+    private backgroundTileData(nx: number, ny: number, y: number): number {
+        const tileMapBase = this.reg[reg.lcdc] & lcdc.bgTileMapArea ? 0x1c00 : 0x1800;
+        const index = this.vram[tileMapBase + (ny % 32) * 32 + (nx % 32)];
 
-        return this.vram[base + (ny % 32) * 32 + (nx % 32)];
-    }
-
-    private backgroundTileAddress(index: number, y: number): number {
         if (index >= 0x80) {
-            return 0x0800 + 16 * (index - 0x80) + 2 * y;
+            return this.vram16[0x0400 + 8 * (index - 0x80) + y];
         } else {
-            const base = this.reg[reg.lcdc] & lcdc.bgTileDataArea ? 0x0000 : 0x1000;
+            const tildeDataBase = this.reg[reg.lcdc] & lcdc.bgTileDataArea ? 0x0000 : 0x800;
 
-            return base + 16 * index + 2 * y;
+            return this.vram16[tildeDataBase + 8 * index + y];
         }
     }
 
@@ -343,6 +336,8 @@ export class Ppu {
     private vram = new Uint8Array(0x2000);
     private oam = new Uint8Array(0xa0);
     private stat = false;
+
+    private vram16 = new Uint16Array(this.vram.buffer);
 
     private dmaInProgress = false;
     private dmaCycle = 0;
