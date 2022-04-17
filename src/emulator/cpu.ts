@@ -275,6 +275,30 @@ export class Cpu {
                 return instruction.cycles;
             }
 
+            case Operation.daa: {
+                this.clock.increment(instruction.cycles);
+
+                this.state.r8[r8.f] ^= flag.z | flag.h | flag.c;
+
+                if ((this.state.r8[r8.a] & 0x0f) > 0x09) {
+                    this.state.r8[r8.a] += 0x06;
+                }
+
+                if ((this.state.r8[r8.a] & 0xf0) >>> 4 > 0x09) {
+                    this.state.r8[r8.f] |= flag.c;
+                    this.state.r8[r8.a] += 0x60;
+                }
+
+                if (this.state.r8[r8.a] === 0x00) {
+                    this.state.r8[r8.f] |= flag.z;
+                }
+
+                this.state.r8[r8.a] &= 0xff;
+
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
+                return instruction.cycles;
+            }
+
             case Operation.dec: {
                 this.clock.increment(instruction.cycles);
 

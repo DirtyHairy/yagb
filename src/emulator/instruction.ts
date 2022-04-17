@@ -14,6 +14,7 @@ export const enum Operation {
     cb,
     cp,
     cpl,
+    daa,
     dec,
     dec16,
     di,
@@ -173,6 +174,9 @@ function disassembleOperation(operation: Operation): string {
 
         case Operation.cpl:
             return 'CPL';
+
+        case Operation.daa:
+            return 'DAA';
 
         case Operation.dec:
         case Operation.dec16:
@@ -387,6 +391,7 @@ apply(0xfd, { op: Operation.reserved });
 
 apply(0x00, { op: Operation.nop, cycles: 1, len: 1 });
 apply(0x10, { op: Operation.stop, cycles: 1, len: 1 });
+apply(0x27, { op: Operation.daa, cycles: 1, len: 1 });
 apply(0x37, { op: Operation.scf, cycles: 1, len: 1 });
 apply(0x76, { op: Operation.halt, cycles: 1, len: 1 });
 apply(0xf3, { op: Operation.di, cycles: 1, len: 1 });
