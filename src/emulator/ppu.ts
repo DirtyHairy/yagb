@@ -316,7 +316,7 @@ export class Ppu {
         this.reg[reg.bgp] = value;
 
         for (let i = 0; i < 4; i++) {
-            this.paletteBG[i] = (value >> (2 * i)) & 0x03;
+            this.paletteBG[i] = PALETTE_CLASSIC[(value >> (2 * i)) & 0x03];
         }
     };
 

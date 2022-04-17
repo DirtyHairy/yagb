@@ -7,11 +7,11 @@ export class Joypad {
     }
 
     reset(): void {
-        this.joypad = 0;
+        this.joypad = 0x00;
     }
 
-    private joypadRead: ReadHandler = () => this.joypad;
-    private joypadWrite: WriteHandler = (address, value) => (this.joypad = value);
+    private joypadRead: ReadHandler = () => this.joypad | 0x0f;
+    private joypadWrite: WriteHandler = (address, value) => (this.joypad = value & 0xff);
 
     private joypad = 0x00;
 }

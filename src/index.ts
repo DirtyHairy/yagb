@@ -80,7 +80,6 @@ function updateCanvas(): void {
 
     const imageData = new ImageData(new Uint8ClampedArray(emulator.getFrameData()), 160, 144);
 
-    ctx.imageSmoothingEnabled = false;
     ctx.putImageData(imageData, 0, 0);
     lastFrame = emulator.getFrameIndex();
 }
