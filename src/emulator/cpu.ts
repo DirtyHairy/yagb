@@ -305,7 +305,7 @@ export class Cpu {
                 return this.opRst(instruction);
 
             default:
-                this.system.trap(`invalid instruction ${hex8(instruction.op)} at ${hex16(this.state.p)}`);
+                this.system.trap(`invalid instruction ${hex8(instruction.opcode)} at ${hex16(this.state.p)}`);
                 return 0;
         }
     }
