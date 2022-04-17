@@ -99,6 +99,9 @@ export interface Instruction {
 
 export function decodeInstruction(bus: Bus, address: number): Instruction {
     let opcode = bus.read(address);
+    if (opcode === undefined) {
+        throw new Error('problem with reading opcode from bus');
+    }
 
     if (0xcb === opcode) opcode = bus.read(address + 1) + 0x100;
 
