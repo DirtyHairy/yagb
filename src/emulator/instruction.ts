@@ -74,6 +74,7 @@ export const enum AddressingMode {
 
     imm16,
     imm16ind8,
+    imm16ind16,
     reg16,
     reg16ind8,
 }
@@ -332,6 +333,9 @@ function disassembleOperationParameter(bus: Bus, address: number, par: number, m
         case AddressingMode.imm16ind8:
             return `(${hex16(bus.read16((address + 1) & 0xffff))})`;
 
+        case AddressingMode.imm16ind16:
+            return `(${hex16(bus.read16((address + 1) & 0xffff))})`;
+
         case AddressingMode.reg16:
             return `${disassembleR16(par)}`;
 
@@ -497,6 +501,7 @@ apply(0xe2, { op: Operation.ld, par1: r8.c, mode1: AddressingMode.reg8io, par2: 
 apply(0xea, { op: Operation.ld, mode1: AddressingMode.imm16ind8, par2: r8.a, mode2: AddressingMode.reg8, cycles: 4, len: 3 });
 apply(0xfa, { op: Operation.ld, par1: r8.a, mode1: AddressingMode.reg8, mode2: AddressingMode.imm16ind8, cycles: 4, len: 3 });
 
+apply(0x08, { op: Operation.ld, mode1: AddressingMode.imm16ind16, par2: r16.sp, mode2: AddressingMode.reg16, cycles: 5, len: 3 });
 apply(0xf9, { op: Operation.ld, par1: r16.sp, mode1: AddressingMode.reg16, par2: r16.hl, mode2: AddressingMode.reg16, cycles: 2, len: 1 });
 
 // 0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47
