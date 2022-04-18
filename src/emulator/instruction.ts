@@ -497,6 +497,8 @@ apply(0xe2, { op: Operation.ld, par1: r8.c, mode1: AddressingMode.reg8io, par2: 
 apply(0xea, { op: Operation.ld, mode1: AddressingMode.imm16ind8, par2: r8.a, mode2: AddressingMode.reg8, cycles: 4, len: 3 });
 apply(0xfa, { op: Operation.ld, par1: r8.a, mode1: AddressingMode.reg8, mode2: AddressingMode.imm16ind8, cycles: 4, len: 3 });
 
+apply(0xf9, { op: Operation.ld, par1: r16.sp, mode1: AddressingMode.reg16, par2: r16.hl, mode2: AddressingMode.reg16, cycles: 2, len: 1 });
+
 // 0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47
 // 0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57
 // 0x60, 0x61, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67
