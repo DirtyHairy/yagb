@@ -1,4 +1,5 @@
 import { Bus, ReadHandler, WriteHandler } from '../../src/emulator/bus';
+
 import { Clock } from '../../src/emulator/clock';
 import { Cpu } from '../../src/emulator/cpu';
 import { Interrupt } from '../../src/emulator/interrupt';

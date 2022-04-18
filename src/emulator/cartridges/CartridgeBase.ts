@@ -95,7 +95,7 @@ export abstract class CartridgeBase implements Cartridge {
     }
 
     size(): number {
-        switch(this.image[CartridgeAddress.size]) {
+        switch (this.image[CartridgeAddress.size]) {
             case CartridgeROMType.rom_2banks_256kbit_32kb:
                 return 32 * 1024;
 
@@ -133,12 +133,12 @@ export abstract class CartridgeBase implements Cartridge {
                 return 512 * 1024 + 1536 * 1024;
 
             default:
-                throw new Error(`Unknown ROM size ${hex8(this.image[CartridgeAddress.size])}`)
+                throw new Error(`Unknown ROM size ${hex8(this.image[CartridgeAddress.size])}`);
         }
     }
 
     ramSize(): number {
-        switch(this.image[CartridgeAddress.ramType]) {
+        switch (this.image[CartridgeAddress.ramType]) {
             case CartridgeRAMType.no_ram:
                 return 0;
 
@@ -158,12 +158,12 @@ export abstract class CartridgeBase implements Cartridge {
                 return 128 * 1024;
 
             default:
-                throw new Error(`Unknown RAM size ${hex8(this.image[CartridgeAddress.ramType])}`)
+                throw new Error(`Unknown RAM size ${hex8(this.image[CartridgeAddress.ramType])}`);
         }
     }
 
     printInfo(): string {
-        return `type=${hex8(this.type())}, size=${this.size() / 1024}kb, ram=${this.ramSize() / 1024}kb`
+        return `type=${hex8(this.type())}, size=${this.size() / 1024}kb, ram=${this.ramSize() / 1024}kb`;
     }
 
     protected ramType(): CartridgeRAMType {

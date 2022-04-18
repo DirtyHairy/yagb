@@ -145,7 +145,7 @@ export class Emulator {
         this.bus.reset();
     }
 
-    printCartridgeInfo():string {
+    printCartridgeInfo(): string {
         return `Cartridge: ${this.cartridge.printInfo()}`;
     }
 

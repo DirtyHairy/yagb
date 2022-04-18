@@ -1,5 +1,6 @@
 import { CartridgeAddress, CartridgeROMBankSize, CartridgeType } from './cartridges/CartridgeBase';
 import { hex16, hex8 } from '../helper/format';
+
 import { Bus } from './bus';
 import { CartridgeMbc1 } from './cartridges/CartridgeMbc1';
 import { CartridgeRom } from './cartridges/CartridgeRom';
@@ -24,7 +25,7 @@ export function createCartridge(image: Uint8Array, system: System): Cartridge | 
         throw new Error('Bad ROM file size');
     }
 
-    const lengthReference = 0x8000  << image[CartridgeAddress.size];
+    const lengthReference = 0x8000 << image[CartridgeAddress.size];
     if (image.length !== lengthReference) {
         system.error(`ROM size mismatch: expected ${hex16(lengthReference)}, got ${hex16(image.length)}`);
         throw new Error('Bad ROM file size');

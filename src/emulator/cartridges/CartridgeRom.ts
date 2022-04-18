@@ -1,4 +1,5 @@
 import { Bus, ReadHandler, WriteHandler } from '../bus';
+
 import { CartridgeBase } from './CartridgeBase';
 import { System } from '../system';
 import { hex16 } from '../../helper/format';

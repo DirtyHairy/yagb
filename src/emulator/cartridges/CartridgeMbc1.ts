@@ -1,5 +1,6 @@
 import { Bus, ReadHandler, WriteHandler } from '../bus';
 import { CartridgeBase, CartridgeRAMBankSize, CartridgeRAMType, CartridgeROMBankSize } from './CartridgeBase';
+
 import { System } from '../system';
 import { hex16 } from '../../helper/format';
 
@@ -49,19 +50,22 @@ export class CartridgeMbc1 extends CartridgeBase {
         switch (true) {
             // ROM bank 0
             case 0x0000 <= address && address < 0x4000:
-                if (this.bankMode === 1)
+                if (this.bankMode === 1) {
                     this.romBank = (this.romBankRegister2 << 5) % this.rom.length;
-                else
+                } else {
                     this.romBank = 0;
+                }
 
                 return this.rom[this.romBank][address];
 
             // ROM bank 1
             case 0x4000 <= address && address < 0x8000:
-                if (this.bankMode === 1)
+                if (this.bankMode === 1) {
                     this.romBank = (this.romBankRegister2 << 5) % this.rom.length;
-                else
+                } else {
                     this.romBank = 0;
+                }
+
                 return this.rom[this.romBank][address - CartridgeROMBankSize];
 
             // RAM bank
