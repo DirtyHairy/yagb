@@ -1062,6 +1062,10 @@ export class Cpu {
                 this.bus.write(this.bus.read16((this.state.p + 0x01) & 0xffff), value & 0xff);
                 break;
 
+            case AddressingMode.imm16ind16:
+                this.bus.write16(this.bus.read16((this.state.p + 0x01) & 0xffff), value & 0xffff);
+                break;
+
             case AddressingMode.reg16ind8:
                 this.bus.write(this.state.r16[par], value & 0xff);
                 break;
