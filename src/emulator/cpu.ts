@@ -599,8 +599,8 @@ export class Cpu {
     private opLdd(instruction: Instruction): number {
         this.clock.increment(instruction.cycles);
 
-        this.setArg1(instruction, this.getArg2(instruction));
-        this.state.r16[r16.hl] = this.state.r16[r16.hl] - 0x01;
+        const result = this.getArg2(instruction) - 0x01;
+        this.setArg1(instruction, result);
 
         this.state.p = (this.state.p + instruction.len) & 0xffff;
         return instruction.cycles;
@@ -609,8 +609,8 @@ export class Cpu {
     private opLdi(instruction: Instruction): number {
         this.clock.increment(instruction.cycles);
 
-        this.setArg1(instruction, this.getArg2(instruction));
-        this.state.r16[r16.hl] = this.state.r16[r16.hl] + 0x01;
+        const result = this.getArg2(instruction) + 0x01;
+        this.setArg1(instruction, result);
 
         this.state.p = (this.state.p + instruction.len) & 0xffff;
         return instruction.cycles;
@@ -1054,7 +1054,7 @@ export class Cpu {
             }
 
             case AddressingMode.reg8:
-                this.state.r8[par] = value;
+                this.state.r8[par] = value & 0xff;
                 break;
 
             case AddressingMode.reg8io:
@@ -1074,7 +1074,7 @@ export class Cpu {
                 break;
 
             case AddressingMode.reg16:
-                this.state.r16[par] = value;
+                this.state.r16[par] = value & 0xffff;
                 break;
 
             default:
