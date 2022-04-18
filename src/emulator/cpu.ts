@@ -184,6 +184,9 @@ export class Cpu {
             case Operation.cpl:
                 return this.opCpl(instruction);
 
+            case Operation.daa:
+                return this.opDaa(instruction);
+
             case Operation.dec:
                 return this.opDec(instruction);
 
@@ -434,6 +437,41 @@ export class Cpu {
                     flag.n |
                     ((result & 0xff) === 0 ? flag.z : 0x00) |
                     ((((operand & 0x0f) - 0x01) & 0xf0) !== 0 ? flag.h : 0x00);
+
+        this.state.p = (this.state.p + instruction.len) & 0xffff;
+        return instruction.cycles;
+    }
+
+    private opDaa(instruction: Instruction): number {
+        this.clock.increment(instruction.cycles);
+
+        let operand = this.state.r8[r8.a];
+
+        const flagN = this.state.r8[r8.f] & flag.n,
+            flagC = this.state.r8[r8.f] & flag.c,
+            flagH = this.state.r8[r8.f] & flag.h;
+        let correction = 0;
+
+        let setFlagC = 0;
+        if (flagH || (!flagN && (operand & 0xf) > 0x09)) {
+            correction |= 0x6;
+        }
+
+        if (flagC || (!flagN && (operand & 0xf0) >>> 4 > 0x09)) {
+            correction |= 0x60;
+            setFlagC = flag.c;
+        }
+
+        operand += flagN ? -correction : correction;
+
+        operand &= 0xff;
+
+        const setFlagZ = operand === 0 ? flag.z : 0;
+
+        this.state.r8[r8.f] &= ~(flag.h | flag.z | flag.c);
+        this.state.r8[r8.f] |= setFlagC | setFlagZ;
+
+        this.state.r8[r8.a] = operand;
 
         this.state.p = (this.state.p + instruction.len) & 0xffff;
         return instruction.cycles;
