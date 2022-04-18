@@ -14,7 +14,7 @@ const newEnvironment = function (): Bus {
 
     for (let i = 0; i < 0x200; i++) {
         if (i > 0xff) {
-            bus.write16(0xc000 + i * 4, (0xcb << 8) + i)
+            bus.write16(0xc000 + i * 4, (0xcb << 8) + i);
         } else {
             bus.write(0xc000 + i * 4, i);
         }
