@@ -34,6 +34,17 @@ function uintval<T>(value: T, defaultValue?: number | undefined): number | undef
     return isNaN(parsed) || parsed < 0 ? defaultValue : parsed;
 }
 
+function floatval<T>(value: T): number | undefined;
+function floatval<T>(value: T, defaultValue: number): number;
+function floatval<T>(value: T, defaultValue?: number | undefined): number | undefined {
+    if (typeof value === 'number') return value;
+    if (typeof value !== 'string') return defaultValue;
+
+    const parsed = parseFloat(value);
+
+    return isNaN(parsed) || parsed < 0 ? defaultValue : parsed;
+}
+
 function loadCartridge(data: Uint8Array, name: string) {
     try {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -41,6 +52,7 @@ function loadCartridge(data: Uint8Array, name: string) {
         scheduler = new Scheduler(emulator);
 
         scheduler.onTimesliceComplete.addHandler(() => updateCanvas());
+        scheduler.onEmitStatistics.addHandler(({ hostSpeed, speed }) => updatePrompt(speed, hostSpeed));
         emulator.onTrap.addHandler((msg) => {
             if (scheduler.isRunning()) print(`Encountered trap: ${msg}. Stopping emulator.`);
         });
@@ -118,7 +130,8 @@ dump address [count=16]                 Dump bus
 context                                 Show context summary (trace + disassembly + state)
 state-on-step [0|1]                     Print state on every step
 run                                     Run the emulator continuosly
-stop                                    Stop the emulator`);
+stop                                    Stop the emulator
+speed <speed>                           Set emulator speed`);
     },
     load(): void {
         fileHandler.openFile(async (data, name) => {
@@ -309,6 +322,8 @@ stop                                    Stop the emulator`);
 
         scheduler.start();
         print('emulator running');
+
+        updatePrompt();
     },
     stop() {
         if (!scheduler.isRunning()) {
@@ -318,6 +333,17 @@ stop                                    Stop the emulator`);
 
         scheduler.stop();
         print('emulator stopped');
+
+        updatePrompt();
+    },
+    speed(speed: string) {
+        const parsed = floatval(speed);
+        if (parsed === undefined || parsed <= 0) {
+            print('invalid speed');
+            return;
+        }
+
+        scheduler.setSpeed(parsed);
     },
 };
 
@@ -326,6 +352,15 @@ const terminal = $('#terminal').terminal(interpreter as JQueryTerminal.Interpret
     completion: true,
     exit: false,
     onInit: () => void onInit(),
-    prompt: '\n> ',
     checkArity: false,
 });
+
+updatePrompt();
+
+function updatePrompt(speed?: number, hostSpeed?: number) {
+    terminal.set_prompt(
+        `\n${scheduler?.isRunning() ? 'running' : 'stopped'}${speed !== undefined && scheduler.isRunning() ? ' gb@' + speed.toFixed(2) + 'x' : ''}${
+            hostSpeed !== undefined && scheduler.isRunning() ? ' host@' + hostSpeed.toFixed(2) + 'x' : ''
+        } > `
+    );
+}
