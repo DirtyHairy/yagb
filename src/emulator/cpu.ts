@@ -188,6 +188,18 @@ export class Cpu {
 
                 return 0;
 
+            case Operation.ccf: {
+                this.clock.increment(instruction.cycles);
+
+                // prettier-ignore
+                this.state.r8[r8.f] =
+                    (this.state.r8[r8.f] & flag.z) |
+                    ((this.state.r8[r8.f] & flag.c) === flag.c ? 0x00 : flag.c);
+
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
+                return instruction.cycles;
+            }
+
             case Operation.cp:
                 return this.opCp(instruction);
 
@@ -457,9 +469,9 @@ export class Cpu {
 
         let operand = this.state.r8[r8.a];
 
-        const flagN = this.state.r8[r8.f] & flag.n,
-            flagC = this.state.r8[r8.f] & flag.c,
-            flagH = this.state.r8[r8.f] & flag.h;
+                const flagN = this.state.r8[r8.f] & flag.n,
+                    flagC = this.state.r8[r8.f] & flag.c,
+                    flagH = this.state.r8[r8.f] & flag.h;
 
         if (flagN) {
             if (flagH) operand -= 0x06;

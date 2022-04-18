@@ -12,6 +12,7 @@ export const enum Operation {
     and,
     call,
     cb,
+    ccf,
     cp,
     cpl,
     daa,
@@ -171,6 +172,9 @@ function disassembleOperation(operation: Operation): string {
 
         case Operation.cb:
             return 'CB';
+
+        case Operation.ccf:
+            return 'CCF';
 
         case Operation.cp:
             return 'CP';
@@ -395,7 +399,9 @@ apply(0xfd, { op: Operation.reserved });
 apply(0x00, { op: Operation.nop, cycles: 1, len: 1 });
 apply(0x10, { op: Operation.stop, cycles: 1, len: 1 });
 apply(0x27, { op: Operation.daa, cycles: 1, len: 1 });
+apply(0x2f, { op: Operation.cpl, cycles: 1, len: 1 });
 apply(0x37, { op: Operation.scf, cycles: 1, len: 1 });
+apply(0x3f, { op: Operation.ccf, cycles: 1, len: 1 });
 apply(0x76, { op: Operation.halt, cycles: 1, len: 1 });
 apply(0xf3, { op: Operation.di, cycles: 1, len: 1 });
 apply(0xfb, { op: Operation.ei, cycles: 1, len: 1 });
@@ -426,8 +432,6 @@ apply(0xc8, { op: Operation.ret, condition: Condition.z, cycles: 2, len: 1 });
 apply(0xd0, { op: Operation.ret, condition: Condition.nc, cycles: 2, len: 1 });
 apply(0xd8, { op: Operation.ret, condition: Condition.c, cycles: 2, len: 1 });
 apply(0xd9, { op: Operation.reti, cycles: 4, len: 1 });
-
-apply(0x2f, { op: Operation.cpl, cycles: 1, len: 1 });
 
 // 0x80, 0x81, 0x82, 0x83, 0x84, 0x85
 // 0x88, 0x89, 0x8a, 0x8b, 0x8c, 0x8d
