@@ -176,17 +176,8 @@ export class Cpu {
 
                 return 0;
 
-            case Operation.ccf: {
-                this.clock.increment(instruction.cycles);
-
-                // prettier-ignore
-                this.state.r8[r8.f] =
-                    (this.state.r8[r8.f] & flag.z) |
-                    ((this.state.r8[r8.f] & flag.c) === flag.c ? 0x00 : flag.c);
-
-                this.state.p = (this.state.p + instruction.len) & 0xffff;
-                return instruction.cycles;
-            }
+            case Operation.ccf:
+                return this.opCcf(instruction)
 
             case Operation.cp:
                 return this.opCp(instruction);
@@ -234,12 +225,7 @@ export class Cpu {
                 return this.opLdi(instruction);
 
             case Operation.lds: {
-                this.clock.increment(instruction.cycles);
-
-                this.setArg1(instruction, this.getArg2(instruction));
-
-                this.state.p = (this.state.p + instruction.len) & 0xffff;
-                return instruction.cycles;
+                return this.opLds(instruction);
             }
 
             case Operation.nop:
@@ -412,6 +398,18 @@ export class Cpu {
         }
 
         return cycles;
+    }
+
+    private opCcf(instruction: Instruction): number {
+        this.clock.increment(instruction.cycles);
+
+        // prettier-ignore
+        this.state.r8[r8.f] =
+            (this.state.r8[r8.f] & flag.z) |
+            ((this.state.r8[r8.f] & flag.c) === flag.c ? 0x00 : flag.c);
+
+        this.state.p = (this.state.p + instruction.len) & 0xffff;
+        return instruction.cycles;
     }
 
     private opCp(instruction: Instruction): number {
@@ -620,6 +618,15 @@ export class Cpu {
 
         const result = this.getArg2(instruction) + 0x01;
         this.setArg1(instruction, result);
+
+        this.state.p = (this.state.p + instruction.len) & 0xffff;
+        return instruction.cycles;
+    }
+
+    private opLds(instruction: Instruction): number {
+        this.clock.increment(instruction.cycles);
+
+        this.setArg1(instruction, this.getArg2(instruction));
 
         this.state.p = (this.state.p + instruction.len) & 0xffff;
         return instruction.cycles;
