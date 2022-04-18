@@ -12,10 +12,8 @@ describe('The glorious CPU', () => {
 
             env.cpu.state.r8[r8.f] = flags;
 
-            env.cpu.state.r16[r16.sp] = (env.cpu.state.r16[r16.sp] - 1) & 0xffff;
-            env.bus.write(env.cpu.state.r16[r16.sp], address >>> 8);
-            env.cpu.state.r16[r16.sp] = (env.cpu.state.r16[r16.sp] - 1) & 0xffff;
-            env.bus.write(env.cpu.state.r16[r16.sp], address & 0xff);
+            env.bus.write16((env.cpu.state.r16[r16.sp] - 1) & 0xffff, address)
+            env.cpu.state.r16[r16.sp] = (env.cpu.state.r16[r16.sp] - 2) & 0xffff;
 
             return env;
         }

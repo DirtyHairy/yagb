@@ -1,5 +1,4 @@
 import { hex16, hex8 } from '../helper/format';
-
 import { Event } from 'microevent.ts';
 import { System } from './system';
 
@@ -28,6 +27,11 @@ export class Bus {
         if (this.locked && (address < 0xff80 || address === 0xffff)) return;
 
         this.writeMap[address](address, value);
+    }
+
+    write16(address: number, value: number): void {
+        this.write(address, value >>> 8);
+        this.write(address - 1, value & 0xff);
     }
 
     read16(address: number): number {
