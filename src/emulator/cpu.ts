@@ -278,22 +278,35 @@ export class Cpu {
             case Operation.daa: {
                 this.clock.increment(instruction.cycles);
 
-                this.state.r8[r8.f] ^= flag.z | flag.h | flag.c;
+                let operand = this.state.r8[r8.a];
 
-                if ((this.state.r8[r8.a] & 0x0f) > 0x09) {
-                    this.state.r8[r8.a] += 0x06;
+                const flagN = this.state.r8[r8.f] & flag.n,
+                      flagC =  this.state.r8[r8.f] & flag.c,
+                      flagH =  this.state.r8[r8.f] & flag.h
+                ;
+
+                let correction = 0;
+
+                let setFlagC = 0;
+                if (flagH || (!flagN && (operand & 0xf) > 0x09)) {
+                    correction |= 0x6;
                 }
 
-                if ((this.state.r8[r8.a] & 0xf0) >>> 4 > 0x09) {
-                    this.state.r8[r8.f] |= flag.c;
-                    this.state.r8[r8.a] += 0x60;
+                if (flagC || (!flagN && ((operand & 0xf0) >>> 4) > 0x09)) {
+                    correction |= 0x60;
+                    setFlagC = flag.c;
                 }
 
-                if (this.state.r8[r8.a] === 0x00) {
-                    this.state.r8[r8.f] |= flag.z;
-                }
+                operand += flagN ? -correction : correction;
 
-                this.state.r8[r8.a] &= 0xff;
+                operand &= 0xff;
+
+                const setFlagZ = operand === 0 ? flag.z : 0;
+
+                this.state.r8[r8.f] &= ~(flag.h | flag.z | flag.c);
+                this.state.r8[r8.f] |= setFlagC | setFlagZ;
+
+                this.state.r8[r8.a] = operand;
 
                 this.state.p = (this.state.p + instruction.len) & 0xffff;
                 return instruction.cycles;
