@@ -55,6 +55,7 @@ function loadCartridge(data: Uint8Array, name: string) {
         scheduler.onEmitStatistics.addHandler(({ hostSpeed, speed }) => updatePrompt(speed, hostSpeed));
         emulator.onTrap.addHandler((msg) => {
             if (scheduler.isRunning()) print(`Encountered trap: ${msg}. Stopping emulator.`);
+            updatePrompt(undefined, undefined, false);
         });
 
         updateCanvas();
@@ -357,10 +358,10 @@ const terminal = $('#terminal').terminal(interpreter as JQueryTerminal.Interpret
 
 updatePrompt();
 
-function updatePrompt(speed?: number, hostSpeed?: number) {
+function updatePrompt(speed?: number, hostSpeed?: number, isRunning = !!scheduler?.isRunning()) {
     terminal.set_prompt(
-        `\n${scheduler?.isRunning() ? 'running' : 'stopped'}${speed !== undefined && scheduler.isRunning() ? ' gb@' + speed.toFixed(2) + 'x' : ''}${
-            hostSpeed !== undefined && scheduler.isRunning() ? ' host@' + hostSpeed.toFixed(2) + 'x' : ''
+        `\n${isRunning ? 'running' : 'stopped'}${speed !== undefined && isRunning ? ' gb@' + speed.toFixed(2) + 'x' : ''}${
+            hostSpeed !== undefined && isRunning ? ' host@' + hostSpeed.toFixed(2) + 'x' : ''
         } > `
     );
 }
