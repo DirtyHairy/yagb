@@ -10,7 +10,14 @@ describe('The opcode instructions', () => {
         const { bus, cpu, env, system } = setup(opcodeMemoryMap());
         const address = cpu.state.p;
 
-        const modes = [AddressingMode.imm8, AddressingMode.imm16ind8, AddressingMode.imm8io, AddressingMode.imm16];
+        const memoryModes = [
+            AddressingMode.imm8,
+            AddressingMode.imm8io,
+            AddressingMode.imm8sign,
+            AddressingMode.imm16,
+            AddressingMode.imm16ind16,
+            AddressingMode.imm16ind8,
+        ];
         const jumpOperations = [Operation.jp, Operation.jr, Operation.call, Operation.ret, Operation.reti, Operation.rst];
 
         afterEach(() => {
@@ -36,7 +43,7 @@ describe('The opcode instructions', () => {
                 });
 
                 it('does not load both parameters from memory', () => {
-                    expect(modes.includes(instruction.mode1) && modes.includes(instruction.mode2)).not.toBe(true);
+                    expect(memoryModes.includes(instruction.mode1) && memoryModes.includes(instruction.mode2)).not.toBe(true);
                 });
 
                 it('moves the process pointer', () => {

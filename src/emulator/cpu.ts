@@ -586,7 +586,7 @@ export class Cpu {
         const cycles = instruction.cycles + (condition ? 1 : 0);
         this.clock.increment(cycles);
 
-        const displacement = extendSign8(this.getArg1(instruction));
+        const displacement = this.getArg1(instruction);
 
         this.state.p = (this.state.p + instruction.len) & 0xffff;
         if (condition) {
@@ -1006,6 +1006,10 @@ export class Cpu {
             case AddressingMode.imm8io: {
                 const index = this.bus.read((this.state.p + 0x01) & 0xffff);
                 return this.bus.read(0xff00 + index);
+            }
+
+            case AddressingMode.imm8sign: {
+                return extendSign8(this.bus.read((this.state.p + 0x01) & 0xffff));
             }
 
             case AddressingMode.reg8:

@@ -37,6 +37,7 @@ export const lengthFromMode = function (mode: AddressingMode): number {
 
         case AddressingMode.imm8:
         case AddressingMode.imm8io:
+        case AddressingMode.imm8sign:
             return 1;
 
         case AddressingMode.imm16:
