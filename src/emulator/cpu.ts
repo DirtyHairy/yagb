@@ -177,7 +177,7 @@ export class Cpu {
                 return 0;
 
             case Operation.ccf:
-                return this.opCcf(instruction)
+                return this.opCcf(instruction);
 
             case Operation.cp:
                 return this.opCp(instruction);
@@ -464,9 +464,9 @@ export class Cpu {
 
         let operand = this.state.r8[r8.a];
 
-                const flagN = this.state.r8[r8.f] & flag.n,
-                    flagC = this.state.r8[r8.f] & flag.c,
-                    flagH = this.state.r8[r8.f] & flag.h;
+        const flagN = this.state.r8[r8.f] & flag.n,
+            flagC = this.state.r8[r8.f] & flag.c,
+            flagH = this.state.r8[r8.f] & flag.h;
 
         let setFlagC = 0;
         if (flagH || (!flagN && (operand & 0xf) > 0x09)) {
