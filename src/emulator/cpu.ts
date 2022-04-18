@@ -158,644 +158,795 @@ export class Cpu {
         this.onExecute.dispatch(this.state.p);
 
         switch (instruction.op) {
-            case Operation.adc: {
-                this.clock.increment(instruction.cycles);
+            case Operation.adc:
+                return this.opAdc(instruction);
 
-                const operand1 = this.getArg1(instruction);
-                const operand2 = this.getArg2(instruction);
-                const flagc = (this.state.r8[r8.f] & flag.c) >>> 4;
-                const result = operand1 + operand2 + flagc;
+            case Operation.add:
+                return this.opAdd(instruction);
 
-                this.setArg1(instruction, result);
-
-                // prettier-ignore
-                this.state.r8[r8.f] =
-                    (result === 0 ? flag.z : 0x00) |
-                    ((((operand1 & 0xf) + (operand2 & 0xf) + flagc) > 0xf) ? flag.h : 0x00) |
-                    (result > 0xff ? flag.c : 0x00);
-
-                this.state.p = (this.state.p + instruction.len) & 0xffff;
-                return instruction.cycles;
-            }
-
-            case Operation.add: {
-                this.clock.increment(instruction.cycles);
-
-                const operand1 = this.getArg1(instruction);
-                const operand2 = this.getArg2(instruction);
-                const result = operand1 + operand2;
-
-                this.setArg1(instruction, result);
-
-                // prettier-ignore
-                this.state.r8[r8.f] =
-                    (result === 0 ? flag.z : 0x00) |
-                    ((((operand1 & 0xf) + (operand2 & 0xf)) > 0xf)  ? flag.h : 0x00) |
-                    (result > 0xff ? flag.c : 0x00);
-
-                this.state.p = (this.state.p + instruction.len) & 0xffff;
-                return instruction.cycles;
-            }
-
-            case Operation.add16: {
-                this.clock.increment(instruction.cycles);
-
-                const operand1 = this.getArg1(instruction);
-                const operand2 = this.getArg2(instruction);
-                const result = operand1 + operand2;
-
-                this.setArg1(instruction, result);
-
-                // prettier-ignore
-                this.state.r8[r8.f] =
-                    this.state.r8[r8.f] & flag.z |
-                    ((((operand1 & 0xffff) + (operand2 & 0xffff)) > 0x0fff) ? flag.h : 0x00) |
-                    (result > 0xffff ? flag.c : 0x00);
-
-                this.state.p = (this.state.p + instruction.len) & 0xffff;
-                return instruction.cycles;
-            }
+            case Operation.add16:
+                return this.oppAdd16(instruction);
 
             case Operation.and:
-                this.clock.increment(instruction.cycles);
+                return this.opAnd(instruction);
 
-                this.state.r8[r8.a] &= this.getArg1(instruction);
-                this.state.r8[r8.f] = flag.h | (this.state.r8[r8.a] === 0 ? flag.z : 0x00);
-
-                this.state.p = (this.state.p + instruction.len) & 0xffff;
-                return instruction.cycles;
-
-            case Operation.call: {
-                const condition = this.evaluateCondition(instruction);
-                const cycles = instruction.cycles + (condition ? 3 : 0);
-                this.clock.increment(cycles);
-
-                const returnTo = (this.state.p + instruction.len) & 0xffff;
-
-                if (condition) {
-                    this.stackPush16(returnTo);
-                    this.state.p = this.getArg1(instruction);
-                } else {
-                    this.state.p = returnTo;
-                }
-
-                return cycles;
-            }
+            case Operation.call:
+                return this.opCall(instruction);
 
             case Operation.cb:
                 this.system.trap('can not call CB');
 
                 return 0;
 
-            case Operation.cp: {
-                this.clock.increment(instruction.cycles);
+            case Operation.cp:
+                return this.opCp(instruction);
 
-                const a = this.state.r8[r8.a];
-                const operand = this.getArg1(instruction);
+            case Operation.cpl:
+                return this.opCpl(instruction);
 
-                // prettier-ignore
-                this.state.r8[r8.f] =
-                    (a === operand ? flag.z : 0x00) |
-                    flag.n |
-                    ((a & 0xf) < (operand & 0xf) ? flag.h : 0x00) |
-                    (a < operand ? flag.c : 0x00);
+            case Operation.dec:
+                return this.opDec(instruction);
 
-                this.state.p = (this.state.p + instruction.len) & 0xffff;
-                return instruction.cycles;
-            }
-
-            case Operation.cpl: {
-                this.clock.increment(instruction.cycles);
-
-                this.state.r8[r8.a] ^= 0xff;
-
-                this.state.r8[r8.f] = this.state.r8[r8.f] | flag.n | flag.h;
-
-                this.state.p = (this.state.p + instruction.len) & 0xffff;
-                return instruction.cycles;
-            }
-
-            case Operation.dec: {
-                this.clock.increment(instruction.cycles);
-
-                const operand = this.getArg1(instruction);
-                const result = operand - 0x01;
-
-                this.setArg1(instruction, result);
-
-                // prettier-ignore
-                this.state.r8[r8.f] =
-                    (this.state.r8[r8.f] & flag.c) |
-                    flag.n |
-                    ((result & 0xff) === 0 ? flag.z : 0x00) |
-                    ((((operand & 0x0f) - 0x01) & 0xf0) !== 0 ? flag.h : 0x00);
-
-                this.state.p = (this.state.p + instruction.len) & 0xffff;
-                return instruction.cycles;
-            }
-
-            case Operation.dec16: {
-                this.clock.increment(instruction.cycles);
-
-                const operand = this.getArg1(instruction);
-                const result = operand - 0x01;
-
-                this.setArg1(instruction, result);
-
-                this.state.r8[r8.f] = 0;
-
-                this.state.p = (this.state.p + instruction.len) & 0xffff;
-                return instruction.cycles;
-            }
+            case Operation.dec16:
+                return this.opDec16(instruction);
 
             case Operation.di:
-                this.clock.increment(instruction.cycles);
-
-                this.state.interruptsEnabled = false;
-
-                this.state.p = (this.state.p + instruction.len) & 0xffff;
-                return instruction.cycles;
+                return this.opDi(instruction);
 
             case Operation.ei:
-                this.clock.increment(instruction.cycles);
-
-                this.state.interruptsEnabled = true;
-
-                this.state.p = (this.state.p + instruction.len) & 0xffff;
-                return instruction.cycles;
+                return this.opEi(instruction);
 
             case Operation.halt:
-                this.system.trap('encountered HALT');
-                this.clock.increment(instruction.cycles);
+                return this.opHalt(instruction);
 
-                this.state.p = (this.state.p + instruction.len) & 0xffff;
-                return instruction.cycles;
+            case Operation.inc:
+                return this.opInc(instruction);
 
-            case Operation.inc: {
-                this.clock.increment(instruction.cycles);
+            case Operation.inc16:
+                return this.opInc16(instruction);
 
-                const operand = this.getArg1(instruction);
-                const result = operand + 0x01;
+            case Operation.jp:
+                return this.opJp(instruction);
 
-                this.setArg1(instruction, result);
+            case Operation.jr:
+                return this.opJr(instruction);
 
-                // prettier-ignore
-                this.state.r8[r8.f] =
-                    (this.state.r8[r8.f] & flag.c) |
-                    ((result & 0xff) === 0 ? flag.z : 0x00) |
-                    ((((operand & 0x0f) + 0x01) & 0xf0) !== 0 ? flag.h : 0x00);
+            case Operation.ld:
+                return this.opLd(instruction);
 
-                this.state.p = (this.state.p + instruction.len) & 0xffff;
-                return instruction.cycles;
-            }
+            case Operation.ldd:
+                return this.opLdd(instruction);
 
-            case Operation.inc16: {
-                this.clock.increment(instruction.cycles);
-
-                const operand = this.getArg1(instruction);
-                const result = operand + 0x01;
-
-                this.setArg1(instruction, result);
-
-                this.state.r8[r8.f] = 0;
-
-                this.state.p = (this.state.p + instruction.len) & 0xffff;
-                return instruction.cycles;
-            }
-
-            case Operation.jp: {
-                const condition = this.evaluateCondition(instruction);
-                const cycles = instruction.cycles + (condition ? 1 : 0);
-                this.clock.increment(cycles);
-
-                const target = this.getArg1(instruction);
-
-                if (condition) {
-                    this.state.p = target & 0xffff;
-                } else {
-                    this.state.p = (this.state.p + instruction.len) & 0xffff;
-                }
-
-                return cycles;
-            }
-
-            case Operation.jr: {
-                const condition = this.evaluateCondition(instruction);
-                const cycles = instruction.cycles + (condition ? 1 : 0);
-                this.clock.increment(cycles);
-
-                const displacement = extendSign8(this.getArg1(instruction));
-
-                this.state.p = (this.state.p + instruction.len) & 0xffff;
-                if (condition) {
-                    this.state.p = (this.state.p + displacement) & 0xffff;
-                }
-
-                return cycles;
-            }
-
-            case Operation.ld: {
-                this.clock.increment(instruction.cycles);
-
-                this.setArg1(instruction, this.getArg2(instruction));
-
-                this.state.p = (this.state.p + instruction.len) & 0xffff;
-                return instruction.cycles;
-            }
-
-            case Operation.ldd: {
-                this.clock.increment(instruction.cycles);
-
-                this.setArg1(instruction, this.getArg2(instruction));
-                this.state.r16[r16.hl] = this.state.r16[r16.hl] - 0x01;
-
-                this.state.p = (this.state.p + instruction.len) & 0xffff;
-                return instruction.cycles;
-            }
-
-            case Operation.ldi: {
-                this.clock.increment(instruction.cycles);
-
-                this.setArg1(instruction, this.getArg2(instruction));
-                this.state.r16[r16.hl] = this.state.r16[r16.hl] + 0x01;
-
-                this.state.p = (this.state.p + instruction.len) & 0xffff;
-                return instruction.cycles;
-            }
+            case Operation.ldi:
+                return this.opLdi(instruction);
 
             case Operation.nop:
-                this.clock.increment(instruction.cycles);
-
-                this.state.p = (this.state.p + instruction.len) & 0xffff;
-                return instruction.cycles;
+                return this.opNop(instruction);
 
             case Operation.or:
-                this.clock.increment(instruction.cycles);
-
-                this.state.r8[r8.a] |= this.getArg1(instruction);
-                this.state.r8[r8.f] = this.state.r8[r8.a] === 0 ? flag.z : 0x00;
-
-                this.state.p = (this.state.p + instruction.len) & 0xffff;
-                return instruction.cycles;
+                return this.opOr(instruction);
 
             case Operation.pop:
-                this.clock.increment(instruction.cycles);
+                return this.opPop(instruction);
 
-                this.setArg1(instruction, this.stackPop16());
-                this.state.r8[r8.f] &= 0xf0;
+            case Operation.push:
+                return this.opPush(instruction);
 
-                this.state.p = (this.state.p + instruction.len) & 0xffff;
-                return instruction.cycles;
+            case Operation.ret:
+                return this.opRet(instruction);
 
-            case Operation.push: {
-                this.clock.increment(instruction.cycles);
+            case Operation.reti:
+                return this.opReti(instruction);
 
-                const operand = this.getArg1(instruction);
+            case Operation.rlca:
+                return this.opRlca(instruction);
 
-                this.stackPush16(operand);
+            case Operation.rla:
+                return this.opRla(instruction);
 
-                this.state.p = (this.state.p + instruction.len) & 0xffff;
-                return instruction.cycles;
-            }
+            case Operation.rrca:
+                return this.opRrca(instruction);
 
-            case Operation.ret: {
-                const condition = this.evaluateCondition(instruction);
-                const cycles = instruction.cycles + (condition ? 3 : 0);
-                this.clock.increment(cycles);
+            case Operation.rra:
+                return this.opRra(instruction);
 
-                if (condition) {
-                    this.state.p = this.stackPop16();
-                } else {
-                    this.state.p = (this.state.p + instruction.len) & 0xffff;
-                }
+            case Operation.sbc:
+                return this.opSbc(instruction);
 
-                return cycles;
-            }
-
-            case Operation.reti: {
-                this.clock.increment(instruction.cycles);
-
-                this.state.p = this.stackPop16();
-
-                this.state.interruptsEnabled = true;
-
-                return instruction.cycles;
-            }
-
-            case Operation.rlca: {
-                this.clock.increment(instruction.cycles);
-
-                const operand = this.state.r8[r8.a];
-
-                this.state.r8[r8.a] = (operand << 1) | (operand >>> 7);
-
-                // prettier-ignore
-                this.state.r8[r8.f] =
-                    ((operand & 0x80) >>> 3);
-
-                this.state.p = (this.state.p + instruction.len) & 0xffff;
-                return instruction.cycles;
-            }
-
-            case Operation.rla: {
-                this.clock.increment(instruction.cycles);
-
-                const operand = this.state.r8[r8.a];
-
-                this.state.r8[r8.a] = (operand << 1) | ((this.state.r8[r8.f] & flag.c) >>> 4);
-
-                // prettier-ignore
-                this.state.r8[r8.f] =
-                    ((operand & 0x80) >>> 3);
-
-                this.state.p = (this.state.p + instruction.len) & 0xffff;
-                return instruction.cycles;
-            }
-
-            case Operation.rrca: {
-                this.clock.increment(instruction.cycles);
-
-                const operand = this.state.r8[r8.a];
-
-                this.state.r8[r8.a] = (operand >>> 1) | (operand << 7);
-
-                // prettier-ignore
-                this.state.r8[r8.f] =
-                    ((operand & 0x01) << 4);
-
-                this.state.p = (this.state.p + instruction.len) & 0xffff;
-                return instruction.cycles;
-            }
-
-            case Operation.rra: {
-                this.clock.increment(instruction.cycles);
-
-                const operand = this.state.r8[r8.a];
-
-                this.state.r8[r8.a] = (operand >>> 1) | ((this.state.r8[r8.f] & flag.c) << 3);
-
-                // prettier-ignore
-                this.state.r8[r8.f] =
-                    ((operand & 0x01) << 4);
-
-                this.state.p = (this.state.p + instruction.len) & 0xffff;
-                return instruction.cycles;
-            }
-
-            case Operation.sbc: {
-                this.clock.increment(instruction.cycles);
-
-                const operand1 = this.getArg1(instruction);
-                const operand2 = this.getArg2(instruction);
-                const flagc = (this.state.r8[r8.f] & flag.c) >>> 4;
-                const result = operand1 - operand2 - flagc;
-
-                this.setArg1(instruction, result);
-
-                // prettier-ignore
-                this.state.r8[r8.f] =
-                    (result === 0 ? flag.z : 0x00) |
-                    ((((operand1 & 0xf) - (operand2 & 0xf) - flagc) < 0) ? flag.h : 0x00) |
-                    (result < 0x00 ? flag.c : 0x00);
-
-                this.state.p = (this.state.p + instruction.len) & 0xffff;
-                return instruction.cycles;
-            }
-
-            case Operation.scf: {
-                this.clock.increment(instruction.cycles);
-
-                // prettier-ignore
-                this.state.r8[r8.f] =
-                    (this.state.r8[r8.f] & flag.z) |
-                    flag.c;
-
-                this.state.p = (this.state.p + instruction.len) & 0xffff;
-                return instruction.cycles;
-            }
+            case Operation.scf:
+                return this.opScf(instruction);
 
             case Operation.stop:
-                this.system.trap('encountered STOP');
-                this.clock.increment(instruction.cycles);
+                return this.opStop(instruction);
 
-                this.state.p = (this.state.p + instruction.len) & 0xffff;
-                return instruction.cycles;
-
-            case Operation.sub: {
-                this.clock.increment(instruction.cycles);
-
-                const operand1 = this.state.r8[r8.a];
-                const operand2 = this.getArg1(instruction);
-                const result = operand1 - operand2;
-
-                this.state.r8[r8.a] = result;
-
-                // prettier-ignore
-                this.state.r8[r8.f] =
-                    (result === 0 ? flag.z : 0x00) |
-                    ((((operand1 & 0xf) - (operand2 & 0xf)) < 0)  ? flag.h : 0x00) |
-                    (result < 0x00 ? flag.c : 0x00);
-
-                this.state.p = (this.state.p + instruction.len) & 0xffff;
-                return instruction.cycles;
-            }
+            case Operation.sub:
+                return this.opSub(instruction);
 
             case Operation.xor:
-                this.clock.increment(instruction.cycles);
+                return this.opXor(instruction);
 
-                this.state.r8[r8.a] = this.state.r8[r8.a] ^ this.getArg1(instruction);
-                this.state.r8[r8.f] = this.state.r8[r8.a] ? 0x00 : flag.z;
+            case Operation.bit:
+                return this.opBit(instruction);
 
-                this.state.p = (this.state.p + instruction.len) & 0xffff;
-                return instruction.cycles;
+            case Operation.set:
+                return this.opSet(instruction);
 
-            case Operation.bit: {
-                this.clock.increment(instruction.cycles);
+            case Operation.res:
+                return this.opRes(instruction);
 
-                const operand = this.getArg2(instruction);
-                const bitMask = 1 << this.getArg1(instruction);
+            case Operation.swap:
+                return this.opSwap(instruction);
 
-                // prettier-ignore
-                this.state.r8[r8.f] =
-                    (this.state.r8[r8.f] & flag.c) |
-                    flag.h |
-                    (operand & bitMask ? 0x00 : flag.z);
+            case Operation.rlc:
+                return this.opRlc(instruction);
 
-                this.state.p = (this.state.p + instruction.len) & 0xffff;
-                return instruction.cycles;
-            }
+            case Operation.rl:
+                return this.opRl(instruction);
 
-            case Operation.set: {
-                this.clock.increment(instruction.cycles);
+            case Operation.rrc:
+                return this.opRrc(instruction);
 
-                const operand = this.getArg2(instruction);
-                const bitMask = 1 << this.getArg1(instruction);
+            case Operation.rr:
+                return this.opRr(instruction);
 
-                this.setArg2(instruction, operand | bitMask);
+            case Operation.sla:
+                return this.opSla(instruction);
 
-                this.state.p = (this.state.p + instruction.len) & 0xffff;
-                return instruction.cycles;
-            }
+            case Operation.srl:
+                return this.opSrl(instruction);
 
-            case Operation.res: {
-                this.clock.increment(instruction.cycles);
+            case Operation.sra:
+                return this.opSra(instruction);
 
-                const operand = this.getArg2(instruction);
-                const bitMask = ~(1 << this.getArg1(instruction));
-
-                this.setArg2(instruction, operand & bitMask);
-
-                this.state.p = (this.state.p + instruction.len) & 0xffff;
-                return instruction.cycles;
-            }
-
-            case Operation.swap: {
-                this.clock.increment(instruction.cycles);
-
-                const operand = this.getArg1(instruction);
-                const result = ((operand & 0xf0) >>> 4) | ((operand & 0x0f) << 4);
-
-                this.setArg1(instruction, result);
-
-                this.state.r8[r8.f] = result === 0 ? flag.z : 0x00;
-
-                this.state.p = (this.state.p + instruction.len) & 0xffff;
-                return instruction.cycles;
-            }
-
-            case Operation.rlc: {
-                this.clock.increment(instruction.cycles);
-
-                const operand = this.getArg1(instruction);
-                const result = ((operand << 1) | (operand >>> 7)) & 0xff;
-
-                this.setArg1(instruction, result);
-
-                // prettier-ignore
-                this.state.r8[r8.f] =
-                    (result === 0 ? flag.z : 0x00) |
-                    ((operand & 0x80) >>> 3);
-
-                this.state.p = (this.state.p + instruction.len) & 0xffff;
-                return instruction.cycles;
-            }
-
-            case Operation.rl: {
-                this.clock.increment(instruction.cycles);
-
-                const operand = this.getArg1(instruction);
-                const result = ((operand << 1) | ((this.state.r8[r8.f] & flag.c) >>> 4)) & 0xff;
-
-                this.setArg1(instruction, result);
-
-                // prettier-ignore
-                this.state.r8[r8.f] =
-                    (result === 0 ? flag.z : 0x00) |
-                    ((operand & 0x80) >>> 3);
-
-                this.state.p = (this.state.p + instruction.len) & 0xffff;
-                return instruction.cycles;
-            }
-
-            case Operation.rrc: {
-                this.clock.increment(instruction.cycles);
-
-                const operand = this.getArg1(instruction);
-                const result = ((operand >>> 1) | (operand << 7)) & 0xff;
-
-                this.setArg1(instruction, result);
-
-                // prettier-ignore
-                this.state.r8[r8.f] =
-                    (result === 0 ? flag.z : 0x00) |
-                    ((operand & 0x01) << 4);
-
-                this.state.p = (this.state.p + instruction.len) & 0xffff;
-                return instruction.cycles;
-            }
-
-            case Operation.rr: {
-                this.clock.increment(instruction.cycles);
-
-                const operand = this.getArg1(instruction);
-                const result = ((operand >>> 1) | ((this.state.r8[r8.f] & flag.c) << 3)) & 0xff;
-
-                this.setArg1(instruction, result);
-
-                // prettier-ignore
-                this.state.r8[r8.f] =
-                    (result === 0 ? flag.z : 0x00) |
-                    ((operand & 0x01) << 4);
-
-                this.state.p = (this.state.p + instruction.len) & 0xffff;
-                return instruction.cycles;
-            }
-
-            case Operation.sla: {
-                this.clock.increment(instruction.cycles);
-
-                const operand = this.getArg1(instruction);
-                const result = (operand << 1) & 0xff;
-
-                this.setArg1(instruction, result);
-
-                // prettier-ignore
-                this.state.r8[r8.f] =
-                    (result === 0 ? flag.z : 0x00) |
-                    ((operand & 0x80) >>> 3);
-
-                this.state.p = (this.state.p + instruction.len) & 0xffff;
-                return instruction.cycles;
-            }
-
-            case Operation.srl: {
-                this.clock.increment(instruction.cycles);
-
-                const operand = this.getArg1(instruction);
-                const result = (operand >> 1) & 0xff;
-
-                this.setArg1(instruction, result);
-
-                // prettier-ignore
-                this.state.r8[r8.f] =
-                    (result === 0 ? flag.z : 0x00) |
-                    ((operand & 0x01) << 4);
-
-                this.state.p = (this.state.p + instruction.len) & 0xffff;
-                return instruction.cycles;
-            }
-
-            case Operation.sra: {
-                this.clock.increment(instruction.cycles);
-
-                const operand = this.getArg1(instruction);
-                const result = ((operand >> 1) | (operand & 0x80)) & 0xff;
-
-                this.setArg1(instruction, result);
-
-                // prettier-ignore
-                this.state.r8[r8.f] =
-                    (result === 0 ? flag.z : 0x00) |
-                    ((operand & 0x01) << 4);
-
-                this.state.p = (this.state.p + instruction.len) & 0xffff;
-                return instruction.cycles;
-            }
-
-            case Operation.rst: {
-                this.clock.increment(instruction.cycles);
-
-                this.stackPush16((this.state.p + 1) & 0xffff);
-
-                this.state.p = this.getArg1(instruction);
-
-                return instruction.cycles;
-            }
+            case Operation.rst:
+                return this.opRst(instruction);
 
             default:
                 this.system.trap(`invalid instruction ${hex8(instruction.op)} at ${hex16(this.state.p)}`);
                 return 0;
         }
+    }
+
+    private opAdc(instruction: Instruction): number {
+        this.clock.increment(instruction.cycles);
+
+        const operand1 = this.getArg1(instruction);
+        const operand2 = this.getArg2(instruction);
+        const flagc = (this.state.r8[r8.f] & flag.c) >>> 4;
+        const result = operand1 + operand2 + flagc;
+
+        this.setArg1(instruction, result);
+
+        // prettier-ignore
+        this.state.r8[r8.f] =
+                (result === 0 ? flag.z : 0x00) |
+                ((((operand1 & 0xf) + (operand2 & 0xf) + flagc) > 0xf) ? flag.h : 0x00) |
+                (result > 0xff ? flag.c : 0x00);
+
+        this.state.p = (this.state.p + instruction.len) & 0xffff;
+        return instruction.cycles;
+    }
+
+    private opAdd(instruction: Instruction): number {
+        this.clock.increment(instruction.cycles);
+
+        const operand1 = this.getArg1(instruction);
+        const operand2 = this.getArg2(instruction);
+        const result = operand1 + operand2;
+
+        this.setArg1(instruction, result);
+
+        // prettier-ignore
+        this.state.r8[r8.f] =
+                    (result === 0 ? flag.z : 0x00) |
+                    ((((operand1 & 0xf) + (operand2 & 0xf)) > 0xf)  ? flag.h : 0x00) |
+                    (result > 0xff ? flag.c : 0x00);
+
+        this.state.p = (this.state.p + instruction.len) & 0xffff;
+        return instruction.cycles;
+    }
+
+    private oppAdd16(instruction: Instruction): number {
+        this.clock.increment(instruction.cycles);
+
+        const operand1 = this.getArg1(instruction);
+        const operand2 = this.getArg2(instruction);
+        const result = operand1 + operand2;
+
+        this.setArg1(instruction, result);
+
+        // prettier-ignore
+        this.state.r8[r8.f] =
+            this.state.r8[r8.f] & flag.z |
+            ((((operand1 & 0xffff) + (operand2 & 0xffff)) > 0x0fff) ? flag.h : 0x00) |
+            (result > 0xffff ? flag.c : 0x00);
+
+        this.state.p = (this.state.p + instruction.len) & 0xffff;
+        return instruction.cycles;
+    }
+
+    private opAnd(instruction: Instruction): number {
+        this.clock.increment(instruction.cycles);
+
+        this.state.r8[r8.a] &= this.getArg1(instruction);
+        this.state.r8[r8.f] = flag.h | (this.state.r8[r8.a] === 0 ? flag.z : 0x00);
+
+        this.state.p = (this.state.p + instruction.len) & 0xffff;
+        return instruction.cycles;
+    }
+
+    private opCall(instruction: Instruction) {
+        const condition = this.evaluateCondition(instruction);
+        const cycles = instruction.cycles + (condition ? 3 : 0);
+        this.clock.increment(cycles);
+
+        const returnTo = (this.state.p + instruction.len) & 0xffff;
+
+        if (condition) {
+            this.stackPush16(returnTo);
+            this.state.p = this.getArg1(instruction);
+        } else {
+            this.state.p = returnTo;
+        }
+
+        return cycles;
+    }
+
+    private opCp(instruction: Instruction): number {
+        this.clock.increment(instruction.cycles);
+
+        const a = this.state.r8[r8.a];
+        const operand = this.getArg1(instruction);
+
+        // prettier-ignore
+        this.state.r8[r8.f] =
+            (a === operand ? flag.z : 0x00) |
+            flag.n |
+            ((a & 0xf) < (operand & 0xf) ? flag.h : 0x00) |
+            (a < operand ? flag.c : 0x00);
+
+        this.state.p = (this.state.p + instruction.len) & 0xffff;
+        return instruction.cycles;
+    }
+
+    private opCpl(instruction: Instruction): number {
+        this.clock.increment(instruction.cycles);
+
+        this.state.r8[r8.a] ^= 0xff;
+
+        this.state.r8[r8.f] = this.state.r8[r8.f] | flag.n | flag.h;
+
+        this.state.p = (this.state.p + instruction.len) & 0xffff;
+        return instruction.cycles;
+    }
+
+    private opDec(instruction: Instruction) {
+        this.clock.increment(instruction.cycles);
+
+        const operand = this.getArg1(instruction);
+        const result = operand - 0x01;
+
+        this.setArg1(instruction, result);
+
+        // prettier-ignore
+        this.state.r8[r8.f] =
+                    (this.state.r8[r8.f] & flag.c) |
+                    flag.n |
+                    ((result & 0xff) === 0 ? flag.z : 0x00) |
+                    ((((operand & 0x0f) - 0x01) & 0xf0) !== 0 ? flag.h : 0x00);
+
+        this.state.p = (this.state.p + instruction.len) & 0xffff;
+        return instruction.cycles;
+    }
+
+    private opDec16(instruction: Instruction): number {
+        this.clock.increment(instruction.cycles);
+
+        const operand = this.getArg1(instruction);
+        const result = operand - 0x01;
+
+        this.setArg1(instruction, result);
+
+        this.state.r8[r8.f] = 0;
+
+        this.state.p = (this.state.p + instruction.len) & 0xffff;
+        return instruction.cycles;
+    }
+
+    private opDi(instruction: Instruction): number {
+        this.clock.increment(instruction.cycles);
+
+        this.state.interruptsEnabled = false;
+
+        this.state.p = (this.state.p + instruction.len) & 0xffff;
+        return instruction.cycles;
+    }
+
+    private opEi(instruction: Instruction): number {
+        this.clock.increment(instruction.cycles);
+
+        this.state.interruptsEnabled = true;
+
+        this.state.p = (this.state.p + instruction.len) & 0xffff;
+        return instruction.cycles;
+    }
+
+    private opHalt(instruction: Instruction): number {
+        this.system.trap('encountered HALT');
+        this.clock.increment(instruction.cycles);
+
+        this.state.p = (this.state.p + instruction.len) & 0xffff;
+        return instruction.cycles;
+    }
+
+    private opInc(instruction: Instruction): number {
+        this.clock.increment(instruction.cycles);
+
+        const operand = this.getArg1(instruction);
+        const result = operand + 0x01;
+
+        this.setArg1(instruction, result);
+
+        // prettier-ignore
+        this.state.r8[r8.f] =
+                    (this.state.r8[r8.f] & flag.c) |
+                    ((result & 0xff) === 0 ? flag.z : 0x00) |
+                    ((((operand & 0x0f) + 0x01) & 0xf0) !== 0 ? flag.h : 0x00);
+
+        this.state.p = (this.state.p + instruction.len) & 0xffff;
+        return instruction.cycles;
+    }
+
+    private opInc16(instruction: Instruction): number {
+        this.clock.increment(instruction.cycles);
+
+        const operand = this.getArg1(instruction);
+        const result = operand + 0x01;
+
+        this.setArg1(instruction, result);
+
+        this.state.r8[r8.f] = 0;
+
+        this.state.p = (this.state.p + instruction.len) & 0xffff;
+        return instruction.cycles;
+    }
+
+    private opJp(instruction: Instruction): number {
+        const condition = this.evaluateCondition(instruction);
+        const cycles = instruction.cycles + (condition ? 1 : 0);
+        this.clock.increment(cycles);
+
+        const target = this.getArg1(instruction);
+
+        if (condition) {
+            this.state.p = target & 0xffff;
+        } else {
+            this.state.p = (this.state.p + instruction.len) & 0xffff;
+        }
+
+        return cycles;
+    }
+
+    private opLd(instruction: Instruction): number {
+        this.clock.increment(instruction.cycles);
+
+        this.setArg1(instruction, this.getArg2(instruction));
+
+        this.state.p = (this.state.p + instruction.len) & 0xffff;
+        return instruction.cycles;
+    }
+
+    private opJr(instruction: Instruction): number {
+        const condition = this.evaluateCondition(instruction);
+        const cycles = instruction.cycles + (condition ? 1 : 0);
+        this.clock.increment(cycles);
+
+        const displacement = extendSign8(this.getArg1(instruction));
+
+        this.state.p = (this.state.p + instruction.len) & 0xffff;
+        if (condition) {
+            this.state.p = (this.state.p + displacement) & 0xffff;
+        }
+
+        return cycles;
+    }
+
+    private opLdd(instruction: Instruction): number {
+        this.clock.increment(instruction.cycles);
+
+        this.setArg1(instruction, this.getArg2(instruction));
+        this.state.r16[r16.hl] = this.state.r16[r16.hl] - 0x01;
+
+        this.state.p = (this.state.p + instruction.len) & 0xffff;
+        return instruction.cycles;
+    }
+
+    private opLdi(instruction: Instruction): number {
+        this.clock.increment(instruction.cycles);
+
+        this.setArg1(instruction, this.getArg2(instruction));
+        this.state.r16[r16.hl] = this.state.r16[r16.hl] + 0x01;
+
+        this.state.p = (this.state.p + instruction.len) & 0xffff;
+        return instruction.cycles;
+    }
+
+    private opNop(instruction: Instruction): number {
+        this.clock.increment(instruction.cycles);
+
+        this.state.p = (this.state.p + instruction.len) & 0xffff;
+        return instruction.cycles;
+    }
+
+    private opOr(instruction: Instruction): number {
+        this.clock.increment(instruction.cycles);
+
+        this.state.r8[r8.a] |= this.getArg1(instruction);
+        this.state.r8[r8.f] = this.state.r8[r8.a] === 0 ? flag.z : 0x00;
+
+        this.state.p = (this.state.p + instruction.len) & 0xffff;
+        return instruction.cycles;
+    }
+
+    private opPop(instruction: Instruction): number {
+        this.clock.increment(instruction.cycles);
+
+        this.setArg1(instruction, this.stackPop16());
+        this.state.r8[r8.f] &= 0xf0;
+
+        this.state.p = (this.state.p + instruction.len) & 0xffff;
+        return instruction.cycles;
+    }
+
+    private opPush(instruction: Instruction): number {
+        this.clock.increment(instruction.cycles);
+
+        const operand = this.getArg1(instruction);
+
+        this.stackPush16(operand);
+
+        this.state.p = (this.state.p + instruction.len) & 0xffff;
+        return instruction.cycles;
+    }
+
+    private opRet(instruction: Instruction): number {
+        const condition = this.evaluateCondition(instruction);
+        const cycles = instruction.cycles + (condition ? 3 : 0);
+        this.clock.increment(cycles);
+
+        if (condition) {
+            this.state.p = this.stackPop16();
+        } else {
+            this.state.p = (this.state.p + instruction.len) & 0xffff;
+        }
+
+        return cycles;
+    }
+
+    private opReti(instruction: Instruction): number {
+        this.clock.increment(instruction.cycles);
+
+        this.state.p = this.stackPop16();
+
+        this.state.interruptsEnabled = true;
+
+        return instruction.cycles;
+    }
+
+    private opRlca(instruction: Instruction): number {
+        this.clock.increment(instruction.cycles);
+
+        const operand = this.state.r8[r8.a];
+
+        this.state.r8[r8.a] = (operand << 1) | (operand >>> 7);
+
+        // prettier-ignore
+        this.state.r8[r8.f] =
+                    ((operand & 0x80) >>> 3);
+
+        this.state.p = (this.state.p + instruction.len) & 0xffff;
+        return instruction.cycles;
+    }
+
+    private opRla(instruction: Instruction): number {
+        this.clock.increment(instruction.cycles);
+
+        const operand = this.state.r8[r8.a];
+
+        this.state.r8[r8.a] = (operand << 1) | ((this.state.r8[r8.f] & flag.c) >>> 4);
+
+        // prettier-ignore
+        this.state.r8[r8.f] =
+            ((operand & 0x80) >>> 3);
+
+        this.state.p = (this.state.p + instruction.len) & 0xffff;
+        return instruction.cycles;
+    }
+
+    private opRrca(instruction: Instruction): number {
+        this.clock.increment(instruction.cycles);
+
+        const operand = this.state.r8[r8.a];
+
+        this.state.r8[r8.a] = (operand >>> 1) | (operand << 7);
+
+        // prettier-ignore
+        this.state.r8[r8.f] =
+            ((operand & 0x01) << 4);
+
+        this.state.p = (this.state.p + instruction.len) & 0xffff;
+        return instruction.cycles;
+    }
+
+    private opRra(instruction: Instruction): number {
+        this.clock.increment(instruction.cycles);
+
+        const operand = this.state.r8[r8.a];
+
+        this.state.r8[r8.a] = (operand >>> 1) | ((this.state.r8[r8.f] & flag.c) << 3);
+
+        // prettier-ignore
+        this.state.r8[r8.f] =
+            ((operand & 0x01) << 4);
+
+        this.state.p = (this.state.p + instruction.len) & 0xffff;
+        return instruction.cycles;
+    }
+
+    private opSbc(instruction: Instruction): number {
+        this.clock.increment(instruction.cycles);
+
+        const operand1 = this.getArg1(instruction);
+        const operand2 = this.getArg2(instruction);
+        const flagc = (this.state.r8[r8.f] & flag.c) >>> 4;
+        const result = operand1 - operand2 - flagc;
+
+        this.setArg1(instruction, result);
+
+        // prettier-ignore
+        this.state.r8[r8.f] =
+            (result === 0 ? flag.z : 0x00) |
+            ((((operand1 & 0xf) - (operand2 & 0xf) - flagc) < 0) ? flag.h : 0x00) |
+            (result < 0x00 ? flag.c : 0x00);
+
+        this.state.p = (this.state.p + instruction.len) & 0xffff;
+        return instruction.cycles;
+    }
+
+    private opScf(instruction: Instruction): number {
+        this.clock.increment(instruction.cycles);
+
+        // prettier-ignore
+        this.state.r8[r8.f] =
+            (this.state.r8[r8.f] & flag.z) |
+            flag.c;
+
+        this.state.p = (this.state.p + instruction.len) & 0xffff;
+        return instruction.cycles;
+    }
+
+    private opStop(instruction: Instruction): number {
+        this.clock.increment(instruction.cycles);
+
+        // prettier-ignore
+        this.state.r8[r8.f] =
+            (this.state.r8[r8.f] & flag.z) |
+            flag.c;
+
+        this.state.p = (this.state.p + instruction.len) & 0xffff;
+        return instruction.cycles;
+    }
+
+    private opSub(instruction: Instruction): number {
+        this.clock.increment(instruction.cycles);
+
+        const operand1 = this.state.r8[r8.a];
+        const operand2 = this.getArg1(instruction);
+        const result = operand1 - operand2;
+
+        this.state.r8[r8.a] = result;
+
+        // prettier-ignore
+        this.state.r8[r8.f] =
+            (result === 0 ? flag.z : 0x00) |
+            ((((operand1 & 0xf) - (operand2 & 0xf)) < 0)  ? flag.h : 0x00) |
+            (result < 0x00 ? flag.c : 0x00);
+
+        this.state.p = (this.state.p + instruction.len) & 0xffff;
+        return instruction.cycles;
+    }
+
+    private opXor(instruction: Instruction): number {
+        this.clock.increment(instruction.cycles);
+
+        this.state.r8[r8.a] = this.state.r8[r8.a] ^ this.getArg1(instruction);
+        this.state.r8[r8.f] = this.state.r8[r8.a] ? 0x00 : flag.z;
+
+        this.state.p = (this.state.p + instruction.len) & 0xffff;
+        return instruction.cycles;
+    }
+
+    private opBit(instruction: Instruction): number {
+        this.clock.increment(instruction.cycles);
+
+        const operand = this.getArg2(instruction);
+        const bitMask = 1 << this.getArg1(instruction);
+
+        // prettier-ignore
+        this.state.r8[r8.f] =
+            (this.state.r8[r8.f] & flag.c) |
+            flag.h |
+            (operand & bitMask ? 0x00 : flag.z);
+
+        this.state.p = (this.state.p + instruction.len) & 0xffff;
+        return instruction.cycles;
+    }
+
+    private opSet(instruction: Instruction): number {
+        this.clock.increment(instruction.cycles);
+
+        const operand = this.getArg2(instruction);
+        const bitMask = 1 << this.getArg1(instruction);
+
+        this.setArg2(instruction, operand | bitMask);
+
+        this.state.p = (this.state.p + instruction.len) & 0xffff;
+        return instruction.cycles;
+    }
+
+    private opRes(instruction: Instruction): number {
+        this.clock.increment(instruction.cycles);
+
+        const operand = this.getArg2(instruction);
+        const bitMask = ~(1 << this.getArg1(instruction));
+
+        this.setArg2(instruction, operand & bitMask);
+
+        this.state.p = (this.state.p + instruction.len) & 0xffff;
+        return instruction.cycles;
+    }
+
+    private opSwap(instruction: Instruction): number {
+        this.clock.increment(instruction.cycles);
+
+        const operand = this.getArg1(instruction);
+        const result = ((operand & 0xf0) >>> 4) | ((operand & 0x0f) << 4);
+
+        this.setArg1(instruction, result);
+
+        this.state.r8[r8.f] = result === 0 ? flag.z : 0x00;
+
+        this.state.p = (this.state.p + instruction.len) & 0xffff;
+        return instruction.cycles;
+    }
+
+    private opRlc(instruction: Instruction): number {
+        this.clock.increment(instruction.cycles);
+
+        const operand = this.getArg1(instruction);
+        const result = ((operand << 1) | (operand >>> 7)) & 0xff;
+
+        this.setArg1(instruction, result);
+
+        // prettier-ignore
+        this.state.r8[r8.f] =
+            (result === 0 ? flag.z : 0x00) |
+            ((operand & 0x80) >>> 3);
+
+        this.state.p = (this.state.p + instruction.len) & 0xffff;
+        return instruction.cycles;
+    }
+
+    private opRl(instruction: Instruction): number {
+        this.clock.increment(instruction.cycles);
+
+        const operand = this.getArg1(instruction);
+        const result = ((operand << 1) | ((this.state.r8[r8.f] & flag.c) >>> 4)) & 0xff;
+
+        this.setArg1(instruction, result);
+
+        // prettier-ignore
+        this.state.r8[r8.f] =
+            (result === 0 ? flag.z : 0x00) |
+            ((operand & 0x80) >>> 3);
+
+        this.state.p = (this.state.p + instruction.len) & 0xffff;
+        return instruction.cycles;
+    }
+
+    private opRrc(instruction: Instruction): number {
+        this.clock.increment(instruction.cycles);
+
+        const operand = this.getArg1(instruction);
+        const result = ((operand >>> 1) | (operand << 7)) & 0xff;
+
+        this.setArg1(instruction, result);
+
+        // prettier-ignore
+        this.state.r8[r8.f] =
+                    (result === 0 ? flag.z : 0x00) |
+                    ((operand & 0x01) << 4);
+
+        this.state.p = (this.state.p + instruction.len) & 0xffff;
+        return instruction.cycles;
+    }
+
+    private opRr(instruction: Instruction): number {
+        this.clock.increment(instruction.cycles);
+
+        const operand = this.getArg1(instruction);
+        const result = ((operand >>> 1) | ((this.state.r8[r8.f] & flag.c) << 3)) & 0xff;
+
+        this.setArg1(instruction, result);
+
+        // prettier-ignore
+        this.state.r8[r8.f] =
+            (result === 0 ? flag.z : 0x00) |
+            ((operand & 0x01) << 4);
+
+        this.state.p = (this.state.p + instruction.len) & 0xffff;
+        return instruction.cycles;
+    }
+
+    private opSla(instruction: Instruction): number {
+        this.clock.increment(instruction.cycles);
+
+        const operand = this.getArg1(instruction);
+        const result = (operand << 1) & 0xff;
+
+        this.setArg1(instruction, result);
+
+        // prettier-ignore
+        this.state.r8[r8.f] =
+            (result === 0 ? flag.z : 0x00) |
+            ((operand & 0x80) >>> 3);
+
+        this.state.p = (this.state.p + instruction.len) & 0xffff;
+        return instruction.cycles;
+    }
+
+    private opSra(instruction: Instruction): number {
+        this.clock.increment(instruction.cycles);
+
+        const operand = this.getArg1(instruction);
+        const result = ((operand >> 1) | (operand & 0x80)) & 0xff;
+
+        this.setArg1(instruction, result);
+
+        // prettier-ignore
+        this.state.r8[r8.f] =
+            (result === 0 ? flag.z : 0x00) |
+            ((operand & 0x01) << 4);
+
+        this.state.p = (this.state.p + instruction.len) & 0xffff;
+        return instruction.cycles;
+    }
+
+    private opSrl(instruction: Instruction): number {
+        this.clock.increment(instruction.cycles);
+
+        const operand = this.getArg1(instruction);
+        const result = (operand >> 1) & 0xff;
+
+        this.setArg1(instruction, result);
+
+        // prettier-ignore
+        this.state.r8[r8.f] =
+            (result === 0 ? flag.z : 0x00) |
+            ((operand & 0x01) << 4);
+
+        this.state.p = (this.state.p + instruction.len) & 0xffff;
+        return instruction.cycles;
+    }
+
+    private opRst(instruction: Instruction): number {
+        this.clock.increment(instruction.cycles);
+
+        this.stackPush16((this.state.p + 1) & 0xffff);
+
+        this.state.p = this.getArg1(instruction);
+
+        return instruction.cycles;
     }
 
     private getArg(par: number, mode: AddressingMode): number {
