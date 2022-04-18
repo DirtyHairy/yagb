@@ -26,7 +26,7 @@ export class TestEnvironment {
 
     constructor(code: ArrayLike<number>, address = 0x100) {
         this.system = new System((msg) => console.log(msg));
-        this.system.onBreak.addHandler((msg) => {
+        this.system.onTrap.addHandler((msg) => {
             throw new Error(msg);
         });
 
