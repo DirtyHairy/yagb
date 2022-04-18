@@ -243,6 +243,15 @@ export class Cpu {
             case Operation.ldi:
                 return this.opLdi(instruction);
 
+            case Operation.lds: {
+                this.clock.increment(instruction.cycles);
+
+                this.setArg1(instruction, this.getArg2(instruction));
+
+                this.state.p = (this.state.p + instruction.len) & 0xffff;
+                return instruction.cycles;
+            }
+
             case Operation.nop:
                 return this.opNop(instruction);
 
@@ -1011,6 +1020,10 @@ export class Cpu {
 
             case AddressingMode.imm8sign: {
                 return extendSign8(this.bus.read((this.state.p + 0x01) & 0xffff));
+            }
+
+            case AddressingMode.imm8stack: {
+                return this.state.r16[r16.sp] + extendSign8(this.bus.read((this.state.p + 0x01) & 0xffff));
             }
 
             case AddressingMode.reg8:
