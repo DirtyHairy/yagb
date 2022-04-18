@@ -51,11 +51,14 @@ export class Scheduler {
         const cyclesGoal = Math.round(durationSeconds * SYSTEM_CLOCK * this.speed);
         if (cyclesGoal <= 0) return;
 
-        const timestamp = performance.now();
+        const timestampBeforeDispatch = performance.now();
         const timeslice = this.emulator.run(cyclesGoal) / SYSTEM_CLOCK / this.speed;
+        const timestampAfterDispatch = performance.now();
+
         this.virtualClockSeconds += timeslice;
 
-        if (timeslice > 0) this.hostSpeedAverage.push((timeslice * 1000) / (performance.now() - timestamp));
+        if (timestampAfterDispatch !== timestampBeforeDispatch)
+            this.hostSpeedAverage.push((timeslice * 1000) / (timestampAfterDispatch - timestampBeforeDispatch));
 
         this.onTimesliceComplete.dispatch();
     }
