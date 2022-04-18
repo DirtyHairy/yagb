@@ -446,6 +446,7 @@ export class Cpu {
         const a = this.state.r8[r8.a];
         const operand = this.getArg1(instruction);
 
+
         // prettier-ignore
         this.state.r8[r8.f] =
             (a === operand ? flag.z : 0x00) |
