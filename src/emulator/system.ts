@@ -31,7 +31,7 @@ export class System {
         this.isTrap = true;
         this.breakMessage = message;
 
-        this.onBreak.dispatch(message);
+        this.onTrap.dispatch(message);
     }
 
     getTrapMessage(): string {
@@ -42,7 +42,7 @@ export class System {
         this.isTrap = false;
     }
 
-    readonly onBreak = new Event<string>();
+    readonly onTrap = new Event<string>();
     isTrap = false;
 
     private breakMessage = '';

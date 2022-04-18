@@ -5,6 +5,7 @@ import { Audio } from './audio';
 import { Bus } from './bus';
 import { Clock } from './clock';
 import { Cpu } from './cpu';
+import { Event } from 'microevent.ts';
 import { Interrupt } from './interrupt';
 import { Joypad } from './joypad';
 import { Ppu } from './ppu';
@@ -57,6 +58,7 @@ export class Emulator {
         this.cpu.onExecute.addHandler((address) => this.trace.add(address));
         this.bus.onRead.addHandler((address) => this.busTraps.get(address)?.trapRead && this.system.trap(`trap read from ${hex16(address)}`));
         this.bus.onWrite.addHandler((address) => this.busTraps.get(address)?.trapWrite && this.system.trap(`trap write to ${hex16(address)}`));
+        this.onTrap = this.system.onTrap;
 
         this.reset();
     }
@@ -92,16 +94,20 @@ export class Emulator {
         this.busTraps.set(address, { ...(this.busTraps.get(address) || { address, trapRead: false, trapWrite: false }), trapRead: true });
     }
 
-    clearTrap(address: number) {
+    clearRWTrap(address: number) {
         this.busTraps.delete(address);
     }
 
-    clearTraps(): void {
+    clearRWTraps(): void {
         this.busTraps.clear();
     }
 
     getTraps(): Array<BusTrap> {
         return Array.from(this.busTraps.values()).sort((t1, t2) => t1.address - t2.address);
+    }
+
+    isTrap(): boolean {
+        return this.system.isTrap;
     }
 
     getTrace(count?: number): string {
@@ -117,11 +123,14 @@ export class Emulator {
         return traceLines;
     }
 
-    step(count: number): [boolean, number] {
+    step(count: number): number {
         this.system.clearTrap();
-        const cycles = this.cpu.step(count);
+        return this.cpu.step(count);
+    }
 
-        return [!this.system.isTrap, cycles];
+    run(cyclesGoal: number): number {
+        this.system.clearTrap();
+        return this.cpu.run(cyclesGoal);
     }
 
     reset(): void {
@@ -184,6 +193,8 @@ export class Emulator {
     private onAfterExecuteHandler = (p: number): void => {
         if (this.breakpoints.has(p)) this.system.trap(`hit breakpoint at ${hex16(p)}`);
     };
+
+    readonly onTrap: Event<string>;
 
     private system: System;
 

@@ -97,6 +97,25 @@ export class Cpu {
         return cycles;
     }
 
+    run(cyclesGoal: number): number {
+        let cycles = 0;
+
+        while (cycles < cyclesGoal) {
+            if (this.system.isTrap) break;
+
+            const irqCycles = this.handleInterrupts();
+            if (irqCycles !== 0) {
+                cycles += irqCycles;
+            } else {
+                cycles += this.dispatch(decodeInstruction(this.bus, this.state.p));
+            }
+
+            this.onAfterExecute.dispatch(this.state.p);
+        }
+
+        return cycles;
+    }
+
     printState(): string {
         return `af=${hex16(this.state.r16[r16.af])} bc=${hex16(this.state.r16[r16.bc])} de=${hex16(this.state.r16[r16.de])} hl=${hex16(
             this.state.r16[r16.hl]

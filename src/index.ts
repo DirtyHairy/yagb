@@ -7,6 +7,7 @@ import { hex16, hex8 } from './helper/format';
 import $ from 'jquery';
 import { Emulator } from './emulator/emulator';
 import { FileHandler } from './helper/fileHandler';
+import { Scheduler } from './emulator/scheduler';
 
 const CARTRIDGE_FILE_SIZE_LIMIT = 512 * 1024 * 1024;
 const STORAGE_KEY_YAGB_CARTERIDGE_DATA = 'yagb-cartridge-data';
@@ -14,6 +15,7 @@ const STORAGE_KEY_YAGB_CARTERIDGE_NAME = 'yagb-cartridge-name';
 
 const fileHandler = new FileHandler();
 let emulator: Emulator;
+let scheduler: Scheduler;
 let stateOnStep = false;
 let lastFrame = -1;
 
@@ -36,6 +38,13 @@ function loadCartridge(data: Uint8Array, name: string) {
     try {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         emulator = new Emulator(data, print);
+        scheduler = new Scheduler(emulator);
+
+        scheduler.onTimesliceComplete.addHandler(() => updateCanvas());
+        emulator.onTrap.addHandler((msg) => {
+            if (scheduler.isRunning()) print(`Encountered trap: ${msg}. Stopping emulator.`);
+        });
+
         updateCanvas();
         print(`loaded cartridge image: ${name}`);
     } catch (e) {
@@ -107,7 +116,9 @@ trap-list                               List traps
 trace [count]                           Prints trace
 dump address [count=16]                 Dump bus
 context                                 Show context summary (trace + disassembly + state)
-state-on-step [0|1]                     Print state on every step`);
+state-on-step [0|1]                     Print state on every step
+run                                     Run the emulator continuosly
+stop                                    Stop the emulator`);
     },
     load(): void {
         fileHandler.openFile(async (data, name) => {
@@ -129,10 +140,10 @@ state-on-step [0|1]                     Print state on every step`);
     step(count?: string): void {
         if (!assertEmulator()) return;
 
-        const [isTrap, cycles] = emulator.step(uintval(count, 1));
+        const cycles = emulator.step(uintval(count, 1));
         updateCanvas();
 
-        if (!isTrap) print(emulator.lastTrapMessage());
+        if (emulator.isTrap()) print(emulator.lastTrapMessage());
         print(`done in ${cycles} cycles\n`);
 
         if (stateOnStep) {
@@ -238,12 +249,12 @@ state-on-step [0|1]                     Print state on every step`);
             return;
         }
 
-        emulator.clearTrap(addressInt);
+        emulator.clearRWTrap(addressInt);
     },
     'trap-clear-all': function () {
         if (!assertEmulator()) return;
 
-        emulator.clearTraps();
+        emulator.clearRWTraps();
     },
 
     'trap-list': function () {
@@ -289,6 +300,24 @@ state-on-step [0|1]                     Print state on every step`);
         if ([0, 1].includes(parsed as number)) stateOnStep = !!parsed;
 
         print(stateOnStep ? 'printing state on every step' : 'not printing state on every step');
+    },
+    run() {
+        if (scheduler.isRunning()) {
+            print('emulator already running');
+            return;
+        }
+
+        scheduler.start();
+        print('emulator running');
+    },
+    stop() {
+        if (!scheduler.isRunning()) {
+            print('emulator already stopped');
+            return;
+        }
+
+        scheduler.stop();
+        print('emulator stopped');
     },
 };
 
