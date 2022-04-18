@@ -6,3 +6,5 @@
 /test_results/
 /coverage/
 *.txt
+.DS_Store
+*.log
