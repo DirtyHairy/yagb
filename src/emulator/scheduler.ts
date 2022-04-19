@@ -5,6 +5,8 @@ import { Event } from 'microevent.ts';
 const SYSTEM_CLOCK = 1048576;
 const HOST_SPEED_AVERAGE_SAMPLES = 100;
 const EMIT_STATISTICS_INTERVAL = 1000;
+const CLOCK_DRIFT_LIMIT_SEC = 0.5;
+const CLOCK_DRIFT_RESET_HEADROOM_SEC = 0.02;
 
 export interface Statistics {
     hostSpeed: number;
@@ -47,7 +49,12 @@ export class Scheduler {
         this.speed = speed;
     }
 
-    private executeTimeslice(durationSeconds: number): void {
+    private executeTimeslice(durationSeconds: number, timestamp: number): void {
+        if (durationSeconds > CLOCK_DRIFT_LIMIT_SEC) {
+            durationSeconds = CLOCK_DRIFT_RESET_HEADROOM_SEC;
+            this.virtualClockSeconds = (timestamp - this.realClockBase) / 1000 - CLOCK_DRIFT_RESET_HEADROOM_SEC;
+        }
+
         const cyclesGoal = Math.round(durationSeconds * SYSTEM_CLOCK * this.speed);
         if (cyclesGoal <= 0) return;
 
@@ -64,7 +71,7 @@ export class Scheduler {
     }
 
     private onAnimationFrame = (timestamp: number): void => {
-        this.executeTimeslice((timestamp - this.realClockBase) / 1000 - this.virtualClockSeconds);
+        this.executeTimeslice((timestamp - this.realClockBase) / 1000 - this.virtualClockSeconds, timestamp);
 
         if (this.emulator.isTrap()) {
             this.stop();
