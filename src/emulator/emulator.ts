@@ -1,4 +1,5 @@
 import { Cartridge, createCartridge } from './cartridge';
+import { Joypad, key } from './joypad';
 import { decodeInstruction, disassembleInstruction } from './instruction';
 
 import { Audio } from './audio';
@@ -7,7 +8,6 @@ import { Clock } from './clock';
 import { Cpu } from './cpu';
 import { Event } from 'microevent.ts';
 import { Interrupt } from './interrupt';
-import { Joypad } from './joypad';
 import { Ppu } from './ppu';
 import { Ram } from './ram';
 import { Serial } from './serial';
@@ -35,7 +35,7 @@ export class Emulator {
         this.cpu = new Cpu(this.bus, this.clock, this.interrupt, this.system);
         this.ram = new Ram();
         this.serial = new Serial();
-        this.joypad = new Joypad();
+        this.joypad = new Joypad(this.interrupt);
         const unmapped = new Unmapped();
 
         const cartridge = createCartridge(cartridgeImage, this.system);
@@ -184,6 +184,18 @@ export class Emulator {
 
     getFrameData(): ArrayBuffer {
         return this.ppu.getFrameData();
+    }
+
+    keyDown(k: key): void {
+        this.joypad.down(k);
+    }
+
+    keyUp(k: key): void {
+        this.joypad.up(k);
+    }
+
+    clearKeys(): void {
+        this.joypad.clearKeys();
     }
 
     private disassemblyLineAt(address: number): string {

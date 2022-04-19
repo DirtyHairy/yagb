@@ -17,6 +17,7 @@
     <style>
         body {
             margin: 8px;
+            background-color: #222;
         }
 
         .container {
@@ -40,6 +41,11 @@
             image-rendering: pixelated;
         }
 
+        #canvas:focus {
+            border: none;
+            outline: none;
+        }
+
         @media only screen and (max-width: 600px) {
             .container {
                 flex-direction: column;
@@ -60,7 +66,7 @@
 <body>
     <div class="container">
         <div id="terminal" class="terminal"></div>
-        <canvas id="canvas" width="160" height="144"></canvas>
+        <canvas tabindex="1" id="canvas" width="160" height="144"></canvas>
     </div>
     <script src="bundle.js"></script>
 </body>

@@ -8,6 +8,7 @@ import $ from 'jquery';
 import { Emulator } from './emulator/emulator';
 import { FileHandler } from './helper/fileHandler';
 import { Scheduler } from './emulator/scheduler';
+import { key } from './emulator/joypad';
 
 const CARTRIDGE_FILE_SIZE_LIMIT = 512 * 1024 * 1024;
 const STORAGE_KEY_YAGB_CARTERIDGE_DATA = 'yagb-cartridge-data';
@@ -104,6 +105,45 @@ function updateCanvas(): void {
 
     ctx.putImageData(imageData, 0, 0);
     lastFrame = emulator.getFrameIndex();
+}
+
+function getKey(code: string): key | undefined {
+    switch (code) {
+        case 'Enter':
+            return key.start;
+
+        case ' ':
+            return key.select;
+
+        case 'a':
+            return key.a;
+
+        case 's':
+            return key.b;
+
+        case 'ArrowLeft':
+            return key.left;
+
+        case 'ArrowRight':
+            return key.right;
+
+        case 'ArrowUp':
+            return key.up;
+
+        case 'ArrowDown':
+            return key.down;
+
+        default:
+            return undefined;
+    }
+}
+
+function updatePrompt(speed?: number, hostSpeed?: number, isRunning = !!scheduler?.isRunning()) {
+    terminal.set_prompt(
+        `\n${isRunning ? 'running' : 'stopped'}${speed !== undefined && isRunning ? ' gb@' + speed.toFixed(2) + 'x' : ''}${
+            hostSpeed !== undefined && isRunning ? ' host@' + hostSpeed.toFixed(2) + 'x' : ''
+        } > `
+    );
 }
 
 const interpreter = {
@@ -358,10 +398,24 @@ const terminal = $('#terminal').terminal(interpreter as JQueryTerminal.Interpret
 
 updatePrompt();
 
-function updatePrompt(speed?: number, hostSpeed?: number, isRunning = !!scheduler?.isRunning()) {
-    terminal.set_prompt(
-        `\n${isRunning ? 'running' : 'stopped'}${speed !== undefined && isRunning ? ' gb@' + speed.toFixed(2) + 'x' : ''}${
-            hostSpeed !== undefined && isRunning ? ' host@' + hostSpeed.toFixed(2) + 'x' : ''
-        } > `
-    );
-}
+const canvas = document.getElementById('canvas') as HTMLCanvasElement;
+
+canvas.addEventListener('keydown', (e) => {
+    const key = getKey(e.key);
+
+    if (key !== undefined && emulator !== undefined) {
+        emulator.keyDown(key);
+        e.preventDefault();
+    }
+});
+
+canvas.addEventListener('keyup', (e) => {
+    const key = getKey(e.key);
+
+    if (key !== undefined && emulator !== undefined) {
+        emulator.keyUp(key);
+        e.preventDefault();
+    }
+});
+
+canvas.addEventListener('blur', () => emulator.clearKeys());
