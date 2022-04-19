@@ -2,6 +2,7 @@ import { Bus, ReadHandler, WriteHandler } from './bus';
 import { Interrupt, irq } from './interrupt';
 
 import { PALETTE_CLASSIC } from './palette';
+import { SpriteQueue } from './ppu/sprite-queue';
 import { System } from './system';
 import { hex8 } from '../helper/format';
 
@@ -67,6 +68,8 @@ export class Ppu {
         bus.map(reg.base + reg.stat, this.statRead, this.registerWrite);
         bus.map(reg.base + reg.dma, this.registerRead, this.dmaWrite);
         bus.map(reg.base + reg.bgp, this.registerRead, this.bgpWrite);
+        bus.map(reg.base + reg.obp0, this.registerRead, this.obp0Write);
+        bus.map(reg.base + reg.obp1, this.registerRead, this.obp1Write);
 
         this.bus = bus;
     }
@@ -88,6 +91,9 @@ export class Ppu {
         this.reg[reg.lcdc] = lcdc.enable;
 
         this.paletteBG.set(PALETTE_CLASSIC.subarray(0, 4));
+        this.paletteOB0.set(PALETTE_CLASSIC.subarray(0, 4));
+        this.paletteOB1.set(PALETTE_CLASSIC.subarray(0, 4));
+
         this.frontBuffer.fill(PALETTE_CLASSIC[4]);
         this.backBuffer.fill(PALETTE_CLASSIC[4]);
     }
@@ -240,15 +246,98 @@ export class Ppu {
         const bgTileY = backgroundY % 8;
         let bgTileX = backgroundX % 8;
         let bgTileNX = (backgroundX / 8) | 0;
-
         let bgTileData = this.backgroundTileData(bgTileNX, bgTileNY, bgTileY) << bgTileX;
 
         let pixelAddress = 160 * this.scanline;
 
+        // The index of the first (if any) sprite that is currently rendered.
+        // No sprites are pending if this is equal to nextPendingSprite.
+        let firstRenderingSprite = 0;
+        // The index of the next sprite that will be rendered we reach it.
+        let nextPendingSprite = 0;
+
+        // Are sprites enabled?
+        let hasSprites = (this.reg[reg.lcdc] & lcdc.objEnable) > 0;
+
+        if (hasSprites) {
+            // Find and preprocess first 10 sprites that are visible in this line.
+            //
+            // THE SPRITE LIST IS ORDERED BY X COORDINATE. THIS IS ESSENTIAL FOR THE FOLLOWING
+            // ALGORITHM.
+            this.spriteQueue.initialize(this.scanline, (this.reg[reg.lcdc] & lcdc.objSize) > 0);
+
+            // No sprites on this line? -> Proceed like they were disabled
+            hasSprites &&= this.spriteQueue.length > 0;
+
+            // Account for sprites that start early or that are offscreen
+            for (let i = 0; i < this.spriteQueue.length; i++) {
+                // This sprite starts after pixel 0? -> we can stop scanning
+                if (this.spriteQueue.positionX[i] > 0) break;
+
+                if (this.spriteQueue.positionX[i] < -7) {
+                    // Offscreen? -> skip it and start with the next sprite
+                    firstRenderingSprite = nextPendingSprite = i;
+                } else {
+                    // Starts early? Account for it and adjust for the pixels that lie off-screen
+                    this.spriteCounter[i] = -this.spriteQueue.positionX[i];
+                    this.spriteQueue.data[i] <<= this.spriteCounter[i];
+
+                    nextPendingSprite = i + 1;
+                }
+            }
+        }
+
         for (let x = 0; x < 160; x++) {
-            // this assumes a little endian host
-            const indexedBG = ((bgTileData & 0x8000) >>> 14) | ((bgTileData & 0x80) >>> 7);
-            this.backBuffer[pixelAddress++] = this.paletteBG[indexedBG];
+            // Check whether we have a pending sprite and whether it starts on this pixel
+            if (hasSprites && nextPendingSprite < this.spriteQueue.length && this.spriteQueue.positionX[nextPendingSprite] === x) {
+                // Reset its counter and add it to the range of rendered sprites
+                this.spriteCounter[nextPendingSprite] = 0;
+                nextPendingSprite++;
+            }
+
+            // Are we currently rendering any sprites?
+            if (firstRenderingSprite < nextPendingSprite) {
+                let spriteIndex = 0; // The index of the topmost non-transparent sprite in the list
+                let spriteValue = 0; // The color index of the lucky sprite
+
+                for (let index = firstRenderingSprite; index < nextPendingSprite; index++) {
+                    const value = ((this.spriteQueue.data[index] & 0x8000) >>> 14) | ((this.spriteQueue.data[index] & 0x80) >>> 7);
+
+                    // This sprite is the first non-transparent sprite? -> we have a winner
+                    if (value > 0 && spriteValue === 0) {
+                        spriteIndex = index;
+                        spriteValue = value;
+                    }
+
+                    // Is this the last pixel?
+                    if (this.spriteCounter[index] === 7) {
+                        // Remove this sprite from the list
+                        firstRenderingSprite++;
+                    } else {
+                        // Increment its counter and shift bitplane data
+                        this.spriteCounter[index]++;
+                        this.spriteQueue.data[index] <<= 1;
+                    }
+                }
+
+                // What is the BG vs OBJ priority of this sprite?
+                if (this.spriteQueue.flag[spriteIndex] & 0x80) {
+                    // Sprite behind background
+                    const bgValue = ((bgTileData & 0x8000) >>> 14) | ((bgTileData & 0x80) >>> 7);
+                    this.backBuffer[pixelAddress++] = bgValue > 0 ? this.paletteBG[bgValue] : this.spriteQueue.palette[spriteIndex][spriteValue];
+                } else {
+                    // Sprite in front of background
+                    if (spriteValue > 0) {
+                        this.backBuffer[pixelAddress++] = this.spriteQueue.palette[spriteIndex][spriteValue];
+                    } else {
+                        const bgValue = ((bgTileData & 0x8000) >>> 14) | ((bgTileData & 0x80) >>> 7);
+                        this.backBuffer[pixelAddress++] = this.paletteBG[bgValue];
+                    }
+                }
+            } else {
+                const bgValue = ((bgTileData & 0x8000) >>> 14) | ((bgTileData & 0x80) >>> 7);
+                this.backBuffer[pixelAddress++] = this.paletteBG[bgValue];
+            }
 
             if (bgTileX === 7) {
                 bgTileNX++;
@@ -272,6 +361,12 @@ export class Ppu {
             const tildeDataBase = this.reg[reg.lcdc] & lcdc.bgTileDataArea ? 0x0000 : 0x800;
 
             return this.vram16[tildeDataBase + 8 * index + y];
+        }
+    }
+
+    private updatePalette(target: Uint32Array, palette: number): void {
+        for (let i = 0; i < 4; i++) {
+            target[i] = PALETTE_CLASSIC[(palette >> (2 * i)) & 0x03];
         }
     }
 
@@ -308,9 +403,21 @@ export class Ppu {
         value &= 0xff;
         this.reg[reg.bgp] = value;
 
-        for (let i = 0; i < 4; i++) {
-            this.paletteBG[i] = PALETTE_CLASSIC[(value >> (2 * i)) & 0x03];
-        }
+        this.updatePalette(this.paletteBG, value);
+    };
+
+    private obp0Write: WriteHandler = (_, value) => {
+        value &= 0xff;
+        this.reg[reg.obp0] = value;
+
+        this.updatePalette(this.paletteOB0, value);
+    };
+
+    private obp1Write: WriteHandler = (_, value) => {
+        value &= 0xff;
+        this.reg[reg.obp1] = value;
+
+        this.updatePalette(this.paletteOB1, value);
     };
 
     private lcdcWrite: WriteHandler = (_, value) => {
@@ -346,7 +453,12 @@ export class Ppu {
     private bus!: Bus;
 
     private paletteBG = PALETTE_CLASSIC.slice();
+    private paletteOB0 = PALETTE_CLASSIC.slice();
+    private paletteOB1 = PALETTE_CLASSIC.slice();
 
     private frontBuffer = new Uint32Array(160 * 144);
     private backBuffer = new Uint32Array(160 * 144);
+
+    private spriteQueue = new SpriteQueue(this.vram, this.oam, this.paletteOB0, this.paletteOB1);
+    private spriteCounter = new Uint8Array(10);
 }
