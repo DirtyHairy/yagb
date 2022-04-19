@@ -46,6 +46,10 @@ export class CartridgeMbc1 extends CartridgeBase {
         });
     }
 
+    printState(): string {
+        return `rom.bank=${this.romBank}, rom.register1=${this.romBankRegister1}, rom.register2=${this.romBankRegister2}, ram.enabled=${this.sramEnabled}, ram.bank=${this.ramBank}`;
+    }
+
     protected mbcReadHandler: ReadHandler = (address) => {
         switch (true) {
             // ROM bank 0
@@ -80,6 +84,7 @@ export class CartridgeMbc1 extends CartridgeBase {
                 return 0;
         }
     };
+
     protected mbcWriteHandler: WriteHandler = (address, value) => {
         switch (true) {
             // enable/disable cartridge ram

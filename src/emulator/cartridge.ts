@@ -12,6 +12,7 @@ export interface Cartridge {
     type(): number;
     size(): number;
     printInfo(): string;
+    printState(): string;
 }
 
 export function createCartridge(image: Uint8Array, system: System): Cartridge | undefined {

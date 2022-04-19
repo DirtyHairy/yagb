@@ -166,6 +166,8 @@ export abstract class CartridgeBase implements Cartridge {
         return `type=${hex8(this.type())}, size=${this.size() / 1024}kb, ram=${this.ramSize() / 1024}kb`;
     }
 
+    abstract printState(): string;
+
     protected ramType(): CartridgeRAMType {
         return this.image[CartridgeAddress.ramType];
     }

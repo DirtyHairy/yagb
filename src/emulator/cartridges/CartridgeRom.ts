@@ -17,6 +17,10 @@ export class CartridgeRom extends CartridgeBase {
         }
     }
 
+    printState(): string {
+        return ``;
+    }
+
     protected romReadHandler: ReadHandler = (address) => this.rom[address];
     protected romWriteHandler: WriteHandler = (address) => this.system.warning(`attempt to write ROM at ${hex16(address)}`);
 
