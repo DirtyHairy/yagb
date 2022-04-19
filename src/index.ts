@@ -172,7 +172,9 @@ context                                 Show context summary (trace + disassembl
 state-on-step [0|1]                     Print state on every step
 run                                     Run the emulator continuosly
 stop                                    Stop the emulator
-speed <speed>                           Set emulator speed`);
+speed <speed>                           Set emulator speed
+
+Keyboard controls (canvas needs focus): arrows = joypad, a/b = a/b, space = select, enter = start`);
     },
     load(): void {
         fileHandler.openFile(async (data, name) => {
