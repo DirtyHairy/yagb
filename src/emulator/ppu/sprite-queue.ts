@@ -14,10 +14,6 @@ for (let i = 0; i < 0x100; i++) {
 export class SpriteQueue {
     constructor(public vram: Uint8Array, public oam: Uint8Array, public pal0: Uint32Array, public pal1: Uint32Array) {
         this.vram16 = new Uint16Array(vram.buffer);
-
-        // Sprite 40 is a dummy that acts as the end of the sprite list and has to be further
-        // right than all other sprites.
-        this.postionXCache[40] = 0xff;
     }
 
     initialize(scanline: number, dblHeight: boolean) {
@@ -51,7 +47,8 @@ export class SpriteQueue {
             // all other sprites)
             let previousSprite = 40;
 
-            // Note that this loop is not executed for the first visible sprite
+            // Note that this loop *never* reaches the terminating 0xff (and is not even executed when
+            // the list is empty)
             for (let j = 0; j < this.length; j++) {
                 // Get the index of the next sprite
                 const nextSprite = this.sortBuffer[previousSprite];
@@ -107,7 +104,7 @@ export class SpriteQueue {
     palette = new Array<Uint32Array>(10);
 
     private sortBuffer = new Uint8Array(41);
-    private postionXCache = new Int32Array(41);
+    private postionXCache = new Int32Array(40);
     private postionYCache = new Int32Array(40);
     private vram16: Uint16Array;
 }
