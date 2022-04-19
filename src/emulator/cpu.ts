@@ -606,8 +606,7 @@ export class Cpu {
         this.clock.increment(instruction.cycles);
 
         this.setArg1(instruction, this.getArg2(instruction));
-        this.decReg(instruction);
-        // this.state.r16[r16.hl] = this.state.r16[r16.hl] - 0x01;
+        this.state.r16[r16.hl] = this.state.r16[r16.hl] - 0x01;
 
         this.state.p = (this.state.p + instruction.len) & 0xffff;
         return instruction.cycles;
@@ -617,8 +616,7 @@ export class Cpu {
         this.clock.increment(instruction.cycles);
 
         this.setArg1(instruction, this.getArg2(instruction));
-        this.incReg(instruction);
-        // this.state.r16[r16.hl] = this.state.r16[r16.hl] + 0x01;
+        this.state.r16[r16.hl] = this.state.r16[r16.hl] + 0x01;
 
         this.state.p = (this.state.p + instruction.len) & 0xffff;
         return instruction.cycles;
@@ -1127,26 +1125,6 @@ export class Cpu {
         }
 
         return true;
-    }
-
-    private addReg(instruction: Instruction, value: number): void {
-        switch (true) {
-            case instruction.mode1 === AddressingMode.reg16ind8:
-                this.state.r16[instruction.par1] += value;
-                break;
-
-            case instruction.mode2 === AddressingMode.reg16ind8:
-                this.state.r16[instruction.par2] += value;
-                break;
-        }
-    }
-
-    private incReg(instruction: Instruction): void {
-        this.addReg(instruction, 1);
-    }
-
-    private decReg(instruction: Instruction): void {
-        this.addReg(instruction, -1);
     }
 
     readonly onExecute = new Event<number>();
