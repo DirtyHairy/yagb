@@ -163,7 +163,98 @@ export abstract class CartridgeBase implements Cartridge {
     }
 
     printInfo(): string {
-        return `type=${hex8(this.type())}, size=${this.size() / 1024}kb, ram=${this.ramSize() / 1024}kb`;
+        return `type=${this.printType()}, size=${this.size() / 1024}kb, ram=${this.ramSize() / 1024}kb`;
+    }
+
+    private printType(): string {
+        switch(this.type()) {
+            case CartridgeType.rom:
+                return 'ROM ONLY'
+
+            case CartridgeType.mbc1:
+                return 'MBC1'
+
+            case CartridgeType.mbc1_ram:
+                return 'MBC1+RAM'
+
+            case CartridgeType.mbc1_ram_battery:
+                return 'MBC1+RAM+BATTERY'
+
+            case CartridgeType.mbc2:
+                return 'MBC2'
+
+            case CartridgeType.mbc2_battery:
+                return 'MBC2+BATTERY'
+
+            case CartridgeType.rom_ram:
+                return 'ROM+RAM'
+
+            case CartridgeType.rom_ram_battery:
+                return 'ROM+RAM+BATTERY'
+
+            case CartridgeType.mmm01:
+                return 'MMM01'
+
+            case CartridgeType.mmm01_ram:
+                return 'MMM01+RAM'
+
+            case CartridgeType.mmm01_ram_battery:
+                return 'MMM01+RAM+BATTERY'
+
+            case CartridgeType.mbc3_timer_battery:
+                return 'MBC3+TIMER+BATTERY'
+
+            case CartridgeType.mbc3_timer_ram_battery:
+                return 'MBC3+TIMER+RAM+BATTERY'
+
+            case CartridgeType.mbc3:
+                return 'MBC3'
+
+            case CartridgeType.mbc3_ram:
+                return 'MBC3+RAM'
+
+            case CartridgeType.mbc3_ram_battery:
+                return 'MBC3+RAM+BATTERY'
+
+            case CartridgeType.mbc5:
+                return 'MBC5'
+
+            case CartridgeType.mbc5_ram:
+                return 'MBC5+RAM'
+
+            case CartridgeType.mbc5_ram_battery:
+                return 'MBC5+RAM+BATTERY'
+
+            case CartridgeType.mbc5_rumble:
+                return 'MBC5+RUMBLE'
+
+            case CartridgeType.mbc5_rumble_ram:
+                return 'MBC5+RUMBLE+RAM'
+
+            case CartridgeType.mbc5_rumble_ram_battery:
+                return 'MBC5+RUMBLE+RAM+BATTERY'
+
+            case CartridgeType.mbc6:
+                return 'MBC6'
+
+            case CartridgeType.mbc7_sensor_rumble_ram_battery:
+                return 'MBC7+SENSOR+RUMBLE+RAM+BATTERY'
+
+            case CartridgeType.pocket_camera:
+                return 'POCKET CAMERA'
+
+            case CartridgeType.bandai_tama5:
+                return 'BANDAI TAMA5'
+
+            case CartridgeType.huc3:
+                return 'HuC3'
+
+            case CartridgeType.huc1_ram_battery:
+                return 'HuC1+RAM+BATTERY'
+
+            default:
+                throw new Error(`unknown cartridge type ${this.type()}`)
+        }
     }
 
     abstract printState(): string;

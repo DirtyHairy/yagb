@@ -18,7 +18,7 @@ export class CartridgeRom extends CartridgeBase {
     }
 
     printState(): string {
-        return ``;
+        return `rom only`;
     }
 
     protected romReadHandler: ReadHandler = (address) => this.rom[address];
