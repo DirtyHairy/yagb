@@ -453,11 +453,20 @@ export class Cpu {
 
         let setFlagC = 0;
         if (flagH || (!flagN && (operand & 0xf) > 0x09)) {
-            operand += flagN ? ~0x06 : 0x06;
+            if (flagN) {
+                operand = (operand & 0xf0) | ((operand & 0x0f) - 6);
+            } else {
+                operand += flagN ? ~0x06 : 0x06;
+            }
         }
 
         if (flagC || (!flagN && (operand & 0xf0) >>> 4 > 0x09)) {
-            operand += flagN ? ~0x60 : 0x60;
+            if (flagN) {
+                operand = (operand & 0x0f) | (((operand >>> 4) - 6) << 4);
+            } else {
+                operand += flagN ? ~0x60 : 0x60;
+            }
+
             setFlagC = flag.c;
         }
 
