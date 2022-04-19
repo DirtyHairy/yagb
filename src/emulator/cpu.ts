@@ -450,19 +450,16 @@ export class Cpu {
         const flagN = this.state.r8[r8.f] & flag.n,
             flagC = this.state.r8[r8.f] & flag.c,
             flagH = this.state.r8[r8.f] & flag.h;
-        let correction = 0;
 
         let setFlagC = 0;
         if (flagH || (!flagN && (operand & 0xf) > 0x09)) {
-            correction |= 0x6;
+            operand += flagN ? ~0x06 : 0x06;
         }
 
         if (flagC || (!flagN && (operand & 0xf0) >>> 4 > 0x09)) {
-            correction |= 0x60;
+            operand += flagN ? ~0x60 : 0x60;
             setFlagC = flag.c;
         }
-
-        operand += flagN ? -correction : correction;
 
         operand &= 0xff;
 
