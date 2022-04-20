@@ -13,14 +13,16 @@ export class CartridgeMbc1 extends CartridgeBase {
     constructor(image: Uint8Array, system: System) {
         super(image, system);
 
+        if (this.size() !== image.length) throw new Error('bad image');
+
         // prettier-ignore
         this.rom = Array.from(
-            { length: Math.ceil(this.size() / CartridgeROMBankSize) },
-            (_, i) => Uint8Array.from(this.image.slice(i, i + CartridgeROMBankSize))
+            { length: this.size() / 0x4000 },
+            (_, i) => Uint8Array.from(this.image.slice(i*0x4000, 0x4000*i + 0x4000))
         );
 
         if (this.ramType() !== CartridgeRAMType.no_ram) {
-            this.sram = Array.from({ length: Math.ceil(this.ramSize() /  CartridgeRAMBankSize)}, (_, i) => new Uint8Array(CartridgeRAMBankSize).fill(0));
+            this.sram = Array.from({ length: Math.ceil(this.ramSize() / 0x4000) }, (_, i) => new Uint8Array(CartridgeRAMBankSize).fill(0));
         } else {
             this.sram = [new Uint8Array(0)];
         }
@@ -52,7 +54,9 @@ export class CartridgeMbc1 extends CartridgeBase {
     }
 
     printState(): string {
-        return `memory.model=${this.printMemoryModel()},ram.enabled=${this.sramEnabled ? 'on' : 'off'},rom.banks.count=${this.rom.length}, rom.bank=${this.romBank}, ram.banks.count=${this.sram.length} ram.bank=${this.ramBank}`;
+        return `memory.model=${this.printMemoryModel()},ram.enabled=${this.sramEnabled ? 'on' : 'off'},rom.banks.count=${this.rom.length}, rom.bank=${
+            this.romBank
+        }, ram.banks.count=${this.sram.length} ram.bank=${this.ramBank}`;
     }
 
     private printMemoryModel(): string {
@@ -74,19 +78,14 @@ export class CartridgeMbc1 extends CartridgeBase {
             case 0x0000 <= address && address < 0x4000: {
                 let selectedBank = 0;
 
-                if(this.memoryModel === MemoryModel.mode_4mbit_32kb)
-                    selectedBank = this.romBank;
+                if (this.memoryModel === MemoryModel.mode_4mbit_32kb) selectedBank = this.romBank;
 
                 return this.rom[selectedBank][address];
             }
 
             // ROM bank 1
             case 0x4000 <= address && address < 0x8000: {
-                let selectedBank = this.romBank;
-
-                if ((selectedBank & 0x01) === 0x00) selectedBank += 0x01;
-
-                return this.rom[selectedBank][address - CartridgeROMBankSize];
+                return this.rom[this.romBank][address - CartridgeROMBankSize];
             }
 
             // RAM bank
@@ -117,12 +116,7 @@ export class CartridgeMbc1 extends CartridgeBase {
                 // attempt to write zero will write one
                 if (value === 0x00) value += 0x01;
 
-                // If the ROM Bank Number is set to a higher value than the number of banks in the cartridge,
-                // the bank number is masked to the required number of bits.
-                if(value > this.rom.length) {
-                    const bitMask = parseInt('1'.repeat((this.rom.length).toString(2).length), 2)
-                    value &= bitMask;
-                }
+                value %= this.rom.length;
 
                 this.romBank &= 0xe0;
                 this.romBank |= value;
@@ -130,21 +124,20 @@ export class CartridgeMbc1 extends CartridgeBase {
 
             // select ram bank
             case 0x4000 <= address && address < 0x6000:
-                switch(this.memoryModel) {
+                switch (this.memoryModel) {
                     case MemoryModel.mode_16mbit_8kb: {
                         const selectedBank = (this.romBank & 0xf1) | (value & 0xe0);
                         if (selectedBank < this.rom.length) {
                             // higher bits
                             value &= 0xe0;
-                            this.romBank &= 0x1f
+                            this.romBank &= 0x1f;
                             this.romBank |= value;
                         }
                         break;
                     }
 
                     case MemoryModel.mode_4mbit_32kb:
-                        if((value & 0x03) < this.sram.length)
-                            this.ramBank = value & 0x03;
+                        if ((value & 0x03) < this.sram.length) this.ramBank = value & 0x03;
                         break;
 
                     default:
@@ -154,7 +147,7 @@ export class CartridgeMbc1 extends CartridgeBase {
 
             // select memory model
             case 0x6000 <= address && address < 0x8000:
-                switch(value & 0x01) {
+                switch (value & 0x01) {
                     case MemoryModel.mode_16mbit_8kb:
                         value = MemoryModel.mode_16mbit_8kb;
                         break;
@@ -172,8 +165,7 @@ export class CartridgeMbc1 extends CartridgeBase {
 
             // write to cartridge ram
             case 0xa000 <= address && address < 0xc000:
-                if (this.sramEnabled)
-                    this.sram[this.ramBank][address - 0xa0000] = value;
+                if (this.sramEnabled) this.sram[this.ramBank][address - 0xa0000] = value;
                 break;
 
             default:
