@@ -61,6 +61,7 @@ function loadCartridge(data: Uint8Array, name: string) {
 
         updateCanvas();
         print(`loaded cartridge image: ${name}`);
+        print(emulator.printCartridgeInfo());
     } catch (e) {
         print((e as Error).message);
         print('failed to initialize emulator');

@@ -37,10 +37,13 @@ export const lengthFromMode = function (mode: AddressingMode): number {
 
         case AddressingMode.imm8:
         case AddressingMode.imm8io:
+        case AddressingMode.imm8sign:
+        case AddressingMode.imm8stack:
             return 1;
 
         case AddressingMode.imm16:
         case AddressingMode.imm16ind8:
+        case AddressingMode.imm16ind16:
             return 2;
 
         default:
@@ -57,7 +60,7 @@ export const opcodeMemoryMap = function () {
             par1 = opcode - 0x100;
             opcode = 0xcb;
         }
-        return acc.concat([opcode, par1, 0]);
+        return acc.concat([opcode, par1, 0x20]);
     }, [] as Array<number>);
 };
 

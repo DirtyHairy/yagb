@@ -1,7 +1,6 @@
 import { AddressingMode, Condition, Instruction, Operation, decodeInstruction } from './instruction';
 import { Interrupt, irq } from './interrupt';
 import { hex16, hex8 } from '../helper/format';
-
 import { Bus } from './bus';
 import { Clock } from './clock';
 import { Event } from 'microevent.ts';
@@ -141,10 +140,8 @@ export class Cpu {
 
     private stackPush16(value: number): void {
         value = value & 0xffff;
-        this.state.r16[r16.sp] = this.state.r16[r16.sp] - 0x01;
-        this.bus.write(this.state.r16[r16.sp], value >>> 8);
-        this.state.r16[r16.sp] = this.state.r16[r16.sp] - 0x01;
-        this.bus.write(this.state.r16[r16.sp], value & 0xff);
+        this.bus.write16(this.state.r16[r16.sp] - 1, value);
+        this.state.r16[r16.sp] = (this.state.r16[r16.sp] - 2) & 0xffff;
     }
 
     private stackPop16(): number {
@@ -177,6 +174,9 @@ export class Cpu {
                 this.system.trap('can not call CB');
 
                 return 0;
+
+            case Operation.ccf:
+                return this.opCcf(instruction);
 
             case Operation.cp:
                 return this.opCp(instruction);
@@ -222,6 +222,10 @@ export class Cpu {
 
             case Operation.ldi:
                 return this.opLdi(instruction);
+
+            case Operation.lds: {
+                return this.opLds(instruction);
+            }
 
             case Operation.nop:
                 return this.opNop(instruction);
@@ -305,7 +309,7 @@ export class Cpu {
                 return this.opRst(instruction);
 
             default:
-                this.system.trap(`invalid instruction ${hex8(instruction.op)} at ${hex16(this.state.p)}`);
+                this.system.trap(`invalid instruction ${hex8(instruction.opcode)} at ${hex16(this.state.p)}`);
                 return 0;
         }
     }
@@ -395,11 +399,24 @@ export class Cpu {
         return cycles;
     }
 
+    private opCcf(instruction: Instruction): number {
+        this.clock.increment(instruction.cycles);
+
+        // prettier-ignore
+        this.state.r8[r8.f] =
+            (this.state.r8[r8.f] & flag.z) |
+            ((this.state.r8[r8.f] & flag.c) === flag.c ? 0x00 : flag.c);
+
+        this.state.p = (this.state.p + instruction.len) & 0xffff;
+        return instruction.cycles;
+    }
+
     private opCp(instruction: Instruction): number {
         this.clock.increment(instruction.cycles);
 
         const a = this.state.r8[r8.a];
         const operand = this.getArg1(instruction);
+
 
         // prettier-ignore
         this.state.r8[r8.f] =
@@ -585,7 +602,7 @@ export class Cpu {
         const cycles = instruction.cycles + (condition ? 1 : 0);
         this.clock.increment(cycles);
 
-        const displacement = extendSign8(this.getArg1(instruction));
+        const displacement = this.getArg1(instruction);
 
         this.state.p = (this.state.p + instruction.len) & 0xffff;
         if (condition) {
@@ -610,6 +627,15 @@ export class Cpu {
 
         this.setArg1(instruction, this.getArg2(instruction));
         this.state.r16[r16.hl] = this.state.r16[r16.hl] + 0x01;
+
+        this.state.p = (this.state.p + instruction.len) & 0xffff;
+        return instruction.cycles;
+    }
+
+    private opLds(instruction: Instruction): number {
+        this.clock.increment(instruction.cycles);
+
+        this.setArg1(instruction, this.getArg2(instruction));
 
         this.state.p = (this.state.p + instruction.len) & 0xffff;
         return instruction.cycles;
@@ -1007,6 +1033,14 @@ export class Cpu {
                 return this.bus.read(0xff00 + index);
             }
 
+            case AddressingMode.imm8sign: {
+                return extendSign8(this.bus.read((this.state.p + 0x01) & 0xffff));
+            }
+
+            case AddressingMode.imm8stack: {
+                return this.state.r16[r16.sp] + extendSign8(this.bus.read((this.state.p + 0x01) & 0xffff));
+            }
+
             case AddressingMode.reg8:
                 return this.state.r8[par];
 
@@ -1049,7 +1083,7 @@ export class Cpu {
             }
 
             case AddressingMode.reg8:
-                this.state.r8[par] = value;
+                this.state.r8[par] = value & 0xff;
                 break;
 
             case AddressingMode.reg8io:
@@ -1060,12 +1094,16 @@ export class Cpu {
                 this.bus.write(this.bus.read16((this.state.p + 0x01) & 0xffff), value & 0xff);
                 break;
 
+            case AddressingMode.imm16ind16:
+                this.bus.write16(this.bus.read16((this.state.p + 0x01) & 0xffff), value & 0xffff);
+                break;
+
             case AddressingMode.reg16ind8:
                 this.bus.write(this.state.r16[par], value & 0xff);
                 break;
 
             case AddressingMode.reg16:
-                this.state.r16[par] = value;
+                this.state.r16[par] = value & 0xffff;
                 break;
 
             default:

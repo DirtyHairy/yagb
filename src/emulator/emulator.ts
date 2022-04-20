@@ -116,7 +116,7 @@ export class Emulator {
         this.bus.unlock();
 
         const traceLines = (count === undefined ? trace : trace.slice(trace.length - count, trace.length))
-            .map((address) => this.disassemblyLineAt(address))
+            .map((address, index) => `${index + 1}. ${this.disassemblyLineAt(address)}`)
             .join('\n');
 
         if (busLocked) this.bus.lock();
@@ -145,8 +145,12 @@ export class Emulator {
         this.bus.reset();
     }
 
+    printCartridgeInfo(): string {
+        return `Cartridge: ${this.cartridge.printInfo()}`;
+    }
+
     printState(): string {
-        return `CPU:\n${this.cpu.printState()}\n\nIRQ:\n${this.interrupt.printState()}\n\nTimer:\n${this.timer.printState()}\n\nPPU:\n${this.ppu.printState()}`;
+        return `CPU:\n${this.cpu.printState()}\n\nIRQ:\n${this.interrupt.printState()}\n\nTimer:\n${this.timer.printState()}\n\nPPU:\n${this.ppu.printState()}\n\nCartridge:\n${this.cartridge.printState()}`;
     }
 
     disassemble(count: number, address = this.cpu.state.p): Array<string> {

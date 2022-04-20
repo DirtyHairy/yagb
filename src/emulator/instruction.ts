@@ -12,6 +12,7 @@ export const enum Operation {
     and,
     call,
     cb,
+    ccf,
     cp,
     cpl,
     daa,
@@ -28,6 +29,7 @@ export const enum Operation {
     ld,
     ldd,
     ldi,
+    lds,
     nop,
     or,
     pop,
@@ -68,11 +70,14 @@ export const enum AddressingMode {
 
     imm8,
     imm8io,
+    imm8sign,
+    imm8stack,
     reg8,
     reg8io,
 
     imm16,
     imm16ind8,
+    imm16ind16,
     reg16,
     reg16ind8,
 }
@@ -99,6 +104,9 @@ export interface Instruction {
 
 export function decodeInstruction(bus: Bus, address: number): Instruction {
     let opcode = bus.read(address);
+    if (opcode === undefined) {
+        throw new Error('problem with reading opcode from bus');
+    }
 
     if (0xcb === opcode) opcode = bus.read(address + 1) + 0x100;
 
@@ -169,6 +177,9 @@ function disassembleOperation(operation: Operation): string {
         case Operation.cb:
             return 'CB';
 
+        case Operation.ccf:
+            return 'CCF';
+
         case Operation.cp:
             return 'CP';
 
@@ -209,6 +220,9 @@ function disassembleOperation(operation: Operation): string {
 
         case Operation.ldi:
             return 'LDI';
+
+        case Operation.lds:
+            return 'LD';
 
         case Operation.nop:
             return 'NOP';
@@ -313,6 +327,12 @@ function disassembleOperationParameter(bus: Bus, address: number, par: number, m
         case AddressingMode.imm8io:
             return `(FF00 + ${hex8(bus.read((address + 1) & 0xffff))})`;
 
+        case AddressingMode.imm8sign:
+            return `${hex8(bus.read((address + 1) & 0xffff))}`;
+
+        case AddressingMode.imm8stack:
+            return `SP + ${hex8(bus.read((address + 1) & 0xffff))}`;
+
         case AddressingMode.reg8:
             return `${disassembleR8(par)}`;
 
@@ -323,6 +343,9 @@ function disassembleOperationParameter(bus: Bus, address: number, par: number, m
             return `${hex16(bus.read16((address + 1) & 0xffff))}`;
 
         case AddressingMode.imm16ind8:
+            return `(${hex16(bus.read16((address + 1) & 0xffff))})`;
+
+        case AddressingMode.imm16ind16:
             return `(${hex16(bus.read16((address + 1) & 0xffff))})`;
 
         case AddressingMode.reg16:
@@ -392,7 +415,9 @@ apply(0xfd, { op: Operation.reserved });
 apply(0x00, { op: Operation.nop, cycles: 1, len: 1 });
 apply(0x10, { op: Operation.stop, cycles: 1, len: 1 });
 apply(0x27, { op: Operation.daa, cycles: 1, len: 1 });
+apply(0x2f, { op: Operation.cpl, cycles: 1, len: 1 });
 apply(0x37, { op: Operation.scf, cycles: 1, len: 1 });
+apply(0x3f, { op: Operation.ccf, cycles: 1, len: 1 });
 apply(0x76, { op: Operation.halt, cycles: 1, len: 1 });
 apply(0xf3, { op: Operation.di, cycles: 1, len: 1 });
 apply(0xfb, { op: Operation.ei, cycles: 1, len: 1 });
@@ -405,11 +430,11 @@ apply(0xda, { op: Operation.jp, mode1: AddressingMode.imm16, condition: Conditio
 
 apply(0xe9, { op: Operation.jp, par1: r16.hl, mode1: AddressingMode.reg16, cycles: 1, len: 1 });
 
-apply(0x18, { op: Operation.jr, mode1: AddressingMode.imm8, cycles: 2, len: 2 });
-apply(0x20, { op: Operation.jr, mode1: AddressingMode.imm8, condition: Condition.nz, cycles: 2, len: 2 });
-apply(0x28, { op: Operation.jr, mode1: AddressingMode.imm8, condition: Condition.z, cycles: 2, len: 2 });
-apply(0x30, { op: Operation.jr, mode1: AddressingMode.imm8, condition: Condition.nc, cycles: 2, len: 2 });
-apply(0x38, { op: Operation.jr, mode1: AddressingMode.imm8, condition: Condition.c, cycles: 2, len: 2 });
+apply(0x18, { op: Operation.jr, mode1: AddressingMode.imm8sign, cycles: 2, len: 2 });
+apply(0x20, { op: Operation.jr, mode1: AddressingMode.imm8sign, condition: Condition.nz, cycles: 2, len: 2 });
+apply(0x28, { op: Operation.jr, mode1: AddressingMode.imm8sign, condition: Condition.z, cycles: 2, len: 2 });
+apply(0x30, { op: Operation.jr, mode1: AddressingMode.imm8sign, condition: Condition.nc, cycles: 2, len: 2 });
+apply(0x38, { op: Operation.jr, mode1: AddressingMode.imm8sign, condition: Condition.c, cycles: 2, len: 2 });
 
 apply(0xcd, { op: Operation.call, mode1: AddressingMode.imm16, cycles: 3, len: 3 });
 apply(0xc4, { op: Operation.call, mode1: AddressingMode.imm16, condition: Condition.nz, cycles: 3, len: 3 });
@@ -423,8 +448,6 @@ apply(0xc8, { op: Operation.ret, condition: Condition.z, cycles: 2, len: 1 });
 apply(0xd0, { op: Operation.ret, condition: Condition.nc, cycles: 2, len: 1 });
 apply(0xd8, { op: Operation.ret, condition: Condition.c, cycles: 2, len: 1 });
 apply(0xd9, { op: Operation.reti, cycles: 4, len: 1 });
-
-apply(0x2f, { op: Operation.cpl, cycles: 1, len: 1 });
 
 // 0x80, 0x81, 0x82, 0x83, 0x84, 0x85
 // 0x88, 0x89, 0x8a, 0x8b, 0x8c, 0x8d
@@ -489,6 +512,10 @@ apply(0xe2, { op: Operation.ld, par1: r8.c, mode1: AddressingMode.reg8io, par2: 
 
 apply(0xea, { op: Operation.ld, mode1: AddressingMode.imm16ind8, par2: r8.a, mode2: AddressingMode.reg8, cycles: 4, len: 3 });
 apply(0xfa, { op: Operation.ld, par1: r8.a, mode1: AddressingMode.reg8, mode2: AddressingMode.imm16ind8, cycles: 4, len: 3 });
+
+apply(0x08, { op: Operation.ld, mode1: AddressingMode.imm16ind16, par2: r16.sp, mode2: AddressingMode.reg16, cycles: 5, len: 3 });
+apply(0xf8, { op: Operation.lds, par1: r16.hl, mode1: AddressingMode.reg16, mode2: AddressingMode.imm8stack, cycles: 3, len: 2 });
+apply(0xf9, { op: Operation.ld, par1: r16.sp, mode1: AddressingMode.reg16, par2: r16.hl, mode2: AddressingMode.reg16, cycles: 2, len: 1 });
 
 // 0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47
 // 0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57
@@ -567,6 +594,7 @@ apply(0x1f, { op: Operation.rra, cycles: 1, len: 1 });
     apply((i << 4) | 0x09, { op: Operation.add16, par1: r16.hl, mode1: AddressingMode.reg16, par2: reg, mode2: AddressingMode.reg16, cycles: 2, len: 1 });
     apply((i << 4) | 0x0b, { op: Operation.dec16, par1: reg, mode1: AddressingMode.reg16, cycles: 2, len: 1 });
 });
+apply(0xe8, { op: Operation.dec16, par1: r16.sp, mode1: AddressingMode.reg16, par2: AddressingMode.imm8sign, cycles: 2, len: 1 });
 
 [r16.bc, r16.de, r16.hl, r16.af].forEach((reg, i) => {
     apply(((i + 0xc) << 4) | 0x05, { op: Operation.push, par1: reg, mode1: AddressingMode.reg16, cycles: 4, len: 1 });

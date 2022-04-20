@@ -8,7 +8,12 @@ describe('The glorious CPU', () => {
 
             env.cpu.state.r8[r8.a] = value;
 
-            env.cpu.state.r8[r8.f] = (value === 0x00 ? flag.z : 0x00) | (substraction ? flag.n : 0x00) | (halfcarry ? flag.h : 0x00) | (carry ? flag.c : 0x00);
+            // prettier-ignore
+            env.cpu.state.r8[r8.f] =
+                (value === 0x00 ? flag.z: 0x00) |
+                (substraction ? flag.n : 0x00) |
+                (halfcarry ? flag.h : 0x00) |
+                (carry ? flag.c : 0x00);
 
             return env;
         }
