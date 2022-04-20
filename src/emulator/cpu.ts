@@ -622,7 +622,14 @@ export class Cpu {
     private opLds(instruction: Instruction): number {
         this.clock.increment(instruction.cycles);
 
-        this.setArg1(instruction, this.getArg2(instruction));
+        const result = this.getArg2(instruction)
+        const stackPointer = this.state.r16[r16.sp];
+
+        this.setArg1(instruction, result);
+
+        this.state.r8[r8.f] =
+            ((((stackPointer & 0xf) + (result & 0xf)) > 0xf) ? flag.h : 0x00) |
+            ((((stackPointer & 0xff) + (result & 0xff)) > 0xff) ? flag.c : 0x00);
 
         this.state.p = (this.state.p + instruction.len) & 0xffff;
         return instruction.cycles;
