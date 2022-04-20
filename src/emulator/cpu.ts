@@ -412,10 +412,8 @@ export class Cpu {
     private opCcf(instruction: Instruction): number {
         this.clock.increment(instruction.cycles);
 
-        // prettier-ignore
-        this.state.r8[r8.f] =
-            (this.state.r8[r8.f] & flag.z) |
-            ((this.state.r8[r8.f] & flag.c) === flag.c ? 0x00 : flag.c);
+        // flip flag C and reset flags N, H, do not touch flag Z
+        this.state.r8[r8.f] = (this.state.r8[r8.f] ^ flag.c) & 0x90
 
         this.state.p = (this.state.p + instruction.len) & 0xffff;
         return instruction.cycles;
