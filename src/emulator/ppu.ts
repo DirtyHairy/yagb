@@ -289,7 +289,7 @@ export class Ppu {
 
         for (let x = 0; x < 160; x++) {
             // Check whether we have a pending sprite and whether it starts on this pixel
-            if (hasSprites && nextPendingSprite < this.spriteQueue.length && this.spriteQueue.positionX[nextPendingSprite] === x) {
+            while (hasSprites && nextPendingSprite < this.spriteQueue.length && this.spriteQueue.positionX[nextPendingSprite] === x) {
                 // Reset its counter and add it to the range of rendered sprites
                 this.spriteCounter[nextPendingSprite] = 0;
                 nextPendingSprite++;
