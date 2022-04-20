@@ -48,6 +48,9 @@ function floatval<T>(value: T, defaultValue?: number | undefined): number | unde
 
 function loadCartridge(data: Uint8Array, name: string) {
     try {
+        scheduler?.stop();
+        updatePrompt();
+
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         emulator = new Emulator(data, print);
         scheduler = new Scheduler(emulator);
