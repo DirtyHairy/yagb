@@ -70,7 +70,8 @@ export class SpriteQueue {
             // Finally, point to nextSprite as the next entry
             this.sortBuffer[i] = nextSprite;
 
-            this.length++;
+            // Enforce limit of 10 visible sprites
+            if (++this.length === 10) break;
         }
 
         // Pass 2: prepare sprite data
