@@ -353,11 +353,12 @@ export class Cpu {
 
         this.setArg1(instruction, result);
 
+
         // prettier-ignore
         this.state.r8[r8.f] =
-                    ((result & 0xff) === 0 ? flag.z : 0x00) |
-                    ((((operand1 & 0xf) + (operand2 & 0xf)) > 0xf)  ? flag.h : 0x00) |
-                    (result > 0xff ? flag.c : 0x00);
+            (((result & 0xff) === 0) ? flag.z : 0x00) |
+            ((((operand1 & 0xf) + (operand2 & 0xf)) > 0xf) ? flag.h : 0x00) |
+            ((result > 0xff) ? flag.c : 0x00);
 
         this.state.p = (this.state.p + instruction.len) & 0xffff;
         return instruction.cycles;
@@ -771,7 +772,7 @@ export class Cpu {
         this.state.r8[r8.f] =
             flag.n |
             ((result & 0xff) === 0 ? flag.z : 0x00) |
-            ((((operand1 & 0xf) - (operand2 & 0xf) - flagc) < 0) ? flag.h : 0x00) |
+            ((((operand1 & 0xf) - (operand2 & 0xf) - flagc) < 0x00) ? flag.h : 0x00) |
             (result < 0x00 ? flag.c : 0x00);
 
         this.state.p = (this.state.p + instruction.len) & 0xffff;
@@ -809,9 +810,9 @@ export class Cpu {
         // prettier-ignore
         this.state.r8[r8.f] =
             flag.n |
-            (this.state.r8[r8.a] === 0 ? flag.z : 0x00) |
-            ((((operand1 & 0xf) - (operand2 & 0xf)) < 0)  ? flag.h : 0x00) |
-            (result < 0x00 ? flag.c : 0x00);
+            (((result & 0xff) === 0x00) ? flag.z : 0x00) |
+            ((((operand1 & 0xf) - (operand2 & 0xf)) < 0x00) ? flag.h : 0x00) |
+            ((result < 0x00) ? flag.c : 0x00);
 
         this.state.p = (this.state.p + instruction.len) & 0xffff;
         return instruction.cycles;
@@ -875,7 +876,7 @@ export class Cpu {
 
         this.setArg1(instruction, result);
 
-        this.state.r8[r8.f] = result === 0 ? flag.z : 0x00;
+        this.state.r8[r8.f] = (result & 0xff) === 0 ? flag.z : 0x00;
 
         this.state.p = (this.state.p + instruction.len) & 0xffff;
         return instruction.cycles;
@@ -891,7 +892,7 @@ export class Cpu {
 
         // prettier-ignore
         this.state.r8[r8.f] =
-            (result === 0 ? flag.z : 0x00) |
+            ((result & 0xff) === 0 ? flag.z : 0x00) |
             ((operand & 0x80) >>> 3);
 
         this.state.p = (this.state.p + instruction.len) & 0xffff;
@@ -908,7 +909,7 @@ export class Cpu {
 
         // prettier-ignore
         this.state.r8[r8.f] =
-            (result === 0 ? flag.z : 0x00) |
+            ((result & 0xff) === 0 ? flag.z : 0x00) |
             ((operand & 0x80) >>> 3);
 
         this.state.p = (this.state.p + instruction.len) & 0xffff;
@@ -925,7 +926,7 @@ export class Cpu {
 
         // prettier-ignore
         this.state.r8[r8.f] =
-                    (result === 0 ? flag.z : 0x00) |
+                    ((result & 0xff) === 0 ? flag.z : 0x00) |
                     ((operand & 0x01) << 4);
 
         this.state.p = (this.state.p + instruction.len) & 0xffff;
@@ -942,7 +943,7 @@ export class Cpu {
 
         // prettier-ignore
         this.state.r8[r8.f] =
-            (result === 0 ? flag.z : 0x00) |
+            ((result & 0xff) === 0 ? flag.z : 0x00) |
             ((operand & 0x01) << 4);
 
         this.state.p = (this.state.p + instruction.len) & 0xffff;
@@ -959,7 +960,7 @@ export class Cpu {
 
         // prettier-ignore
         this.state.r8[r8.f] =
-            (result === 0 ? flag.z : 0x00) |
+            ((result & 0xff) === 0 ? flag.z : 0x00) |
             ((operand & 0x80) >>> 3);
 
         this.state.p = (this.state.p + instruction.len) & 0xffff;
@@ -976,7 +977,7 @@ export class Cpu {
 
         // prettier-ignore
         this.state.r8[r8.f] =
-            (result === 0 ? flag.z : 0x00) |
+            ((result & 0xff) === 0 ? flag.z : 0x00) |
             ((operand & 0x01) << 4);
 
         this.state.p = (this.state.p + instruction.len) & 0xffff;
@@ -993,7 +994,7 @@ export class Cpu {
 
         // prettier-ignore
         this.state.r8[r8.f] =
-            (result === 0 ? flag.z : 0x00) |
+            ((result & 0xff) === 0 ? flag.z : 0x00) |
             ((operand & 0x01) << 4);
 
         this.state.p = (this.state.p + instruction.len) & 0xffff;
