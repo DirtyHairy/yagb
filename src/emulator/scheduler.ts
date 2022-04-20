@@ -49,14 +49,14 @@ export class Scheduler {
         this.speed = speed;
     }
 
-    private executeTimeslice(durationSeconds: number, timestamp: number): void {
+    private executeTimeslice(durationSeconds: number, timestamp: number): boolean {
         if (durationSeconds > CLOCK_DRIFT_LIMIT_SEC) {
             durationSeconds = CLOCK_DRIFT_RESET_HEADROOM_SEC;
             this.virtualClockSeconds = (timestamp - this.realClockBase) / 1000 - CLOCK_DRIFT_RESET_HEADROOM_SEC;
         }
 
         const cyclesGoal = Math.round(durationSeconds * SYSTEM_CLOCK * this.speed);
-        if (cyclesGoal <= 0) return;
+        if (cyclesGoal <= 0) return false;
 
         const timestampBeforeDispatch = performance.now();
         const timeslice = this.emulator.run(cyclesGoal) / SYSTEM_CLOCK / this.speed;
@@ -68,12 +68,14 @@ export class Scheduler {
             this.hostSpeedAverage.push((timeslice * 1000) / (timestampAfterDispatch - timestampBeforeDispatch));
 
         this.onTimesliceComplete.dispatch();
+
+        return true;
     }
 
     private onAnimationFrame = (timestamp: number): void => {
-        this.executeTimeslice((timestamp - this.realClockBase) / 1000 - this.virtualClockSeconds, timestamp);
+        const didRun = this.executeTimeslice((timestamp - this.realClockBase) / 1000 - this.virtualClockSeconds, timestamp);
 
-        if (this.emulator.isTrap()) {
+        if (didRun && this.emulator.isTrap()) {
             this.stop();
         } else {
             this.animationFrameHandle = requestAnimationFrame(this.onAnimationFrame);
