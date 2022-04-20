@@ -438,8 +438,8 @@ apply(0x38, { op: Operation.jr, mode1: AddressingMode.imm8sign, condition: Condi
 
 apply(0xcd, { op: Operation.call, mode1: AddressingMode.imm16, cycles: 3, len: 3 });
 apply(0xc4, { op: Operation.call, mode1: AddressingMode.imm16, condition: Condition.nz, cycles: 3, len: 3 });
-apply(0xd4, { op: Operation.call, mode1: AddressingMode.imm16, condition: Condition.z, cycles: 3, len: 3 });
-apply(0xcc, { op: Operation.call, mode1: AddressingMode.imm16, condition: Condition.nc, cycles: 3, len: 3 });
+apply(0xd4, { op: Operation.call, mode1: AddressingMode.imm16, condition: Condition.nc, cycles: 3, len: 3 });
+apply(0xcc, { op: Operation.call, mode1: AddressingMode.imm16, condition: Condition.z, cycles: 3, len: 3 });
 apply(0xdc, { op: Operation.call, mode1: AddressingMode.imm16, condition: Condition.c, cycles: 3, len: 3 });
 
 apply(0xc9, { op: Operation.ret, cycles: 1, len: 1 });
