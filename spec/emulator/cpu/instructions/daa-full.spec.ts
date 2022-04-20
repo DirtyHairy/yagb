@@ -1,7 +1,5 @@
-import * as path from 'path';
 import { Environment, newEnvironment } from '../../../support/_helper';
 import { flag, r8 } from '../../../../src/emulator/cpu';
-import { writeFile } from 'fs';
 
 type Operand = Array<{ operand1: number, operand2: number }>;
 
@@ -9,13 +7,6 @@ const expectedResult = (value: number): number => {
     const result = (0 > value ? 100 + value : value).toString();
     return Number(`0x${result.substring(result.length - 2)}`);
 }
-
-const failedValues: Array<{ result: string, expectedResult: string, operand1: string, operand2: string, operator: string }> = [];
-
-afterAll(() => {
-    // process.stdout.write(JSON.stringify(failedValues) + '\n');
-    writeFile(path.join(process.cwd(), 'failedValues.json'), JSON.stringify(failedValues) + '\n', (err) => {})
-});
 
 describe('The glorious CPU', () => {
     function setup(operand1: number, operand2: number, substraction = false): Environment {
@@ -75,16 +66,6 @@ describe('The glorious CPU', () => {
 
             cpu.step(1);
 
-            if(cpu.state.r8[r8.a] !== expectedResult(operand1 + operand2)) {
-                failedValues.push({
-                    result: `0x${cpu.state.r8[r8.a].toString(16)}`,
-                    expectedResult: `0x${expectedResult(operand1 + operand2).toString(16)}`,
-                    operand1: `0x${operand1}`,
-                    operand2: `0x${operand2}`,
-                    operator: '+'
-                });
-            }
-
             expect(cpu.state.r8[r8.a]).toBe(expectedResult(operand1 + operand2));
         })
         it(`0x${operand1} - 0x${operand2} = 0x${expectedResult(operand1 - operand2).toString(16)}`, () => {
@@ -94,16 +75,6 @@ describe('The glorious CPU', () => {
                 true);
 
             cpu.step(1);
-
-            if (cpu.state.r8[r8.a] !== expectedResult(operand1 - operand2)) {
-                failedValues.push({
-                    result: `0x${cpu.state.r8[r8.a].toString(16)}`,
-                    expectedResult: `0x${expectedResult(operand1 + operand2).toString(16)}`,
-                    operand1: `0x${operand1}`,
-                    operand2: `0x${operand2}`,
-                    operator: '-'
-                });
-            }
 
             expect(cpu.state.r8[r8.a]).toBe(expectedResult(operand1 - operand2));
         })
