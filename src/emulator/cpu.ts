@@ -516,7 +516,6 @@ export class Cpu {
     }
 
     private opHalt(instruction: Instruction): number {
-        this.system.trap('encountered HALT');
         this.clock.increment(instruction.cycles);
 
         this.state.p = (this.state.p + instruction.len) & 0xffff;
@@ -749,6 +748,7 @@ export class Cpu {
 
         // prettier-ignore
         this.state.r8[r8.f] =
+            flag.n |
             (result === 0 ? flag.z : 0x00) |
             ((((operand1 & 0xf) - (operand2 & 0xf) - flagc) < 0) ? flag.h : 0x00) |
             (result < 0x00 ? flag.c : 0x00);
@@ -792,6 +792,7 @@ export class Cpu {
 
         // prettier-ignore
         this.state.r8[r8.f] =
+            flag.n |
             (result === 0 ? flag.z : 0x00) |
             ((((operand1 & 0xf) - (operand2 & 0xf)) < 0)  ? flag.h : 0x00) |
             (result < 0x00 ? flag.c : 0x00);
