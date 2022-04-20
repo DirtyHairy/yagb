@@ -1,6 +1,7 @@
 import { AddressingMode, Condition, Instruction, Operation, decodeInstruction } from './instruction';
 import { Interrupt, irq } from './interrupt';
 import { hex16, hex8 } from '../helper/format';
+
 import { Bus } from './bus';
 import { Clock } from './clock';
 import { Event } from 'microevent.ts';
@@ -353,7 +354,6 @@ export class Cpu {
 
         this.setArg1(instruction, result);
 
-
         // prettier-ignore
         this.state.r8[r8.f] =
             (((result & 0xff) === 0) ? flag.z : 0x00) |
@@ -414,7 +414,7 @@ export class Cpu {
         this.clock.increment(instruction.cycles);
 
         // flip flag C and reset flags N, H, do not touch flag Z
-        this.state.r8[r8.f] = (this.state.r8[r8.f] ^ flag.c) & 0x90
+        this.state.r8[r8.f] = (this.state.r8[r8.f] ^ flag.c) & 0x90;
 
         this.state.p = (this.state.p + instruction.len) & 0xffff;
         return instruction.cycles;
@@ -623,11 +623,12 @@ export class Cpu {
     private opLds(instruction: Instruction): number {
         this.clock.increment(instruction.cycles);
 
-        const result = this.getArg2(instruction)
+        const result = this.getArg2(instruction);
         const stackPointer = this.state.r16[r16.sp];
 
         this.setArg1(instruction, result);
 
+        // prettier-ignore
         this.state.r8[r8.f] =
             ((((stackPointer & 0xf) + (result & 0xf)) > 0xf) ? flag.h : 0x00) |
             ((((stackPointer & 0xff) + (result & 0xff)) > 0xff) ? flag.c : 0x00);

@@ -1,12 +1,12 @@
 import { Environment, newEnvironment } from '../../../support/_helper';
 import { flag, r8 } from '../../../../src/emulator/cpu';
 
-type Operand = Array<{ operand1: number, operand2: number }>;
+type Operand = Array<{ operand1: number; operand2: number }>;
 
 const expectedResult = (value: number): number => {
     const result = (0 > value ? 100 + value : value).toString();
     return Number(`0x${result.substring(result.length - 2)}`);
-}
+};
 
 describe('The glorious CPU', () => {
     function setup(operand1: number, operand2: number, substraction = false): Environment {
@@ -45,38 +45,40 @@ describe('The glorious CPU', () => {
     }
 
     describe.each(
-        Array.from({ length: 100 }, (_, i) => {
-            return Array.from({ length: 100 }, (_, k) => {
-                return {
-                    operand1: i,
-                    operand2: k,
-                }
-            }, [] as Operand)
-        }, [] as Operand)
+        Array.from(
+            { length: 100 },
+            (_, i) => {
+                return Array.from(
+                    { length: 100 },
+                    (_, k) => {
+                        return {
+                            operand1: i,
+                            operand2: k,
+                        };
+                    },
+                    [] as Operand
+                );
+            },
+            [] as Operand
+        )
             .reduce((acc, entry) => {
-                return  acc.concat(entry)
+                return acc.concat(entry);
             }, [] as Array<Operand>)
             .reverse()
-    )('$#. 0x$operand1 vs. 0x$operand2',({ operand1, operand2 }) => {
+    )('$#. 0x$operand1 vs. 0x$operand2', ({ operand1, operand2 }) => {
         it(`0x${operand1} + 0x${operand2} = 0x${expectedResult(operand1 + operand2).toString(16)}`, () => {
-            const { cpu } = setup(
-                Number(`0x${(operand1).toString()}`),
-                Number(`0x${(operand2).toString()}`),
-                false);
+            const { cpu } = setup(Number(`0x${operand1.toString()}`), Number(`0x${operand2.toString()}`), false);
 
             cpu.step(1);
 
             expect(cpu.state.r8[r8.a]).toBe(expectedResult(operand1 + operand2));
-        })
+        });
         it(`0x${operand1} - 0x${operand2} = 0x${expectedResult(operand1 - operand2).toString(16)}`, () => {
-            const { cpu } = setup(
-                Number(`0x${(operand1).toString()}`),
-                Number(`0x${(operand2).toString()}`),
-                true);
+            const { cpu } = setup(Number(`0x${operand1.toString()}`), Number(`0x${operand2.toString()}`), true);
 
             cpu.step(1);
 
             expect(cpu.state.r8[r8.a]).toBe(expectedResult(operand1 - operand2));
-        })
+        });
     });
 });
