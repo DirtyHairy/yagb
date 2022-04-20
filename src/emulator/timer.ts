@@ -18,10 +18,10 @@ function divider(tac: number): number {
         case 0x01:
             return 16;
 
-        case 0x10:
+        case 0x02:
             return 64;
 
-        case 0x11:
+        case 0x03:
             return 256;
     }
 
