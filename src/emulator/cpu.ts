@@ -357,6 +357,7 @@ export class Cpu {
 
         this.setArg1(instruction, result);
 
+
         // prettier-ignore
         this.state.r8[r8.f] =
             (((result & 0xff) === 0) ? flag.z : 0x00) |
