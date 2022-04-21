@@ -50,6 +50,10 @@ export class Interrupt {
         return `ie=${hex8(this.ie)} if=${hex8(this.if)}`;
     }
 
+    isPending(): boolean {
+        return (this.if & 0x1f) !== 0;
+    }
+
     private ie = 0;
     private if = 0;
 
