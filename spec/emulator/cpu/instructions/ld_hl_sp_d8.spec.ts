@@ -3,7 +3,7 @@ import { flag, r16, r8 } from '../../../../src/emulator/cpu';
 
 describe('The glorious CPU', () => {
     describe('LD HL, SP + s8', () => {
-        function setup(address:number, value : number, flags = 0): Environment {
+        function setup(address: number, value: number, flags = 0): Environment {
             const env = newEnvironment([0xf8, value]);
 
             env.cpu.state.r16[r16.sp] = address;
