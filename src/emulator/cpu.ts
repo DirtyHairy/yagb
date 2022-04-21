@@ -175,6 +175,9 @@ export class Cpu {
             case Operation.add16:
                 return this.opAdd16(instruction);
 
+            case Operation.add16s:
+                return this.opAdd16s(instruction);
+
             case Operation.and:
                 return this.opAnd(instruction);
 
@@ -378,6 +381,23 @@ export class Cpu {
             (this.state.r8[r8.f] & flag.z) |
             ((((operand1 & 0x0fff) + (operand2 & 0x0fff)) > 0x00ff) ? flag.h : 0x00) |
             (result > 0xffff ? flag.c : 0x00);
+
+        this.state.p = (this.state.p + instruction.len) & 0xffff;
+        return instruction.cycles;
+    }
+
+    private opAdd16s(instruction: Instruction): number {
+        this.clock.increment(instruction.cycles);
+
+        const operand1 = this.getArg1(instruction);
+        const operand2 = this.getArg2(instruction);
+
+        this.setArg1(instruction, operand1 + operand2);
+
+        // prettier-ignore
+        this.state.r8[r8.f] =
+            ((((operand1 & 0xf) + (operand2 & 0xf)) > 0xf) ? flag.h : 0x00) |
+            ((((operand1 & 0xff) + (operand2 & 0xff)) > 0xff) ? flag.c : 0x00);
 
         this.state.p = (this.state.p + instruction.len) & 0xffff;
         return instruction.cycles;
