@@ -38,6 +38,7 @@ export interface CpuState {
     r16: Uint16Array;
     p: number;
     interruptsEnabled: boolean;
+    halt: boolean;
 }
 
 function extendSign8(x: number): number {
@@ -65,6 +66,7 @@ export class Cpu {
             r16,
             p: 0x00,
             interruptsEnabled: false,
+            halt: false,
         };
     }
 
@@ -76,6 +78,7 @@ export class Cpu {
         this.state.p = 0x0100;
         this.state.r16[r16.sp] = 0xfffe;
         this.state.interruptsEnabled = false;
+        this.state.halt = false;
     }
 
     step(count: number): number {
@@ -91,7 +94,7 @@ export class Cpu {
                 cycles += this.dispatch(decodeInstruction(this.bus, this.state.p));
             }
 
-            this.onAfterExecute.dispatch(this.state.p);
+            if (!this.state.halt) this.onAfterExecute.dispatch(this.state.p);
         }
 
         return cycles;
@@ -110,7 +113,7 @@ export class Cpu {
                 cycles += this.dispatch(decodeInstruction(this.bus, this.state.p));
             }
 
-            this.onAfterExecute.dispatch(this.state.p);
+            if (!this.state.halt) this.onAfterExecute.dispatch(this.state.p);
         }
 
         return cycles;
@@ -123,6 +126,8 @@ export class Cpu {
     }
 
     private handleInterrupts(): number {
+        if (this.interrupt.isPending()) this.state.halt = false;
+
         if (!this.state.interruptsEnabled) return 0;
 
         const irq = this.interrupt.getNext();
@@ -153,6 +158,11 @@ export class Cpu {
     }
 
     private dispatch(instruction: Instruction): number {
+        if (this.state.halt) {
+            this.clock.increment(1);
+            return 1;
+        }
+
         this.onExecute.dispatch(this.state.p);
 
         switch (instruction.op) {
@@ -366,7 +376,7 @@ export class Cpu {
         // prettier-ignore
         this.state.r8[r8.f] =
             (this.state.r8[r8.f] & flag.z) |
-            ((((operand1 & 0xffff) + (operand2 & 0xffff)) > 0x0fff) ? flag.h : 0x00) |
+            ((((operand1 & 0x0fff) + (operand2 & 0x0fff)) > 0x0fff) ? flag.h : 0x00) |
             (result > 0xffff ? flag.c : 0x00);
 
         this.state.p = (this.state.p + instruction.len) & 0xffff;
@@ -491,8 +501,6 @@ export class Cpu {
 
         this.setArg1(instruction, result);
 
-        this.state.r8[r8.f] = 0;
-
         this.state.p = (this.state.p + instruction.len) & 0xffff;
         return instruction.cycles;
     }
@@ -516,10 +524,12 @@ export class Cpu {
     }
 
     private opHalt(instruction: Instruction): number {
-        this.clock.increment(instruction.cycles);
+        const cycles = instruction.cycles + (this.state.interruptsEnabled ? 0 : 1);
+        this.clock.increment(cycles);
 
-        this.state.p = (this.state.p + instruction.len) & 0xffff;
-        return instruction.cycles;
+        this.state.halt = true;
+        this.state.p = (this.state.p + instruction.len + (this.state.interruptsEnabled ? 0 : 1)) & 0xffff;
+        return cycles;
     }
 
     private opInc(instruction: Instruction): number {
@@ -547,8 +557,6 @@ export class Cpu {
         const result = operand + 0x01;
 
         this.setArg1(instruction, result);
-
-        this.state.r8[r8.f] = 0;
 
         this.state.p = (this.state.p + instruction.len) & 0xffff;
         return instruction.cycles;
