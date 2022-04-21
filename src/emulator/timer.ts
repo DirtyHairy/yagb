@@ -53,8 +53,8 @@ export class Timer {
         this.overflowCycle = false;
 
         this.accDiv += cpuClocks;
-        this.reg[reg.div] = (this.reg[reg.div] + ((this.accDiv / 64) | 0)) & 0xff;
-        this.accDiv %= 64;
+        this.reg[reg.div] = (this.reg[reg.div] + ((this.accDiv / 256) | 0)) & 0xff;
+        this.accDiv %= 256;
 
         let tima = this.reg[reg.tima];
         const tma = this.reg[reg.tma];

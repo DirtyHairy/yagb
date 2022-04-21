@@ -23,17 +23,17 @@ describe('Timer', () => {
         it('counts at 16 kHz', () => {
             const { bus, timer } = setup();
 
-            timer.cycle(63);
+            timer.cycle(255);
             expect(bus.read(0xff04)).toBe(0);
 
-            timer.cycle(1);
+            timer.cycle(256);
             expect(bus.read(0xff04)).toBe(1);
         });
 
-        it('handles increments of more than 64 clocks properly', () => {
+        it('handles increments of more than 256 clocks properly', () => {
             const { bus, timer } = setup();
 
-            timer.cycle(3 * 64 - 1);
+            timer.cycle(3 * 256 - 1);
             expect(bus.read(0xff04)).toBe(2);
 
             timer.cycle(1);
@@ -43,7 +43,7 @@ describe('Timer', () => {
         it('resets to zero if written', () => {
             const { bus, timer } = setup();
 
-            timer.cycle(10 * 64);
+            timer.cycle(10 * 256);
             bus.write(0xff04, 0x20);
 
             expect(bus.read(0xff04)).toBe(0);
