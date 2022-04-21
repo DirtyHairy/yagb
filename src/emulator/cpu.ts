@@ -327,7 +327,7 @@ export class Cpu {
 
         // prettier-ignore
         this.state.r8[r8.f] =
-                (result === 0 ? flag.z : 0x00) |
+                ((result & 0xff) === 0 ? flag.z : 0x00) |
                 ((((operand1 & 0xf) + (operand2 & 0xf) + flagc) > 0xf) ? flag.h : 0x00) |
                 (result > 0xff ? flag.c : 0x00);
 
@@ -346,7 +346,7 @@ export class Cpu {
 
         // prettier-ignore
         this.state.r8[r8.f] =
-                    (result === 0 ? flag.z : 0x00) |
+                    ((result & 0xff) === 0 ? flag.z : 0x00) |
                     ((((operand1 & 0xf) + (operand2 & 0xf)) > 0xf)  ? flag.h : 0x00) |
                     (result > 0xff ? flag.c : 0x00);
 
@@ -365,7 +365,7 @@ export class Cpu {
 
         // prettier-ignore
         this.state.r8[r8.f] =
-            this.state.r8[r8.f] & flag.z |
+            (this.state.r8[r8.f] & flag.z) |
             ((((operand1 & 0xffff) + (operand2 & 0xffff)) > 0x0fff) ? flag.h : 0x00) |
             (result > 0xffff ? flag.c : 0x00);
 
@@ -758,7 +758,7 @@ export class Cpu {
         // prettier-ignore
         this.state.r8[r8.f] =
             flag.n |
-            (result === 0 ? flag.z : 0x00) |
+            ((result & 0xff) === 0 ? flag.z : 0x00) |
             ((((operand1 & 0xf) - (operand2 & 0xf) - flagc) < 0) ? flag.h : 0x00) |
             (result < 0x00 ? flag.c : 0x00);
 
@@ -802,7 +802,7 @@ export class Cpu {
         // prettier-ignore
         this.state.r8[r8.f] =
             flag.n |
-            (result === 0 ? flag.z : 0x00) |
+            (this.state.r8[r8.a] === 0 ? flag.z : 0x00) |
             ((((operand1 & 0xf) - (operand2 & 0xf)) < 0)  ? flag.h : 0x00) |
             (result < 0x00 ? flag.c : 0x00);
 
