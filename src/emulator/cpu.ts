@@ -468,31 +468,16 @@ export class Cpu {
             flagC = this.state.r8[r8.f] & flag.c,
             flagH = this.state.r8[r8.f] & flag.h;
 
-        let setFlagC = 0;
-
-        if (flagH || (!flagN && (operand & 0xf) > 0x09)) {
-            if (flagN) {
-                operand -= 0x06;
-            } else {
-                operand += 0x06;
-            }
-        }
-
-        if (flagC || (!flagN && operand > 0x9f)) {
-            if (flagN) {
-                operand -= 0x60;
-            } else {
-                operand += 0x60;
-            }
-
-            setFlagC = flag.c;
+        if (flagN) {
+            if (flagH) operand -= 0x06;
+            if (flagC) operand -= 0x60;
+        } else {
+            if (flagH || (operand & 0x0f) > 0x09) operand += 0x06;
+            if (flagC || operand > 0x9f) operand += 0x60;
         }
 
         this.state.r8[r8.a] = operand;
-        const setFlagZ = this.state.r8[r8.a] === 0 ? flag.z : 0;
-
-        this.state.r8[r8.f] &= ~(flag.h | flag.z | flag.c);
-        this.state.r8[r8.f] |= setFlagC | setFlagZ;
+        this.state.r8[r8.f] = (this.state.r8[r8.f] & flag.n) | (this.state.r8[r8.a] === 0 ? flag.z : 0) | (flagC || operand > 0xff ? flag.c : 0);
 
         this.state.p = (this.state.p + instruction.len) & 0xffff;
         return instruction.cycles;
