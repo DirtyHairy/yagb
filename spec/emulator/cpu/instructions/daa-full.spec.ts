@@ -140,7 +140,7 @@ describe('The glorious CPU', () => {
             it('subtraction', () => {
                 const { cpu } = setup(Number(`0x${operand1.toString()}`), Number(`0x${operand2.toString()}`), true);
 
-                const expectedValue = operand1 + operand2 < 0 ? flag.c : 0x00;
+                const expectedValue = operand1 - operand2 < 0 ? flag.c : 0x00;
 
                 cpu.step(1);
 
