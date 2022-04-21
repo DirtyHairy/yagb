@@ -276,7 +276,7 @@ export class Ppu {
 
                 if (this.spriteQueue.positionX[i] < -7) {
                     // Offscreen? -> skip it and start with the next sprite
-                    firstRenderingSprite = nextPendingSprite = i;
+                    firstRenderingSprite = nextPendingSprite = i + 1;
                 } else {
                     // Starts early? Account for it and adjust for the pixels that lie off-screen
                     this.spriteCounter[i] = -this.spriteQueue.positionX[i];
