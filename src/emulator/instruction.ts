@@ -1,5 +1,5 @@
+import { extendSign8, r16, r8 } from './cpu';
 import { hex16, hex8 } from '../helper/format';
-import { r16, r8 } from './cpu';
 
 import { Bus } from './bus';
 
@@ -328,10 +328,10 @@ function disassembleOperationParameter(bus: Bus, address: number, par: number, m
             return `(FF00 + ${hex8(bus.read((address + 1) & 0xffff))})`;
 
         case AddressingMode.imm8sign:
-            return `${hex8(bus.read((address + 1) & 0xffff))}`;
+            return `${hex8(extendSign8(bus.read((address + 1) & 0xffff)))}`;
 
         case AddressingMode.imm8stack:
-            return `SP + ${hex8(bus.read((address + 1) & 0xffff))}`;
+            return `SP + ${hex8(extendSign8(bus.read((address + 1) & 0xffff)))}`;
 
         case AddressingMode.reg8:
             return `${disassembleR8(par)}`;

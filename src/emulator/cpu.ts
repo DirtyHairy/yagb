@@ -41,7 +41,7 @@ export interface CpuState {
     halt: boolean;
 }
 
-function extendSign8(x: number): number {
+export function extendSign8(x: number): number {
     return x & 0x80 ? -((~x + 0x01) & 0xff) : x;
 }
 
