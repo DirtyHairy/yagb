@@ -125,7 +125,7 @@ describe('The glorious CPU', () => {
 
             cpu.step(1);
 
-            expect(cpu.state.r8[r8.a] & flag.h).toBe(0);
+            expect(cpu.state.r8[r8.f] & flag.h).toBe(0);
         });
         describe('sets C correctly', () => {
             it('addition', () => {
