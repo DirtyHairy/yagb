@@ -47,6 +47,13 @@ const enum stat {
     sourceModeHblank = 0x08,
 }
 
+function clockPenaltyForSprite(scx: number, x: number): number {
+    let tmp = (x + scx + 8) % 8;
+    if (tmp > 5) tmp = 5;
+
+    return 11 - tmp;
+}
+
 export class Ppu {
     constructor(private system: System, private interrupt: Interrupt) {}
 
@@ -96,6 +103,9 @@ export class Ppu {
 
         this.frontBuffer.fill(PALETTE_CLASSIC[4]);
         this.backBuffer.fill(PALETTE_CLASSIC[4]);
+
+        this.lineRendered = false;
+        this.mode3ExtraClocks = 0;
     }
 
     cycle(systemClocks: number): void {
@@ -141,6 +151,8 @@ export class Ppu {
 
                     this.mode = ppuMode.draw;
                     this.clockInMode = 0;
+                    this.lineRendered = false;
+                    this.mode3ExtraClocks = 0;
 
                     return consumed;
                 } else {
@@ -149,12 +161,21 @@ export class Ppu {
                 }
 
             case ppuMode.draw:
-                if (clocks + this.clockInMode >= 172) {
-                    const consumed = 172 - this.clockInMode;
+                if (clocks + this.clockInMode >= 172 + this.mode3ExtraClocks) {
+                    const consumed = 172 + this.mode3ExtraClocks - this.clockInMode;
+                    this.clockInMode += consumed;
 
-                    this.mode = ppuMode.hblank;
-                    this.clockInMode = 0;
-                    this.renderLine();
+                    if (!this.lineRendered) {
+                        this.renderLine();
+                        this.lineRendered = true;
+                    }
+
+                    // renderLine may have determined a penalty for this line, so recheck whether
+                    // we are really ready to switch mode
+                    if (this.clockInMode === 172 + this.mode3ExtraClocks) {
+                        this.mode = ppuMode.hblank;
+                        this.clockInMode = 0;
+                    }
 
                     return consumed;
                 } else {
@@ -163,7 +184,7 @@ export class Ppu {
                 }
 
             case ppuMode.hblank:
-                if (clocks + this.clockInMode >= 204) {
+                if (clocks + this.clockInMode >= 204 - this.mode3ExtraClocks) {
                     const consumed = 204 - this.clockInMode;
 
                     this.scanline++;
@@ -250,6 +271,9 @@ export class Ppu {
 
         let pixelAddress = 160 * this.scanline;
 
+        // see pandocs; penalty from background shift
+        this.mode3ExtraClocks = backgroundX % 8;
+
         // The index of the first (if any) sprite that is currently rendered.
         // No sprites are pending if this is equal to nextPendingSprite.
         let firstRenderingSprite = 0;
@@ -283,6 +307,9 @@ export class Ppu {
                     this.spriteQueue.data[i] <<= this.spriteCounter[i];
 
                     nextPendingSprite = i + 1;
+
+                    // Add penalty from sprite (see pandocs)
+                    this.mode3ExtraClocks += clockPenaltyForSprite(backgroundX, this.spriteQueue.positionX[i]);
                 }
             }
         }
@@ -292,6 +319,10 @@ export class Ppu {
             while (hasSprites && nextPendingSprite < this.spriteQueue.length && this.spriteQueue.positionX[nextPendingSprite] === x) {
                 // Reset its counter and add it to the range of rendered sprites
                 this.spriteCounter[nextPendingSprite] = 0;
+
+                // Add penalty from sprite (see pandocs)
+                this.mode3ExtraClocks += clockPenaltyForSprite(backgroundX, this.spriteQueue.positionX[nextPendingSprite]);
+
                 nextPendingSprite++;
             }
 
@@ -461,4 +492,7 @@ export class Ppu {
 
     private spriteQueue = new SpriteQueue(this.vram, this.oam, this.paletteOB0, this.paletteOB1);
     private spriteCounter = new Uint8Array(10);
+
+    private lineRendered = false;
+    private mode3ExtraClocks = 0;
 }
