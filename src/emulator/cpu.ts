@@ -406,7 +406,7 @@ export class Cpu {
     private opAnd(instruction: Instruction): number {
         this.clock.increment(instruction.cycles);
 
-        this.state.r8[r8.a] &= this.getArg1(instruction);
+        this.state.r8[r8.a] = (this.state.r8[r8.a] & this.getArg1(instruction)) & 0xff;
         this.state.r8[r8.f] = flag.h | (this.state.r8[r8.a] === 0 ? flag.z : 0x00);
 
         this.state.p = (this.state.p + instruction.len) & 0xffff;
@@ -490,22 +490,22 @@ export class Cpu {
     private opDaa(instruction: Instruction): number {
         this.clock.increment(instruction.cycles);
 
-        let operand = this.state.r8[r8.a];
+        let result = this.state.r8[r8.a];
 
         const flagN = this.state.r8[r8.f] & flag.n,
             flagC = this.state.r8[r8.f] & flag.c,
             flagH = this.state.r8[r8.f] & flag.h;
 
         if (flagN) {
-            if (flagH) operand -= 0x06;
-            if (flagC) operand -= 0x60;
+            if (flagH) result -= 0x06;
+            if (flagC) result -= 0x60;
         } else {
-            if (flagH || (operand & 0x0f) > 0x09) operand += 0x06;
-            if (flagC || operand > 0x9f) operand += 0x60;
+            if (flagH || (result & 0x0f) > 0x09) result += 0x06;
+            if (flagC || result > 0x9f) result += 0x60;
         }
 
-        this.state.r8[r8.a] = operand;
-        this.state.r8[r8.f] = (this.state.r8[r8.f] & flag.n) | (this.state.r8[r8.a] === 0 ? flag.z : 0) | (flagC || operand > 0xff ? flag.c : 0);
+        this.state.r8[r8.a] = result & 0xff;
+        this.state.r8[r8.f] = (this.state.r8[r8.f] & flag.n) | (this.state.r8[r8.a] === 0 ? flag.z : 0) | (flagC || result > 0xff ? flag.c : 0);
 
         this.state.p = (this.state.p + instruction.len) & 0xffff;
         return instruction.cycles;
@@ -624,7 +624,7 @@ export class Cpu {
         this.clock.increment(instruction.cycles);
 
         this.setArg1(instruction, this.getArg2(instruction));
-        this.state.r16[r16.hl] = this.state.r16[r16.hl] - 0x01;
+        this.state.r16[r16.hl] = (this.state.r16[r16.hl] - 0x01) & 0xffff;
 
         this.state.p = (this.state.p + instruction.len) & 0xffff;
         return instruction.cycles;
@@ -634,7 +634,7 @@ export class Cpu {
         this.clock.increment(instruction.cycles);
 
         this.setArg1(instruction, this.getArg2(instruction));
-        this.state.r16[r16.hl] = this.state.r16[r16.hl] + 0x01;
+        this.state.r16[r16.hl] = (this.state.r16[r16.hl] + 0x01) & 0xffff;
 
         this.state.p = (this.state.p + instruction.len) & 0xffff;
         return instruction.cycles;
@@ -667,7 +667,7 @@ export class Cpu {
     private opOr(instruction: Instruction): number {
         this.clock.increment(instruction.cycles);
 
-        this.state.r8[r8.a] |= this.getArg1(instruction);
+        this.state.r8[r8.a] = (this.state.r8[r8.a] | this.getArg1(instruction)) & 0xff;
         this.state.r8[r8.f] = this.state.r8[r8.a] === 0 ? flag.z : 0x00;
 
         this.state.p = (this.state.p + instruction.len) & 0xffff;
@@ -728,7 +728,7 @@ export class Cpu {
 
         // prettier-ignore
         this.state.r8[r8.f] =
-                    ((operand & 0x80) >>> 3);
+                    ((operand & flag.z) >>> 3);
 
         this.state.p = (this.state.p + instruction.len) & 0xffff;
         return instruction.cycles;
@@ -738,12 +738,13 @@ export class Cpu {
         this.clock.increment(instruction.cycles);
 
         const operand = this.state.r8[r8.a];
+        const result = (operand << 1) | ((this.state.r8[r8.f] & flag.c) >>> 4);
 
-        this.state.r8[r8.a] = (operand << 1) | ((this.state.r8[r8.f] & flag.c) >>> 4);
+        this.state.r8[r8.a] = result & 0xff;
 
         // prettier-ignore
         this.state.r8[r8.f] =
-            ((operand & 0x80) >>> 3);
+            ((operand & flag.z) >>> 3);
 
         this.state.p = (this.state.p + instruction.len) & 0xffff;
         return instruction.cycles;
@@ -768,8 +769,9 @@ export class Cpu {
         this.clock.increment(instruction.cycles);
 
         const operand = this.state.r8[r8.a];
+        const result = (operand >>> 1) | ((this.state.r8[r8.f] & flag.c) << 3);
 
-        this.state.r8[r8.a] = (operand >>> 1) | ((this.state.r8[r8.f] & flag.c) << 3);
+        this.state.r8[r8.a] = result & 0xff;
 
         // prettier-ignore
         this.state.r8[r8.f] =
@@ -826,7 +828,7 @@ export class Cpu {
         const operand2 = this.getArg1(instruction);
         const result = operand1 - operand2;
 
-        this.state.r8[r8.a] = result;
+        this.state.r8[r8.a] = result & 0xff;
 
         // prettier-ignore
         this.state.r8[r8.f] =
@@ -842,7 +844,7 @@ export class Cpu {
     private opXor(instruction: Instruction): number {
         this.clock.increment(instruction.cycles);
 
-        this.state.r8[r8.a] = this.state.r8[r8.a] ^ this.getArg1(instruction);
+        this.state.r8[r8.a] = (this.state.r8[r8.a] ^ this.getArg1(instruction)) & 0xff;
         this.state.r8[r8.f] = this.state.r8[r8.a] ? 0x00 : flag.z;
 
         this.state.p = (this.state.p + instruction.len) & 0xffff;
@@ -931,7 +933,7 @@ export class Cpu {
         // prettier-ignore
         this.state.r8[r8.f] =
             ((result & 0xff) === 0 ? flag.z : 0x00) |
-            ((operand & 0x80) >>> 3);
+            ((operand & flag.z) >>> 3);
 
         this.state.p = (this.state.p + instruction.len) & 0xffff;
         return instruction.cycles;
