@@ -80,5 +80,72 @@ describe('The glorious CPU', () => {
 
             expect(cpu.state.r8[r8.a]).toBe(expectedResult(operand1 - operand2));
         });
+        describe('sets Z correctly', () => {
+            it('addition', () => {
+                const { cpu } = setup(Number(`0x${operand1.toString()}`), Number(`0x${operand2.toString()}`), false);
+
+                const expectedValue = expectedResult(operand1 + operand2) === 0x00 ? flag.z : 0x00;
+
+                cpu.step(1);
+
+                expect(cpu.state.r8[r8.f] & flag.z).toBe(expectedValue);
+            })
+            it('subtraction', () => {
+                const { cpu } = setup(Number(`0x${operand1.toString()}`), Number(`0x${operand2.toString()}`), true);
+
+                const expectedValue = expectedResult(operand1 - operand2) === 0x00 ? flag.z : 0x00;
+
+                cpu.step(1);
+
+                expect(cpu.state.r8[r8.f] & flag.z).toBe(expectedValue);
+            })
+        });
+        describe('does not affect N', () => {
+            it('addition', () => {
+                const { cpu } = setup(Number(`0x${operand1.toString()}`), Number(`0x${operand2.toString()}`), false);
+
+                const expectedValue = cpu.state.r8[r8.f] & flag.n;
+
+                cpu.step(1);
+
+                expect(cpu.state.r8[r8.f] & flag.n).toBe(expectedValue);
+            })
+            it('subtraction', () => {
+                const { cpu } = setup(Number(`0x${operand1.toString()}`), Number(`0x${operand2.toString()}`), true);
+
+                const expectedValue = cpu.state.r8[r8.f] & flag.n;
+
+                cpu.step(1);
+
+                expect(cpu.state.r8[r8.f] & flag.n).toBe(expectedValue);
+            })
+        });
+        it('clears H', () => {
+            const { cpu } = setup(Number(`0x${operand1.toString()}`), Number(`0x${operand2.toString()}`), false);
+
+            cpu.step(1);
+
+            expect(cpu.state.r8[r8.a] & flag.h).toBe(0);
+        });
+        describe('sets C correctly', () => {
+            it('addition', () => {
+                const { cpu } = setup(Number(`0x${operand1.toString()}`), Number(`0x${operand2.toString()}`), false);
+
+                const expectedValue = operand1 + operand2 > 99 ? flag.c : 0x00;
+
+                cpu.step(1);
+
+                expect(cpu.state.r8[r8.f] & flag.c).toBe(expectedValue);
+            })
+            it('subtraction', () => {
+                const { cpu } = setup(Number(`0x${operand1.toString()}`), Number(`0x${operand2.toString()}`), true);
+
+                const expectedValue = operand1 + operand2 < 0 ? flag.c : 0x00;
+
+                cpu.step(1);
+
+                expect(cpu.state.r8[r8.f] & flag.c).toBe(expectedValue);
+            })
+        });
     });
 });
