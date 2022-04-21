@@ -89,7 +89,7 @@ describe('The glorious CPU', () => {
                 cpu.step(1);
 
                 expect(cpu.state.r8[r8.f] & flag.z).toBe(expectedValue);
-            })
+            });
             it('subtraction', () => {
                 const { cpu } = setup(Number(`0x${operand1.toString()}`), Number(`0x${operand2.toString()}`), true);
 
@@ -98,7 +98,7 @@ describe('The glorious CPU', () => {
                 cpu.step(1);
 
                 expect(cpu.state.r8[r8.f] & flag.z).toBe(expectedValue);
-            })
+            });
         });
         describe('does not affect N', () => {
             it('addition', () => {
@@ -109,7 +109,7 @@ describe('The glorious CPU', () => {
                 cpu.step(1);
 
                 expect(cpu.state.r8[r8.f] & flag.n).toBe(expectedValue);
-            })
+            });
             it('subtraction', () => {
                 const { cpu } = setup(Number(`0x${operand1.toString()}`), Number(`0x${operand2.toString()}`), true);
 
@@ -118,7 +118,7 @@ describe('The glorious CPU', () => {
                 cpu.step(1);
 
                 expect(cpu.state.r8[r8.f] & flag.n).toBe(expectedValue);
-            })
+            });
         });
         it('clears H', () => {
             const { cpu } = setup(Number(`0x${operand1.toString()}`), Number(`0x${operand2.toString()}`), false);
@@ -136,7 +136,7 @@ describe('The glorious CPU', () => {
                 cpu.step(1);
 
                 expect(cpu.state.r8[r8.f] & flag.c).toBe(expectedValue);
-            })
+            });
             it('subtraction', () => {
                 const { cpu } = setup(Number(`0x${operand1.toString()}`), Number(`0x${operand2.toString()}`), true);
 
@@ -145,7 +145,7 @@ describe('The glorious CPU', () => {
                 cpu.step(1);
 
                 expect(cpu.state.r8[r8.f] & flag.c).toBe(expectedValue);
-            })
+            });
         });
     });
 });
