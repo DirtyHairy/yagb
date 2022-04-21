@@ -594,7 +594,7 @@ apply(0x1f, { op: Operation.rra, cycles: 1, len: 1 });
     apply((i << 4) | 0x09, { op: Operation.add16, par1: r16.hl, mode1: AddressingMode.reg16, par2: reg, mode2: AddressingMode.reg16, cycles: 2, len: 1 });
     apply((i << 4) | 0x0b, { op: Operation.dec16, par1: reg, mode1: AddressingMode.reg16, cycles: 2, len: 1 });
 });
-apply(0xe8, { op: Operation.dec16, par1: r16.sp, mode1: AddressingMode.reg16, par2: AddressingMode.imm8sign, cycles: 2, len: 1 });
+apply(0xe8, { op: Operation.add16, par1: r16.sp, mode1: AddressingMode.reg16, mode2: AddressingMode.imm8sign, cycles: 2, len: 1 });
 
 [r16.bc, r16.de, r16.hl, r16.af].forEach((reg, i) => {
     apply(((i + 0xc) << 4) | 0x05, { op: Operation.push, par1: reg, mode1: AddressingMode.reg16, cycles: 4, len: 1 });
