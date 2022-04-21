@@ -414,7 +414,7 @@ export class Cpu {
         this.clock.increment(instruction.cycles);
 
         // flip flag C and reset flags N, H, do not touch flag Z
-        this.state.r8[r8.f] = (this.state.r8[r8.f] ^ flag.c) & 0x90;
+        this.state.r8[r8.f] = (this.state.r8[r8.f] ^ flag.c) & (flag.z | flag.c);
 
         this.state.p = (this.state.p + instruction.len) & 0xffff;
         return instruction.cycles;
