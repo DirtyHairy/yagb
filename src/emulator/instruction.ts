@@ -469,7 +469,7 @@ apply(0xd9, { op: Operation.reti, cycles: 4, len: 1 });
 apply(0x87, { op: Operation.add, par1: r8.a, mode1: AddressingMode.reg8, par2: r8.a, mode2: AddressingMode.reg8, cycles: 1, len: 1 });
 apply(0x8f, { op: Operation.adc, par1: r8.a, mode1: AddressingMode.reg8, par2: r8.a, mode2: AddressingMode.reg8, cycles: 1, len: 1 });
 apply(0x97, { op: Operation.sub, par1: r8.a, mode1: AddressingMode.reg8, cycles: 1, len: 1 });
-apply(0x9f, { op: Operation.sub, par1: r8.a, mode1: AddressingMode.reg8, par2: r8.a, mode2: AddressingMode.reg8, cycles: 1, len: 1 });
+apply(0x9f, { op: Operation.sbc, par1: r8.a, mode1: AddressingMode.reg8, par2: r8.a, mode2: AddressingMode.reg8, cycles: 1, len: 1 });
 apply(0xa7, { op: Operation.and, par1: r8.a, mode1: AddressingMode.reg8, cycles: 1, len: 1 });
 apply(0xaf, { op: Operation.xor, par1: r8.a, mode1: AddressingMode.reg8, cycles: 1, len: 1 });
 apply(0xb7, { op: Operation.or, par1: r8.a, mode1: AddressingMode.reg8, cycles: 1, len: 1 });
