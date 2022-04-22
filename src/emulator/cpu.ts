@@ -643,10 +643,10 @@ export class Cpu {
     private opLds(instruction: Instruction): number {
         this.clock.increment(instruction.cycles);
 
-        const operand = this.getArg2(instruction);
+        const operand = this.getArg1(instruction);
         const stackPointer = this.state.r16[r16.sp];
 
-        this.setArg1(instruction, stackPointer + operand);
+        this.state.r16[r16.hl] = stackPointer + operand;
 
         // prettier-ignore
         this.state.r8[r8.f] =
@@ -1047,10 +1047,6 @@ export class Cpu {
             }
 
             case AddressingMode.imm8sign: {
-                return extendSign8(this.bus.read((this.state.p + 0x01) & 0xffff));
-            }
-
-            case AddressingMode.imm8stack: {
                 return extendSign8(this.bus.read((this.state.p + 0x01) & 0xffff));
             }
 

@@ -72,7 +72,6 @@ export const enum AddressingMode {
     imm8,
     imm8io,
     imm8sign,
-    imm8stack,
     reg8,
     reg8io,
 
@@ -224,7 +223,7 @@ function disassembleOperation(operation: Operation): string {
             return 'LDI';
 
         case Operation.lds:
-            return 'LD';
+            return 'LD HL, SP +';
 
         case Operation.nop:
             return 'NOP';
@@ -331,9 +330,6 @@ function disassembleOperationParameter(bus: Bus, address: number, par: number, m
 
         case AddressingMode.imm8sign:
             return `${hex8(extendSign8(bus.read((address + 1) & 0xffff)))}`;
-
-        case AddressingMode.imm8stack:
-            return `SP + ${hex8(extendSign8(bus.read((address + 1) & 0xffff)))}`;
 
         case AddressingMode.reg8:
             return `${disassembleR8(par)}`;
@@ -516,7 +512,7 @@ apply(0xea, { op: Operation.ld, mode1: AddressingMode.imm16ind8, par2: r8.a, mod
 apply(0xfa, { op: Operation.ld, par1: r8.a, mode1: AddressingMode.reg8, mode2: AddressingMode.imm16ind8, cycles: 4, len: 3 });
 
 apply(0x08, { op: Operation.ld, mode1: AddressingMode.imm16ind16, par2: r16.sp, mode2: AddressingMode.reg16, cycles: 5, len: 3 });
-apply(0xf8, { op: Operation.lds, par1: r16.hl, mode1: AddressingMode.reg16, mode2: AddressingMode.imm8stack, cycles: 3, len: 2 });
+apply(0xf8, { op: Operation.lds, mode1: AddressingMode.imm8sign, cycles: 3, len: 2 });
 apply(0xf9, { op: Operation.ld, par1: r16.sp, mode1: AddressingMode.reg16, par2: r16.hl, mode2: AddressingMode.reg16, cycles: 2, len: 1 });
 
 // 0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47

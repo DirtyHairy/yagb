@@ -79,6 +79,8 @@ describe('The opcode instructions', () => {
                 entries: [
                     { op: 'JR s8 (s8 > 0)', expected: 'JR 0x08', opcode: 0x18, par1: 0x8, par2: 0x00 },
                     { op: 'JR s8 (s8 < 0)', expected: 'JR -0x44', opcode: 0x18, par1: 0xbc, par2: 0x00 },
+                    { op: 'LD HL, SP+s8 (s8 > 0)', expected: 'LD HL, SP + 0x08', opcode: 0xf8, par1: 0x08, par2: 0x00 },
+                    { op: 'LD HL, SP+s8 (s8 < 0)', expected: 'LD HL, SP + -0x44', opcode: 0xf8, par1: 0xbc, par2: 0x00 },
                 ],
             },
             {
@@ -202,13 +204,6 @@ describe('The opcode instructions', () => {
                 entries: [
                     { op: 'ADD SP, s8 (s8 > 0)', expected: 'ADD SP, 0x08', opcode: 0xe8, par1: 0x08, par2: 0x00 },
                     { op: 'ADD SP, s8 (s8 < 0)', expected: 'ADD SP, -0x44', opcode: 0xe8, par1: 0xbc, par2: 0x00 },
-                ],
-            },
-            {
-                description: 'with first reg16 value and second imm8stack value',
-                entries: [
-                    { op: 'LD HL, SP+s8 (s8 > 0)', expected: 'LD HL, SP + 0x08', opcode: 0xf8, par1: 0x08, par2: 0x00 },
-                    { op: 'LD HL, SP+s8 (s8 < 0)', expected: 'LD HL, SP + -0x44', opcode: 0xf8, par1: 0xbc, par2: 0x00 },
                 ],
             },
             {
