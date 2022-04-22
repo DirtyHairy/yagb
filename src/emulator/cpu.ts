@@ -831,7 +831,7 @@ export class Cpu {
         // prettier-ignore
         this.state.r8[r8.f] =
             flag.n |
-            (((result & 0xff) === 0x00) ? flag.z : 0x00) |
+            ((this.state.r8[r8.a] === 0x00) ? flag.z : 0x00) |
             ((((operand1 & 0xf) - (operand2 & 0xf)) < 0x00) ? flag.h : 0x00) |
             ((result < 0x00) ? flag.c : 0x00);
 
