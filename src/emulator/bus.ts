@@ -30,6 +30,11 @@ export class Bus {
         this.writeMap[address](address, value);
     }
 
+    write16(address: number, value: number): void {
+        this.write(address, value >>> 8);
+        this.write(address - 1, value & 0xff);
+    }
+
     read16(address: number): number {
         return this.read(address) | (this.read((address + 1) & 0xffff) << 8);
     }

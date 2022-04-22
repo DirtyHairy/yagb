@@ -72,16 +72,28 @@ describe('The opcode instructions', () => {
                     { op: 'OR d8', expected: 'OR 0x08', opcode: 0xf6, par1: 0x08, par2: 0x00 },
                     { op: 'XOR d8', expected: 'XOR 0x08', opcode: 0xee, par1: 0x08, par2: 0x00 },
                     { op: 'CP d8', expected: 'CP 0x08', opcode: 0xfe, par1: 0x08, par2: 0x00 },
-                    { op: 'JR d8', expected: 'JR 0x08', opcode: 0x18, par1: 0x08, par2: 0x00 },
                 ],
             },
             {
-                description: 'with one imm8 value and condition',
+                description: 'with one imm8sign value',
                 entries: [
-                    { op: 'JR NZ, d8', expected: 'JR NZ, 0x08', opcode: 0x20, par1: 0x08, par2: 0x00 },
-                    { op: 'JR Z, d8', expected: 'JR Z, 0x08', opcode: 0x28, par1: 0x08, par2: 0x00 },
-                    { op: 'JR NC, d8', expected: 'JR NC, 0x08', opcode: 0x30, par1: 0x08, par2: 0x00 },
-                    { op: 'JR C, d8', expected: 'JR C, 0x08', opcode: 0x38, par1: 0x08, par2: 0x00 },
+                    { op: 'JR s8 (s8 > 0)', expected: 'JR 0x08', opcode: 0x18, par1: 0x8, par2: 0x00 },
+                    { op: 'JR s8 (s8 < 0)', expected: 'JR -0x44', opcode: 0x18, par1: 0xbc, par2: 0x00 },
+                    { op: 'LD HL, SP+s8 (s8 > 0)', expected: 'LD HL, SP + 0x08', opcode: 0xf8, par1: 0x08, par2: 0x00 },
+                    { op: 'LD HL, SP+s8 (s8 < 0)', expected: 'LD HL, SP + -0x44', opcode: 0xf8, par1: 0xbc, par2: 0x00 },
+                ],
+            },
+            {
+                description: 'with one imm8sign value and condition',
+                entries: [
+                    { op: 'JR NZ, s8 (s8 > 0)', expected: 'JR NZ, 0x08', opcode: 0x20, par1: 0x8, par2: 0x00 },
+                    { op: 'JR NZ, s8 (s8 < 0)', expected: 'JR NZ, -0x44', opcode: 0x20, par1: 0xbc, par2: 0x00 },
+                    { op: 'JR Z, s8 (s8 > 0)', expected: 'JR Z, 0x08', opcode: 0x28, par1: 0x8, par2: 0x00 },
+                    { op: 'JR Z, s8 (s8 < 0)', expected: 'JR Z, -0x44', opcode: 0x28, par1: 0xbc, par2: 0x00 },
+                    { op: 'JR NC, s8 (s8 > 0)', expected: 'JR NC, 0x08', opcode: 0x30, par1: 0x8, par2: 0x00 },
+                    { op: 'JR NC, s8 (s8 < 0)', expected: 'JR NC, -0x44', opcode: 0x30, par1: 0xbc, par2: 0x00 },
+                    { op: 'JR C, s8 (s8 > 0)', expected: 'JR C, 0x08', opcode: 0x38, par1: 0x8, par2: 0x00 },
+                    { op: 'JR C, s8 (s8 < 0)', expected: 'JR C, -0x44', opcode: 0x38, par1: 0xbc, par2: 0x00 },
                 ],
             },
             {
@@ -144,16 +156,16 @@ describe('The opcode instructions', () => {
             {
                 description: 'with first reg8 value and second imm8 value',
                 entries: [
-                    { op: 'ADD A, d8', expected: 'ADD A, 0x00', opcode: 0xc6, par1: 0x00, par2: 0x00 },
-                    { op: 'ADC A, d8', expected: 'ADC A, 0x00', opcode: 0xce, par1: 0x00, par2: 0x00 },
-                    { op: 'SBC A, d8', expected: 'SBC A, 0x00', opcode: 0xde, par1: 0x00, par2: 0x00 },
-                    { op: 'LD B, d8', expected: 'LD B, 0x00', opcode: 0x06, par1: 0x00, par2: 0x00 },
-                    { op: 'LD C, d8', expected: 'LD C, 0x00', opcode: 0x0e, par1: 0x00, par2: 0x00 },
+                    { op: 'ADD A, d8', expected: 'ADD A, 0x08', opcode: 0xc6, par1: 0x08, par2: 0x00 },
+                    { op: 'ADC A, d8', expected: 'ADC A, 0x08', opcode: 0xce, par1: 0x08, par2: 0x00 },
+                    { op: 'SBC A, d8', expected: 'SBC A, 0x08', opcode: 0xde, par1: 0x08, par2: 0x00 },
+                    { op: 'LD B, d8', expected: 'LD B, 0x08', opcode: 0x06, par1: 0x08, par2: 0x00 },
+                    { op: 'LD C, d8', expected: 'LD C, 0x08', opcode: 0x0e, par1: 0x08, par2: 0x00 },
                 ],
             },
             {
                 description: 'with first reg8 value and second imm8io value',
-                entries: [{ op: 'LD A, (FF00 + a8)', expected: 'LD A, (FF00 + 0x00)', opcode: 0xf0, par1: 0x00, par2: 0x00 }],
+                entries: [{ op: 'LD A, (FF00 + a8)', expected: 'LD A, (FF00 + 0x08)', opcode: 0xf0, par1: 0x08, par2: 0x00 }],
             },
             {
                 description: 'with first reg8 value and second reg8 value',
@@ -170,7 +182,7 @@ describe('The opcode instructions', () => {
             },
             {
                 description: 'with first reg8 value and second imm16ind8 value',
-                entries: [{ op: 'LD A, (a16)', expected: 'LD A, (0x0000)', opcode: 0xfa, par1: 0x00, par2: 0x00 }],
+                entries: [{ op: 'LD A, (a16)', expected: 'LD A, (0xcedb)', opcode: 0xfa, par1: 0xdb, par2: 0xce }],
             },
             {
                 description: 'with first reg8 value and second reg16ind8 value',
@@ -184,19 +196,15 @@ describe('The opcode instructions', () => {
                 entries: [{ op: 'LD (FF00 + C), A', expected: 'LD (FF00 + C), A', opcode: 0xe2, par1: 0x00, par2: 0x00 }],
             },
             {
-                description: 'with first imm16ind8 value and second reg8 value',
-                entries: [{ op: 'LD (a16), A', expected: 'LD (0x0000), A', opcode: 0xea, par1: 0x00, par2: 0x00 }],
-            },
-            {
-                description: 'with first reg16ind8 value and second reg8 value',
-                entries: [
-                    { op: 'LDI (HL), A', expected: 'LDI (HL), A', opcode: 0x22, par1: 0x00, par2: 0x00 },
-                    { op: 'LDD (HL), A', expected: 'LDD (HL), A', opcode: 0x32, par1: 0x00, par2: 0x00 },
-                ],
-            },
-            {
                 description: 'with first reg16 value and second imm16 value',
-                entries: [{ op: 'LD BC, d16', expected: 'LD BC, 0x0000', opcode: 0x01, par1: 0x00, par2: 0x00 }],
+                entries: [{ op: 'LD BC, d16', expected: 'LD BC, 0xcedb', opcode: 0x01, par1: 0xdb, par2: 0xce }],
+            },
+            {
+                description: 'with first reg16 value and second imm8sign value',
+                entries: [
+                    { op: 'ADD SP, s8 (s8 > 0)', expected: 'ADD SP, 0x08', opcode: 0xe8, par1: 0x08, par2: 0x00 },
+                    { op: 'ADD SP, s8 (s8 < 0)', expected: 'ADD SP, -0x44', opcode: 0xe8, par1: 0xbc, par2: 0x00 },
+                ],
             },
             {
                 description: 'with first reg16 value and second reg16 value',
@@ -208,8 +216,19 @@ describe('The opcode instructions', () => {
                 ],
             },
             {
+                description: 'with first imm16ind8 value and second reg8 value',
+                entries: [{ op: 'LD (a16), A', expected: 'LD (0xcedb), A', opcode: 0xea, par1: 0xdb, par2: 0xce }],
+            },
+            {
                 description: 'with first reg16ind8 value and second imm8 value',
-                entries: [{ op: 'LD (HL), d8', expected: 'LD (HL), 0x00', opcode: 0x36, par1: 0x00, par2: 0x00 }],
+                entries: [{ op: 'LD (HL), d8', expected: 'LD (HL), 0x08', opcode: 0x36, par1: 0x08, par2: 0x00 }],
+            },
+            {
+                description: 'with first reg16ind8 value and second reg8 value',
+                entries: [
+                    { op: 'LDI (HL), A', expected: 'LDI (HL), A', opcode: 0x22, par1: 0x00, par2: 0x00 },
+                    { op: 'LDD (HL), A', expected: 'LDD (HL), A', opcode: 0x32, par1: 0x00, par2: 0x00 },
+                ],
             },
             {
                 description: 'prefix cb',

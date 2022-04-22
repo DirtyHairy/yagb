@@ -7,10 +7,8 @@ describe('The glorious CPU', () => {
         function setup(r16bc: number): Environment {
             const env = newEnvironment([0xc1]);
 
-            env.cpu.state.r16[r16.sp] = (env.cpu.state.r16[r16.sp] - 1) & 0xffff;
-            env.bus.write(env.cpu.state.r16[r16.sp], r16bc >>> 8);
-            env.cpu.state.r16[r16.sp] = (env.cpu.state.r16[r16.sp] - 1) & 0xffff;
-            env.bus.write(env.cpu.state.r16[r16.sp], r16bc & 0xff);
+            env.bus.write16((env.cpu.state.r16[r16.sp] - 1) & 0xffff, r16bc);
+            env.cpu.state.r16[r16.sp] = (env.cpu.state.r16[r16.sp] - 2) & 0xffff;
 
             return env;
         }
