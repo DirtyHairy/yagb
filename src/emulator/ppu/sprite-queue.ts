@@ -70,11 +70,9 @@ export class SpriteQueue {
             // Finally, point to nextSprite as the next entry
             this.sortBuffer[i] = nextSprite;
 
-            this.length++;
+            // Keep a maximum of 10 sprites
+            if (++this.length === 10) break;
         }
-
-        // Keep only the 10 sprites with the highest priority
-        if (this.length > 10) this.length = 10;
 
         // Pass 2: prepare sprite data
         //
