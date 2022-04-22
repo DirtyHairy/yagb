@@ -39,7 +39,7 @@ describe('The glorious CPU', () => {
         });
 
         it('sets H correctly', () => {
-            const { cpu } = setup(0xff, 0x01);
+            const { cpu } = setup(0xfff, 0x01);
 
             cpu.step(1);
 
