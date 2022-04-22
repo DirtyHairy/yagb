@@ -531,7 +531,7 @@ describe('PPU', () => {
             const unlockSpy = jest.spyOn(bus, 'unlock');
 
             bus.write(0xff46, 0xc0);
-            ppu.cycle(640);
+            ppu.cycle(639);
             expect(unlockSpy).not.toHaveBeenCalled();
 
             ppu.cycle(1);
