@@ -4,6 +4,7 @@ module.exports = {
     testEnvironment: 'node',
     roots: ['./spec/'],
     coveragePathIgnorePatterns: ['./spec/'],
+    testMatch: ['**/?(*.)+(spec|test).[jt]s?(x)', '!**/*+(-full).+(spec|test).[jt]s(x)?'],
     reporters: [
         'default',
         [

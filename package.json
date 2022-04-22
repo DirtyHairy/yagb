@@ -35,6 +35,7 @@
         "build": "webpack --mode production -c webpack.config.js",
         "start": "webpack serve --mode development -c webpack.config.js",
         "test": "jest",
+        "test-full": "jest --testMatch='**/*+(-full).+(spec|test).[jt]s(x)?'",
         "lint": "eslint -c package.json '{bin,spec,src}/**/*.ts'",
         "prettier": "npx prettier --config package.json -w '{bin,spec,src}/**/*.ts'",
         "matrix": "ts-node -P ./tsconfig.node.json ./bin/matrix.ts"
