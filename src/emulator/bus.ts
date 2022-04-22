@@ -31,8 +31,8 @@ export class Bus {
     }
 
     write16(address: number, value: number): void {
-        this.write(address, value >>> 8);
-        this.write(address - 1, value & 0xff);
+        this.write(address, value & 0xff);
+        this.write((address + 1) & 0xffff, (value >>> 8) & 0xff);
     }
 
     read16(address: number): number {

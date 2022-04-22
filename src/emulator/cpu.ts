@@ -146,8 +146,8 @@ export class Cpu {
 
     private stackPush16(value: number): void {
         value = value & 0xffff;
-        this.bus.write16(this.state.r16[r16.sp] - 1, value);
-        this.state.r16[r16.sp] = (this.state.r16[r16.sp] - 2) & 0xffff;
+        this.state.r16[r16.sp] -= 2;
+        this.bus.write16(this.state.r16[r16.sp], value);
     }
 
     private stackPop16(): number {

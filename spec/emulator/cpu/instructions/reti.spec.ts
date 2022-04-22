@@ -10,7 +10,7 @@ describe('The glorious CPU', () => {
 
             env.cpu.state.r8[r8.f] = flag.z | flag.n | flag.h | flag.c;
 
-            env.bus.write16((env.cpu.state.r16[r16.sp] - 1) & 0xffff, address);
+            env.bus.write16((env.cpu.state.r16[r16.sp] - 2) & 0xffff, address);
             env.cpu.state.r16[r16.sp] = (env.cpu.state.r16[r16.sp] - 2) & 0xffff;
 
             return env;
