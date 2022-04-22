@@ -37,7 +37,7 @@ const enum lcdc {
     bgTileMapArea = 0x08,
     objSize = 0x04,
     objEnable = 0x02,
-    bgEnable = 0x02,
+    bgEnable = 0x01,
 }
 
 const enum stat {
@@ -89,7 +89,7 @@ export class Ppu {
         this.stat = false;
         this.dmaInProgress = false;
         this.dmaCycle = 0;
-        this.skipFrame = false;
+        this.skipFrame = 0;
 
         this.vram.fill(0);
         this.oam.fill(0);
@@ -106,22 +106,30 @@ export class Ppu {
 
         this.lineRendered = false;
         this.mode3ExtraClocks = 0;
+
+        this.windowTriggered = false;
+        this.windowLine = 0;
     }
 
     cycle(systemClocks: number): void {
-        while (this.dmaInProgress && systemClocks > 0) {
-            this.dmaCycle++;
-            systemClocks--;
+        const lcdEnabled = (this.reg[reg.lcdc] & lcdc.enable) !== 0;
 
-            if (this.dmaCycle > 640) this.executeDma();
-            if ((this.reg[reg.lcdc] & lcdc.enable) !== 0) this.consumeClocks(1);
+        while (this.dmaInProgress && systemClocks > 0) {
+            const maxCyclesForConsumation = systemClocks > 640 - this.dmaCycle ? 640 - this.dmaCycle : systemClocks;
+            const consumed = lcdEnabled ? this.consumeClocks(maxCyclesForConsumation) : maxCyclesForConsumation;
+
+            this.dmaCycle += consumed;
+            systemClocks -= consumed;
+
+            // DMA takes 640 cycles -> execute DMA in cycle 640. Cycles are incremented after memory accesses are
+            // executed, so this implies that the bus is available again in cycle 641.
+            if (this.dmaCycle >= 640) this.executeDma();
         }
 
-        if ((this.reg[reg.lcdc] & lcdc.enable) === 0) return;
+        if (!lcdEnabled) return;
 
         while (systemClocks > 0) {
             systemClocks -= this.consumeClocks(systemClocks);
-            this.updateStat();
         }
     }
 
@@ -153,6 +161,7 @@ export class Ppu {
                     this.clockInMode = 0;
                     this.lineRendered = false;
                     this.mode3ExtraClocks = 0;
+                    this.updateStat();
 
                     return consumed;
                 } else {
@@ -175,6 +184,7 @@ export class Ppu {
                     if (this.clockInMode === 172 + this.mode3ExtraClocks) {
                         this.mode = ppuMode.hblank;
                         this.clockInMode = 0;
+                        this.updateStat();
                     }
 
                     return consumed;
@@ -188,13 +198,16 @@ export class Ppu {
                     const consumed = 204 - this.clockInMode;
 
                     this.scanline++;
+
                     if (this.scanline === 144) {
                         this.mode = ppuMode.vblank;
                         this.interrupt.raise(irq.vblank);
                     } else {
                         this.mode = ppuMode.oamScan;
                     }
+
                     this.clockInMode = 0;
+                    this.updateStat();
 
                     return consumed;
                 } else {
@@ -209,17 +222,27 @@ export class Ppu {
                     this.mode = ppuMode.oamScan;
                     this.clockInMode = 0;
                     this.scanline = 0;
+                    this.windowTriggered = false;
+                    this.windowLine = 0;
 
-                    if (!this.skipFrame) {
+                    if (this.skipFrame <= 0) {
                         this.swapBuffers();
+                    } else {
+                        this.skipFrame--;
                     }
 
-                    this.skipFrame = false;
+                    this.updateStat();
 
                     return consumed;
                 } else {
                     this.clockInMode += clocks;
-                    this.scanline = 144 + ((this.clockInMode / 456) | 0);
+
+                    const scanline = 144 + ((this.clockInMode / 456) | 0);
+                    if (scanline !== this.scanline) {
+                        this.scanline = scanline;
+                        this.updateStat();
+                    }
+
                     return clocks;
                 }
         }
@@ -262,17 +285,43 @@ export class Ppu {
     private renderLine(): void {
         const backgroundX = this.reg[reg.scx];
         const backgroundY = this.reg[reg.scy] + this.scanline;
+        const bgEnable = (this.reg[reg.lcdc] & lcdc.bgEnable) !== 0;
+        const windowEnable = (this.reg[reg.lcdc] & lcdc.windowEnable) !== 0;
+        const windowX = this.reg[reg.wx] - 7;
+        const windowY = this.reg[reg.wy];
 
-        const bgTileNY = (backgroundY / 8) | 0;
-        const bgTileY = backgroundY % 8;
-        let bgTileX = backgroundX % 8;
-        let bgTileNX = (backgroundX / 8) | 0;
-        let bgTileData = this.backgroundTileData(bgTileNX, bgTileNY, bgTileY) << bgTileX;
+        let bgTileNY = 0;
+        let bgTileY = 0;
+        let bgTileX = 0;
+        let bgTileNX = 0;
+        let bgTileData = 0;
 
-        let pixelAddress = 160 * this.scanline;
+        // Increment window line if window is enabled and has been triggered for this frame
+        if (windowEnable && this.windowTriggered) this.windowLine++;
+        // Trigger window if current scanline matches wy
+        if (windowY === this.scanline) this.windowTriggered = true;
+        // Start with window active?
+        let windowActive = windowEnable && this.windowTriggered && windowX <= 0;
+
+        if (bgEnable) {
+            if (windowActive) {
+                bgTileNY = (this.windowLine / 8) | 0;
+                bgTileY = this.windowLine % 8;
+                bgTileX = -windowX;
+                bgTileData = this.backgroundTileData(true, bgTileNX, bgTileNY, bgTileY) << bgTileX;
+            } else {
+                bgTileNY = (backgroundY / 8) | 0;
+                bgTileY = backgroundY % 8;
+                bgTileX = backgroundX % 8;
+                bgTileNX = (backgroundX / 8) | 0;
+                bgTileData = this.backgroundTileData(false, bgTileNX, bgTileNY, bgTileY) << bgTileX;
+            }
+        }
 
         // see pandocs; penalty from background shift
         this.mode3ExtraClocks = backgroundX % 8;
+
+        let pixelAddress = 160 * this.scanline;
 
         // The index of the first (if any) sprite that is currently rendered.
         // No sprites are pending if this is equal to nextPendingSprite.
@@ -309,19 +358,30 @@ export class Ppu {
                     nextPendingSprite = i + 1;
 
                     // Add penalty from sprite (see pandocs)
-                    this.mode3ExtraClocks += clockPenaltyForSprite(backgroundX, this.spriteQueue.positionX[i]);
+                    this.mode3ExtraClocks += clockPenaltyForSprite(windowActive ? 256 - windowX : backgroundX, this.spriteQueue.positionX[i]);
                 }
             }
         }
 
         for (let x = 0; x < 160; x++) {
+            // Window is active and starts this pixel? -> prepare for fetching window pixels
+            if (!windowActive && windowEnable && this.windowTriggered && windowX === x) {
+                windowActive = true;
+
+                bgTileNY = (this.windowLine / 8) | 0;
+                bgTileY = this.windowLine % 8;
+                bgTileX = 0;
+                bgTileNX = 0;
+                bgTileData = this.backgroundTileData(true, bgTileNX, bgTileNY, bgTileY);
+            }
+
             // Check whether we have a pending sprite and whether it starts on this pixel
             while (hasSprites && nextPendingSprite < this.spriteQueue.length && this.spriteQueue.positionX[nextPendingSprite] === x) {
                 // Reset its counter and add it to the range of rendered sprites
                 this.spriteCounter[nextPendingSprite] = 0;
 
                 // Add penalty from sprite (see pandocs)
-                this.mode3ExtraClocks += clockPenaltyForSprite(backgroundX, this.spriteQueue.positionX[nextPendingSprite]);
+                this.mode3ExtraClocks += clockPenaltyForSprite(windowActive ? 256 - windowX : backgroundX, this.spriteQueue.positionX[nextPendingSprite]);
 
                 nextPendingSprite++;
             }
@@ -354,36 +414,38 @@ export class Ppu {
                 // What is the BG vs OBJ priority of this sprite?
                 if (this.spriteQueue.flag[spriteIndex] & 0x80) {
                     // Sprite behind background
-                    const bgValue = ((bgTileData & 0x8000) >>> 14) | ((bgTileData & 0x80) >>> 7);
+                    const bgValue = bgEnable ? ((bgTileData & 0x8000) >>> 14) | ((bgTileData & 0x80) >>> 7) : 0;
                     this.backBuffer[pixelAddress++] = bgValue > 0 ? this.paletteBG[bgValue] : this.spriteQueue.palette[spriteIndex][spriteValue];
                 } else {
                     // Sprite in front of background
                     if (spriteValue > 0) {
                         this.backBuffer[pixelAddress++] = this.spriteQueue.palette[spriteIndex][spriteValue];
                     } else {
-                        const bgValue = ((bgTileData & 0x8000) >>> 14) | ((bgTileData & 0x80) >>> 7);
+                        const bgValue = bgEnable ? ((bgTileData & 0x8000) >>> 14) | ((bgTileData & 0x80) >>> 7) : 0;
                         this.backBuffer[pixelAddress++] = this.paletteBG[bgValue];
                     }
                 }
             } else {
-                const bgValue = ((bgTileData & 0x8000) >>> 14) | ((bgTileData & 0x80) >>> 7);
+                const bgValue = bgEnable ? ((bgTileData & 0x8000) >>> 14) | ((bgTileData & 0x80) >>> 7) : 0;
                 this.backBuffer[pixelAddress++] = this.paletteBG[bgValue];
             }
 
-            if (bgTileX === 7) {
-                bgTileNX++;
-                bgTileX = 0;
+            if (bgEnable) {
+                if (bgTileX === 7) {
+                    bgTileNX++;
+                    bgTileX = 0;
 
-                bgTileData = this.backgroundTileData(bgTileNX, bgTileNY, bgTileY);
-            } else {
-                bgTileX++;
-                bgTileData <<= 1;
+                    bgTileData = this.backgroundTileData(windowActive, bgTileNX, bgTileNY, bgTileY);
+                } else {
+                    bgTileX++;
+                    bgTileData <<= 1;
+                }
             }
         }
     }
 
-    private backgroundTileData(nx: number, ny: number, y: number): number {
-        const tileMapBase = this.reg[reg.lcdc] & lcdc.bgTileMapArea ? 0x1c00 : 0x1800;
+    private backgroundTileData(window: boolean, nx: number, ny: number, y: number): number {
+        const tileMapBase = this.reg[reg.lcdc] & (window ? lcdc.windowTileMapArea : lcdc.bgTileMapArea) ? 0x1c00 : 0x1800;
         const index = this.vram[tileMapBase + (ny % 32) * 32 + (nx % 32)];
 
         if (index >= 0x80) {
@@ -456,7 +518,7 @@ export class Ppu {
         this.reg[reg.lcdc] = value;
 
         if (~oldValue & this.reg[reg.lcdc] & lcdc.enable) {
-            this.skipFrame = true;
+            this.skipFrame = 2;
         }
 
         if (oldValue & ~this.reg[reg.lcdc] & lcdc.enable) {
@@ -469,7 +531,7 @@ export class Ppu {
     private scanline = 0;
     private frame = 0;
     private mode: ppuMode = ppuMode.oamScan;
-    private skipFrame = false;
+    private skipFrame = 0;
 
     private vram = new Uint8Array(0x2000);
     private oam = new Uint8Array(0xa0);
@@ -495,4 +557,7 @@ export class Ppu {
 
     private lineRendered = false;
     private mode3ExtraClocks = 0;
+
+    private windowTriggered = false;
+    private windowLine = 0;
 }
