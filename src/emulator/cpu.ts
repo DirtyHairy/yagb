@@ -42,7 +42,7 @@ export interface CpuState {
 }
 
 export function extendSign8(x: number): number {
-    return x & 0x80 ? -((~x + 0x01) & 0xff) : x;
+    return (x & 0x7f) - (x & 0x80);
 }
 
 function getIrqVector(interrupt: irq): number {
