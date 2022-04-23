@@ -484,7 +484,8 @@ export class Ppu {
         this.updateStat();
     };
 
-    private statRead: ReadHandler = () => (this.reg[reg.stat] & 0xf8) | (this.reg[reg.lyc] === this.scanline ? 0x04 : 0) | this.mode;
+    private statRead: ReadHandler = () =>
+        (this.reg[reg.stat] & 0xf8) | (this.reg[reg.lyc] === this.scanline ? 0x04 : 0) | (this.reg[reg.lcdc] & lcdc.enable ? this.mode : 0);
 
     private lyRead: ReadHandler = () => this.scanline;
 
