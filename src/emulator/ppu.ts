@@ -97,9 +97,13 @@ export class Ppu {
 
         this.reg[reg.lcdc] = lcdc.enable;
 
-        this.paletteBG.set(PALETTE_CLASSIC.subarray(0, 4));
-        this.paletteOB0.set(PALETTE_CLASSIC.subarray(0, 4));
-        this.paletteOB1.set(PALETTE_CLASSIC.subarray(0, 4));
+        this.reg[reg.bgp] = 0xfc;
+        this.reg[reg.obp0] = 0x00;
+        this.reg[reg.obp1] = 0x00;
+
+        this.updatePalette(this.paletteBG, this.reg[reg.bgp]);
+        this.updatePalette(this.paletteOB0, this.reg[reg.obp0]);
+        this.updatePalette(this.paletteOB1, this.reg[reg.obp1]);
 
         this.frontBuffer.fill(PALETTE_CLASSIC[4]);
         this.backBuffer.fill(PALETTE_CLASSIC[4]);
