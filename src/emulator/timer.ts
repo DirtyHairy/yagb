@@ -39,7 +39,7 @@ export class Timer {
 
     reset(): void {
         this.reg.fill(0);
-        this.divider = 1024;
+        this.divider = 256;
         this.accDiv = this.accTima = 0;
         this.irqPending = false;
         this.overflowCycle = false;
