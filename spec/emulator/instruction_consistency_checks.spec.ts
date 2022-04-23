@@ -30,7 +30,7 @@ describe('The opcode instructions', () => {
             '$description',
             ({ opcode, description, instruction, currentAddress }) => {
                 it('has cycles set', () => {
-                    expect(instruction.cycles).toBeGreaterThan(0);
+                    if (instruction.opcode !== 0xe9) expect(instruction.cycles).toBeGreaterThan(0);
                 });
 
                 it('has len set', () => {
