@@ -51,7 +51,7 @@ export class Interrupt {
     }
 
     isPending(): boolean {
-        return (this.if & 0x1f) !== 0;
+        return (this.if & this.ie & 0x1f) !== 0;
     }
 
     private ie = 0;
