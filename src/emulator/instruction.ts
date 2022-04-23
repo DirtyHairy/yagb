@@ -426,7 +426,7 @@ apply(0xca, { op: Operation.jp, mode1: AddressingMode.imm16, condition: Conditio
 apply(0xd2, { op: Operation.jp, mode1: AddressingMode.imm16, condition: Condition.nc, cycles: 3, len: 3 });
 apply(0xda, { op: Operation.jp, mode1: AddressingMode.imm16, condition: Condition.c, cycles: 3, len: 3 });
 
-apply(0xe9, { op: Operation.jp, par1: r16.hl, mode1: AddressingMode.reg16, cycles: 1, len: 1 });
+apply(0xe9, { op: Operation.jp, par1: r16.hl, mode1: AddressingMode.reg16, cycles: 0, len: 1 });
 
 apply(0x18, { op: Operation.jr, mode1: AddressingMode.imm8sign, cycles: 2, len: 2 });
 apply(0x20, { op: Operation.jr, mode1: AddressingMode.imm8sign, condition: Condition.nz, cycles: 2, len: 2 });
