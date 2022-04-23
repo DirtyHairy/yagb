@@ -49,8 +49,8 @@ export class Joypad {
         if ((this.joypad & 0x20) === 0) {
             if (this.keys[key.start]) result &= ~0x08;
             if (this.keys[key.select]) result &= ~0x04;
-            if (this.keys[key.a]) result &= ~0x02;
-            if (this.keys[key.b]) result &= ~0x01;
+            if (this.keys[key.b]) result &= ~0x02;
+            if (this.keys[key.a]) result &= ~0x01;
         }
 
         if ((this.joypad & 0x10) === 0) {
