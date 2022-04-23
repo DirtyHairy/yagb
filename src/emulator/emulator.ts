@@ -143,6 +143,7 @@ export class Emulator {
         this.interrupt.reset();
         this.trace.reset();
         this.bus.reset();
+        this.serial.reset();
     }
 
     printCartridgeInfo(): string {
