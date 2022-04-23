@@ -20,20 +20,20 @@ describe('Timer', () => {
     }
 
     describe('div', () => {
-        it('counts at 16 kHz', () => {
+        it('counts at 64 kHz', () => {
             const { bus, timer } = setup();
 
-            timer.cycle(255);
+            timer.cycle(15);
             expect(bus.read(0xff04)).toBe(0);
 
-            timer.cycle(256);
+            timer.cycle(1);
             expect(bus.read(0xff04)).toBe(1);
         });
 
-        it('handles increments of more than 256 clocks properly', () => {
+        it('handles increments of more than 64 clocks properly', () => {
             const { bus, timer } = setup();
 
-            timer.cycle(3 * 256 - 1);
+            timer.cycle(3 * 16 - 1);
             expect(bus.read(0xff04)).toBe(2);
 
             timer.cycle(1);
@@ -43,7 +43,7 @@ describe('Timer', () => {
         it('resets to zero if written', () => {
             const { bus, timer } = setup();
 
-            timer.cycle(10 * 256);
+            timer.cycle(10 * 16);
             bus.write(0xff04, 0x20);
 
             expect(bus.read(0xff04)).toBe(0);
@@ -55,7 +55,7 @@ describe('Timer', () => {
             const { bus, timer } = setup();
             bus.write(0xff07, 0x05);
 
-            timer.cycle(16);
+            timer.cycle(4);
 
             expect(bus.read(0xff05)).toBe(1);
         });
@@ -64,7 +64,7 @@ describe('Timer', () => {
             const { bus, timer } = setup();
             bus.write(0xff07, 0x01);
 
-            timer.cycle(16);
+            timer.cycle(4);
 
             expect(bus.read(0xff05)).toBe(0);
         });
@@ -73,7 +73,7 @@ describe('Timer', () => {
             const { bus, timer } = setup();
             bus.write(0xff07, 0x05);
 
-            timer.cycle(4 * 16 - 1);
+            timer.cycle(4 * 4 - 1);
             expect(bus.read(0xff05)).toBe(3);
 
             timer.cycle(1);
@@ -95,11 +95,11 @@ describe('Timer', () => {
             bus.write(0xff07, 0x05);
             bus.write(0xff06, 0xe0);
 
-            timer.cycle((256 + 0x40 + 2) * 16);
+            timer.cycle((256 + 0x40 + 2) * 4);
 
             expect(bus.read(0xff05)).toBe(0xe2);
 
-            timer.cycle(19);
+            timer.cycle(4);
 
             expect(bus.read(0xff05)).toBe(0xe3);
         });
@@ -109,7 +109,7 @@ describe('Timer', () => {
             bus.write(0xff07, 0x05);
             bus.write(0xff06, 0xe0);
 
-            timer.cycle(256 * 16 + 1);
+            timer.cycle(256 * 4 + 1);
 
             expect(raiseSpy).toHaveBeenCalledTimes(1);
             expect(raiseSpy).toBeCalledWith(irq.timer);
@@ -120,7 +120,7 @@ describe('Timer', () => {
             bus.write(0xff07, 0x05);
             bus.write(0xff06, 0xe0);
 
-            timer.cycle((256 + 0x40) * 16 + 1);
+            timer.cycle((256 + 0x40) * 4 + 1);
 
             expect(raiseSpy).toHaveBeenCalledTimes(1);
             expect(raiseSpy).toBeCalledWith(irq.timer);
@@ -131,7 +131,7 @@ describe('Timer', () => {
             bus.write(0xff07, 0x05);
             bus.write(0xff06, 0xe0);
 
-            timer.cycle(256 * 16);
+            timer.cycle(256 * 4);
 
             expect(raiseSpy).not.toHaveBeenCalled();
 
@@ -146,7 +146,7 @@ describe('Timer', () => {
             bus.write(0xff07, 0x05);
             bus.write(0xff06, 0xe0);
 
-            timer.cycle((256 + 0x20) * 16);
+            timer.cycle((256 + 0x20) * 4);
 
             expect(raiseSpy).toHaveBeenCalledTimes(1);
             expect(raiseSpy).toBeCalledWith(irq.timer);
@@ -157,7 +157,7 @@ describe('Timer', () => {
             bus.write(0xff07, 0x05);
             bus.write(0xff06, 0xe0);
 
-            timer.cycle(256 * 16);
+            timer.cycle(256 * 4);
 
             expect(bus.read(0xff05)).toBe(0);
 
@@ -171,7 +171,7 @@ describe('Timer', () => {
             bus.write(0xff07, 0x05);
             bus.write(0xff06, 0xe0);
 
-            timer.cycle((256 + 0x20) * 16);
+            timer.cycle((256 + 0x20) * 4);
 
             expect(bus.read(0xff05)).toBe(0);
 

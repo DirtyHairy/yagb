@@ -5,6 +5,6 @@ export class Clock {
 
     increment(cpuCycles: number) {
         this.ppu.cycle(4 * cpuCycles);
-        this.timer.cycle(4 * cpuCycles);
+        this.timer.cycle(cpuCycles);
     }
 }

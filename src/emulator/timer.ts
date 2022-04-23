@@ -13,16 +13,16 @@ export const enum reg {
 function divider(tac: number): number {
     switch (tac & 0x03) {
         case 0x00:
-            return 1024;
+            return 256;
 
         case 0x01:
-            return 16;
+            return 4;
 
         case 0x02:
-            return 64;
+            return 16;
 
         case 0x03:
-            return 256;
+            return 64;
     }
 
     return 0;
@@ -53,8 +53,8 @@ export class Timer {
         this.overflowCycle = false;
 
         this.accDiv += cpuClocks;
-        this.reg[reg.div] = (this.reg[reg.div] + ((this.accDiv / 256) | 0)) & 0xff;
-        this.accDiv %= 256;
+        this.reg[reg.div] = (this.reg[reg.div] + ((this.accDiv / 16) | 0)) & 0xff;
+        this.accDiv %= 16;
 
         let tima = this.reg[reg.tima];
         const tma = this.reg[reg.tma];
