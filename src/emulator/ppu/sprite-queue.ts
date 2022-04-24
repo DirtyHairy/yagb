@@ -53,8 +53,8 @@ export class SpriteQueue {
                 // Get the index of the next sprite
                 const nextSprite = this.sortBuffer[previousSprite];
 
-                // Our x is larger?
-                if (positionX > this.postionXCache[nextSprite]) {
+                // Our x is larger or equal (stable sort!)?
+                if (positionX >= this.postionXCache[nextSprite]) {
                     // Larger? -> move to the next sprite in the list
                     previousSprite = nextSprite;
                 } else {
