@@ -11,6 +11,8 @@ export const enum reg {
 }
 
 function divider(tac: number): number {
+    // We are clocked with the 1MHz cpu clock, so there is a factor of 4 relative
+    // to pandoc
     switch (tac & 0x03) {
         case 0x00:
             return 256;
@@ -53,8 +55,9 @@ export class Timer {
         this.overflowCycle = false;
 
         this.accDiv += cpuClocks;
-        this.reg[reg.div] = (this.reg[reg.div] + ((this.accDiv / 16) | 0)) & 0xff;
-        this.accDiv %= 16;
+        // 1MHz / 64 = 16kHz
+        this.reg[reg.div] = (this.reg[reg.div] + ((this.accDiv / 64) | 0)) & 0xff;
+        this.accDiv %= 64;
 
         let tima = this.reg[reg.tima];
         const tma = this.reg[reg.tma];

@@ -20,10 +20,10 @@ describe('Timer', () => {
     }
 
     describe('div', () => {
-        it('counts at 64 kHz', () => {
+        it('counts at 8 kHz', () => {
             const { bus, timer } = setup();
 
-            timer.cycle(15);
+            timer.cycle(63);
             expect(bus.read(0xff04)).toBe(0);
 
             timer.cycle(1);
@@ -33,7 +33,7 @@ describe('Timer', () => {
         it('handles increments of more than 64 clocks properly', () => {
             const { bus, timer } = setup();
 
-            timer.cycle(3 * 16 - 1);
+            timer.cycle(3 * 64 - 1);
             expect(bus.read(0xff04)).toBe(2);
 
             timer.cycle(1);
