@@ -1,191 +1,134 @@
-import { Bus, ReadHandler, WriteHandler } from '../bus';
-import { CartridgeBase, CartridgeRAMBankSize, CartridgeRAMType, CartridgeROMBankSize } from './CartridgeBase';
+import { ReadHandler, WriteHandler } from './../bus';
 
+import { Bus } from '../bus';
+import { CartridgeBase } from './CartridgeBase';
 import { System } from '../system';
-import { hex16 } from '../../helper/format';
+import { hex8 } from '../../helper/format';
 
-const enum MemoryModel {
-    mode_16mbit_8kb = 0x00,
-    mode_4mbit_32kb = 0x01,
+interface Mapping {
+    romBank0: Uint8Array;
+    romBank1: Uint8Array;
+    ramBank: Uint8Array;
+
+    bankIndex0: number;
+    bankIndex1: number;
+    bankIndexRam: number;
 }
 
 export class CartridgeMbc1 extends CartridgeBase {
     constructor(image: Uint8Array, system: System) {
         super(image, system);
 
-        if (this.size() !== image.length) throw new Error('bad image');
-
-        // prettier-ignore
-        this.rom = Array.from(
-            { length: this.size() / 0x4000 },
-            (_, i) => Uint8Array.from(this.image.slice(i*0x4000, 0x4000*i + 0x4000))
-        );
-
-        if (this.ramType() !== CartridgeRAMType.no_ram) {
-            this.sram = Array.from({ length: Math.ceil(this.ramSize() / 0x4000) }, (_, i) => new Uint8Array(CartridgeRAMBankSize).fill(0));
-        } else {
-            this.sram = [new Uint8Array(0)];
+        if (this.ramSize() > 8 * 1024 && this.size() >= 1024 * 1024) {
+            throw new Error('unsupported memory configuration.');
         }
+
+        this.configurations = new Array(0x100);
+        this.ram = new Uint8Array(this.ramSize());
+
+        this.initializeConfigurations();
+        this.updateBanks();
     }
 
     install(bus: Bus): void {
         super.install(bus);
 
-        for (let i = 0; i < 0x8000; i++) {
-            bus.map(i, this.mbcReadHandler, this.mbcWriteHandler);
-        }
-
-        for (let i = 0xa000; i < 0xc000; i++) {
-            bus.map(i, this.mbcReadHandler, this.mbcWriteHandler);
-        }
+        for (let i = 0; i < 0x2000; i++) bus.map(i, this.readBank0, this.writeRamEnable);
+        for (let i = 0x2000; i < 0x4000; i++) bus.map(i, this.readBank0, this.writeReg0);
+        for (let i = 0x4000; i < 0x6000; i++) bus.map(i, this.readBank1, this.writeReg1);
+        for (let i = 0x6000; i < 0x8000; i++) bus.map(i, this.readBank1, this.writeMode);
+        for (let i = 0xa000; i < 0xc000; i++) bus.map(i, this.readBankRam, this.writeBankRam);
     }
 
-    reset(): void {
-        this.sramEnabled = false;
-        this.memoryModel = MemoryModel.mode_16mbit_8kb;
-        this.romBank = 1;
-        this.ramBank = 0;
-
-        this.romBankRegister1 = 1;
-        this.romBankRegister2 = 0;
-        this.sram.forEach((ram, i) => {
-            ram.fill(0);
-        });
-    }
+    reset(): void {}
 
     printState(): string {
-        return `memory.model=${this.printMemoryModel()},ram.enabled=${this.sramEnabled ? 'on' : 'off'},rom.banks.count=${this.rom.length}, rom.bank=${
-            this.romBank
-        }, ram.banks.count=${this.sram.length} ram.bank=${this.ramBank}`;
+        return `rom0=${hex8(this.bankIndex0)} rom1=${hex8(this.bankIndex1)} ram=${this.ramEnable ? hex8(this.bankIndexRam) : 'disabled'} reg0=${hex8(
+            this.reg0
+        )} reg1=${hex8(this.reg1)} mode=${this.mode}`;
     }
 
-    private printMemoryModel(): string {
-        switch (this.memoryModel) {
-            case MemoryModel.mode_16mbit_8kb:
-                return '16Mbit/8kb';
+    private initializeConfigurations(): void {
+        const romSize = (this.size() / 1024) | 0;
+        const ramSize = (this.ramSize() / 1024) | 0;
+        const romBanks = (romSize / 16) | 0;
+        const ramBanks = Math.max((ramSize / 8) | 0, 1);
 
-            case MemoryModel.mode_4mbit_32kb:
-                return '4Mbit/32kb';
+        const romSlices = new Array(romBanks);
+        for (let i = 0; i < romBanks; i++) romSlices[i] = this.image.subarray(i * 0x4000, (i + 1) * 0x4000);
 
-            default:
-                throw new Error(`unknown memory model ${this.memoryModel}`);
+        const ramSlices = new Array(ramBanks);
+        for (let i = 0; i < ramBanks; i++) ramSlices[i] = this.ram.subarray(i * 0x2000, (i + 1) * 0x2000);
+
+        for (let i = 0; i < 0x100; i++) {
+            const mode = i >>> 7;
+            const reg1 = (i & 0x60) >>> 5;
+            const reg0 = i & 0x1f;
+
+            const bankIndex0 = (mode === 1 && romSize >= 1024 ? reg1 << 5 : 0) % romBanks;
+            const bankIndex1 = ((reg0 === 0 ? 1 : reg0) | (mode === 1 && ramSize <= 8 ? reg1 << 5 : 0)) % romBanks;
+            const bankIndexRam = (mode === 1 && ramSize > 8 ? reg1 : 0) % ramBanks;
+
+            this.configurations[i] = {
+                romBank0: romSlices[bankIndex0],
+                romBank1: romSlices[bankIndex1],
+                ramBank: ramSlices[bankIndexRam],
+                bankIndex0,
+                bankIndex1,
+                bankIndexRam,
+            };
         }
     }
 
-    private mbcReadHandler: ReadHandler = (address) => {
-        switch (true) {
-            // ROM bank 0
-            case 0x0000 <= address && address < 0x4000: {
-                let selectedBank = 0;
+    private updateBanks(): void {
+        const configuration = this.configurations[(this.mode << 7) | (this.reg1 << 5) | this.reg0];
 
-                if (this.memoryModel === MemoryModel.mode_4mbit_32kb) selectedBank = this.romBank;
+        this.romBank0 = configuration.romBank0;
+        this.romBank1 = configuration.romBank1;
+        this.ramBank = configuration.ramBank;
 
-                return this.rom[selectedBank][address];
-            }
+        this.bankIndex0 = configuration.bankIndex0;
+        this.bankIndex1 = configuration.bankIndex1;
+        this.bankIndexRam = configuration.bankIndexRam;
+    }
 
-            // ROM bank 1
-            case 0x4000 <= address && address < 0x8000: {
-                return this.rom[this.romBank][address - CartridgeROMBankSize];
-            }
+    private readBank0: ReadHandler = (address) => this.romBank0[address];
+    private readBank1: ReadHandler = (address) => this.romBank1[address & 0x3fff];
+    private readBankRam: ReadHandler = (address) => (this.ramEnable ? this.ramBank[address - 0xa000] : 0);
 
-            // RAM bank
-            case 0xa000 <= address && address < 0xc000:
-                if (!this.sramEnabled) return 0xff;
+    private writeRamEnable: WriteHandler = (_, value) => this.ram.length > 0 && (this.ramEnable = (value & 0x0f) === 0x0a);
 
-                return this.sram[this.ramBank][address - 0xa0000];
-
-            default:
-                this.system.warning(`attempt to read ROM at ${hex16(address)}`);
-                return 0;
-        }
+    private writeReg0: WriteHandler = (_, value) => {
+        this.reg0 = value & 0x1f;
+        this.updateBanks();
     };
 
-    private mbcWriteHandler: WriteHandler = (address, value) => {
-        switch (true) {
-            // enable/disable cartridge ram
-            case 0x0000 <= address && address < 0x2000:
-                this.sramEnabled = (value & 0x0f) === 0x0a;
-                break;
-
-            // select rom bank
-            case 0x2000 <= address && address < 0x4000:
-                // lower 5 bits
-                value &= 0x1f;
-
-                // this register can not write zero values
-                // attempt to write zero will write one
-                if (value === 0x00) value += 0x01;
-
-                value %= this.rom.length;
-
-                this.romBank &= 0xe0;
-                this.romBank |= value;
-                break;
-
-            // select ram bank
-            case 0x4000 <= address && address < 0x6000:
-                switch (this.memoryModel) {
-                    case MemoryModel.mode_16mbit_8kb: {
-                        const selectedBank = (this.romBank & 0xf1) | (value & 0xe0);
-                        if (selectedBank < this.rom.length) {
-                            // higher bits
-                            value &= 0xe0;
-                            this.romBank &= 0x1f;
-                            this.romBank |= value;
-                        }
-                        break;
-                    }
-
-                    case MemoryModel.mode_4mbit_32kb:
-                        if ((value & 0x03) < this.sram.length) this.ramBank = value & 0x03;
-                        break;
-
-                    default:
-                        throw new Error(`unknown memory model ${this.memoryModel}`);
-                }
-                break;
-
-            // select memory model
-            case 0x6000 <= address && address < 0x8000:
-                switch (value & 0x01) {
-                    case MemoryModel.mode_16mbit_8kb:
-                        value = MemoryModel.mode_16mbit_8kb;
-                        break;
-
-                    case MemoryModel.mode_4mbit_32kb:
-                        value = MemoryModel.mode_4mbit_32kb;
-                        break;
-
-                    default:
-                        throw new Error(`unknown memory model ${this.memoryModel}`);
-                }
-
-                this.memoryModel = value;
-                break;
-
-            // write to cartridge ram
-            case 0xa000 <= address && address < 0xc000:
-                if (this.sramEnabled) this.sram[this.ramBank][address - 0xa0000] = value;
-                break;
-
-            default:
-                this.system.warning(`attempt to write ROM at ${hex16(address)}`);
-                break;
-        }
+    private writeReg1: WriteHandler = (_, value) => {
+        this.reg1 = value & 0x03;
+        this.updateBanks();
     };
 
-    protected rom: Array<Uint8Array>;
+    private writeMode: WriteHandler = (_, value) => {
+        this.mode = value & 0x01;
+        this.updateBanks();
+    };
 
-    private memoryModel = MemoryModel.mode_16mbit_8kb;
+    private writeBankRam: WriteHandler = (address, value) => this.ramEnable && (this.ramBank[address - 0xa000] = value);
 
-    private romBank = 0;
+    private configurations: Array<Mapping>;
 
-    private romBankRegister1 = 1;
-    private romBankRegister2 = 0;
+    private romBank0!: Uint8Array;
+    private romBank1!: Uint8Array;
+    private ramBank!: Uint8Array;
 
-    private sram: Array<Uint8Array>;
+    private bankIndex0 = 0;
+    private bankIndex1 = 0;
+    private bankIndexRam = 0;
 
-    private sramEnabled = false;
+    private mode = 0;
+    private reg0 = 0;
+    private reg1 = 0;
+    private ramEnable = false;
 
-    private ramBank = 0;
+    private ram: Uint8Array;
 }

@@ -59,6 +59,8 @@ export function createCartridge(image: Uint8Array, system: System): Cartridge | 
             return new CartridgeRom(image, system);
 
         case CartridgeType.mbc1:
+        case CartridgeType.mbc1_ram:
+        case CartridgeType.mbc1_ram_battery:
             return new CartridgeMbc1(image, system);
 
         default:
