@@ -5,6 +5,7 @@ import { Cpu } from '../../src/emulator/cpu';
 import { Interrupt } from '../../src/emulator/interrupt';
 import { Ppu } from '../../src/emulator/ppu';
 import { Ram } from '../../src/emulator/ram';
+import { Serial } from './../../src/emulator/serial';
 import { System } from '../../src/emulator/system';
 import { Timer } from '../../src/emulator/timer';
 import { Unmapped } from '../../src/emulator/unmapped';
@@ -17,6 +18,7 @@ export class TestEnvironment {
     public readonly clock: Clock;
     public readonly bus: Bus;
     public readonly ram: Ram;
+    public readonly serial: Serial;
     public readonly cpu: Cpu;
     public readonly unmapped: Unmapped;
     public readonly cartridge: Uint8Array;
@@ -33,8 +35,9 @@ export class TestEnvironment {
         this.interrupt = new Interrupt();
         this.ppu = new Ppu(this.system, this.interrupt);
         this.timer = new Timer(this.interrupt);
+        this.serial = new Serial(this.interrupt);
 
-        this.clock = new Clock(this.ppu, this.timer);
+        this.clock = new Clock(this.ppu, this.timer, this.serial);
 
         this.bus = new Bus(this.system);
         this.ram = new Ram();
