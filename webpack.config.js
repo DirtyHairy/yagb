@@ -5,7 +5,7 @@ const path = require('path');
 
 module.exports = (env, argv) => ({
     entry: './src/index.ts',
-    devtool: argv.mode === 'production' ? 'source-map' : 'eval-source-map',
+    devtool: 'source-map',
     module: {
         rules: [
             {
