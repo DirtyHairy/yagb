@@ -77,6 +77,7 @@ export class Ppu {
         bus.map(reg.base + reg.bgp, this.registerRead, this.bgpWrite);
         bus.map(reg.base + reg.obp0, this.registerRead, this.obp0Write);
         bus.map(reg.base + reg.obp1, this.registerRead, this.obp1Write);
+        bus.map(reg.base + reg.lyc, this.registerRead, this.lycWrite);
 
         this.bus = bus;
     }
@@ -530,6 +531,11 @@ export class Ppu {
             this.backBuffer.fill(PALETTE_CLASSIC[4]);
             this.swapBuffers();
         }
+    };
+
+    private lycWrite: WriteHandler = (_, value) => {
+        this.reg[reg.lyc] = value;
+        this.updateStat();
     };
 
     private clockInMode = 0;
