@@ -9,6 +9,7 @@ import { Emulator } from './emulator/emulator';
 import { FileHandler } from './helper/fileHandler';
 import { Scheduler } from './emulator/scheduler';
 import { key } from './emulator/joypad';
+import md5 from 'md5';
 
 const CARTRIDGE_FILE_SIZE_LIMIT = 512 * 1024 * 1024;
 const STORAGE_KEY_YAGB_CARTERIDGE_DATA = 'yagb-cartridge-data';
@@ -17,6 +18,7 @@ const STORAGE_KEY_YAGB_CARTERIDGE_NAME = 'yagb-cartridge-name';
 const fileHandler = new FileHandler();
 let emulator: Emulator;
 let scheduler: Scheduler;
+let savedRamKey = '';
 let stateOnStep = false;
 let lastFrame = -1;
 
@@ -46,17 +48,31 @@ function floatval<T>(value: T, defaultValue?: number | undefined): number | unde
     return isNaN(parsed) || parsed < 0 ? defaultValue : parsed;
 }
 
-function loadCartridge(data: Uint8Array, name: string) {
+async function loadCartridge(data: Uint8Array, name: string) {
     try {
         scheduler?.stop();
         updatePrompt();
 
+        savedRamKey = `ram_${md5(data)}`;
+        let savedRam: Uint8Array | undefined;
+        try {
+            savedRam = await decodeBase64(localStorage.getItem(savedRamKey) || '');
+            // eslint-disable-next-line no-empty
+        } catch (e) {}
+
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        emulator = new Emulator(data, print);
+        emulator = new Emulator(data, print, savedRam);
         scheduler = new Scheduler(emulator);
 
         scheduler.onTimesliceComplete.addHandler(() => updateCanvas());
-        scheduler.onEmitStatistics.addHandler(({ hostSpeed, speed }) => updatePrompt(speed, hostSpeed));
+
+        scheduler.onEmitStatistics.addHandler(async ({ hostSpeed, speed }) => {
+            updatePrompt(speed, hostSpeed);
+
+            const ram = emulator.getCartridgeRam();
+            if (ram) localStorage.setItem(savedRamKey, await encodeBase64(ram));
+        });
+
         emulator.onTrap.addHandler((msg) => {
             if (scheduler.isRunning()) print(`Encountered trap: ${msg}. Stopping emulator.`);
             updatePrompt(undefined, undefined, false);
@@ -161,6 +177,7 @@ disassemble [count] [address=p]         Disassemble count bytes at address
 step [count=1]                          Step count instructions
 state                                   Print state
 reset                                   Reset system
+wipe                                    Reset and remove saved RAM state
 breakpoint-add [address, ...]           Add a breakpoint
 breakpoint-clear <address>              Clear a breakpoint
 breakpoint-clear-all                    Clear all breakpoints
@@ -225,6 +242,15 @@ Keyboard controls (canvas needs focus): arrows = joypad, a/b = a/b, space = sele
         lastFrame = -1;
         updateCanvas();
         print('system reset');
+    },
+    wipe(): void {
+        if (!assertEmulator()) return;
+
+        emulator.reset();
+        emulator.clearCartridgeRam();
+        lastFrame = -1;
+        updateCanvas();
+        print('system reset, RAM wiped');
     },
     'breakpoint-add': function (...args: Array<string | number | undefined>) {
         if (!assertEmulator()) return;

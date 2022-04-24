@@ -24,7 +24,7 @@ export interface BusTrap {
 }
 
 export class Emulator {
-    constructor(cartridgeImage: Uint8Array, printCb: (message: string) => void) {
+    constructor(cartridgeImage: Uint8Array, printCb: (message: string) => void, savedRam?: Uint8Array) {
         this.system = new System(printCb);
         this.bus = new Bus(this.system);
         this.interrupt = new Interrupt();
@@ -60,7 +60,15 @@ export class Emulator {
         this.bus.onWrite.addHandler((address) => this.busTraps.get(address)?.trapWrite && this.system.trap(`trap write to ${hex16(address)}`));
         this.onTrap = this.system.onTrap;
 
-        this.reset();
+        this.reset(savedRam);
+    }
+
+    getCartridgeRam(): Uint8Array | undefined {
+        return this.cartridge.getRam();
+    }
+
+    clearCartridgeRam(): void {
+        this.cartridge.clearRam();
     }
 
     addBreakpoint(address: number): void {
@@ -133,8 +141,8 @@ export class Emulator {
         return this.cpu.run(cyclesGoal);
     }
 
-    reset(): void {
-        this.cartridge.reset();
+    reset(savedRam?: Uint8Array): void {
+        this.cartridge.reset(savedRam);
         this.cpu.reset();
         this.ram.reset();
         this.ppu.reset();

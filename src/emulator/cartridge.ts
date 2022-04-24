@@ -8,7 +8,9 @@ import { System } from './system';
 
 export interface Cartridge {
     install(bus: Bus): void;
-    reset(): void;
+    reset(savedRam?: Uint8Array | undefined): void;
+    getRam(): Uint8Array | undefined;
+    clearRam(): void;
     type(): number;
     size(): number;
     printInfo(): string;

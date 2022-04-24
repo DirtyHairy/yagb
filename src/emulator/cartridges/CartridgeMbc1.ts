@@ -1,7 +1,7 @@
+import { CartridgeBase, CartridgeType } from './CartridgeBase';
 import { ReadHandler, WriteHandler } from './../bus';
 
 import { Bus } from '../bus';
-import { CartridgeBase } from './CartridgeBase';
 import { System } from '../system';
 import { hex8 } from '../../helper/format';
 
@@ -40,12 +40,35 @@ export class CartridgeMbc1 extends CartridgeBase {
         for (let i = 0xa000; i < 0xc000; i++) bus.map(i, this.readBankRam, this.writeBankRam);
     }
 
-    reset(): void {}
+    reset(savedRam?: Uint8Array): void {
+        this.mode = 0;
+        this.reg0 = 0;
+        this.reg1 = 0;
+        this.ramEnable = false;
+
+        this.updateBanks();
+
+        if (this.type() === CartridgeType.mbc1_ram_battery && savedRam && savedRam.length === this.ram.length) {
+            this.ram.set(savedRam);
+        }
+
+        if (this.type() !== CartridgeType.mbc1_ram_battery) {
+            this.ram.fill(0);
+        }
+    }
+
+    clearRam(): void {
+        this.ram.fill(0);
+    }
 
     printState(): string {
         return `rom0=${hex8(this.bankIndex0)} rom1=${hex8(this.bankIndex1)} ram=${this.ramEnable ? hex8(this.bankIndexRam) : 'disabled'} reg0=${hex8(
             this.reg0
         )} reg1=${hex8(this.reg1)} mode=${this.mode}`;
+    }
+
+    getRam(): Uint8Array | undefined {
+        return this.type() === CartridgeType.mbc1_ram_battery ? this.ram.slice() : undefined;
     }
 
     private initializeConfigurations(): void {

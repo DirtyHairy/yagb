@@ -90,9 +90,15 @@ export abstract class CartridgeBase implements Cartridge {
         }
     }
 
+    getRam(): Uint8Array | undefined {
+        return undefined;
+    }
+
+    clearRam(): void {}
+
     install(bus: Bus): void {}
 
-    reset(): void {}
+    reset(savedRam?: Uint8Array): void {}
 
     type(): number {
         return this.image[CartridgeAddress.type];
