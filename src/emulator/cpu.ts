@@ -542,11 +542,12 @@ export class Cpu {
     }
 
     private opHalt(instruction: Instruction): number {
-        const cycles = instruction.cycles + (this.state.interruptsEnabled ? 0 : 1);
+        const cycles = instruction.cycles;
         this.clock.increment(cycles);
 
-        this.state.halt = true;
-        this.state.p = (this.state.p + instruction.len + (this.state.interruptsEnabled ? 0 : 1)) & 0xffff;
+        this.state.halt = this.state.interruptsEnabled || !this.interrupt.isPending();
+
+        this.state.p = this.state.p + instruction.len;
         return cycles;
     }
 
