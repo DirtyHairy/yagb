@@ -1,30 +1,68 @@
 import { Bus, ReadHandler, WriteHandler } from './bus';
 import { Interrupt, irq } from './interrupt';
 
+const enum reg {
+    base = 0xff01,
+    sb = 0x00,
+    sc = 0x01,
+}
+
 export class Serial {
     constructor(private interrupt: Interrupt) {}
 
     install(bus: Bus): void {
-        bus.map(0xff01, this.stubRead, this.stubWrite);
-        bus.map(0xff02, this.scRead, this.scWrite);
+        bus.map(reg.base + reg.sb, this.read, this.sbWrite);
+        bus.map(reg.base + reg.sc, this.read, this.scWrite);
     }
 
     reset(): void {
-        this.regSC = 0;
+        this.reg.fill(0);
+        this.transferInProgress = false;
+        this.transferClock = 0;
+        this.nextBit = 0;
     }
 
-    private stubRead: ReadHandler = () => 0;
-    private stubWrite: WriteHandler = () => undefined;
-    private regSC = 0;
+    clock(cpuClocks: number) {
+        if (!this.transferInProgress) return;
 
-    // Always flag that any request transfer has completed.
-    private scRead: ReadHandler = () => this.regSC & 0x03;
+        this.transferClock += cpuClocks;
 
-    // Always trigger a serial interrupt if a master write is initiated in order to
-    // keep games that wait for the transfer to finish from hanging.
+        // 1MHz / 128 = 8kHZ
+        let bits = (this.transferClock / 128) | 0;
+        this.transferClock %= 128;
+
+        while (bits > 0 && this.nextBit < 8) {
+            this.reg[reg.sb] <<= 1;
+            this.reg[reg.sb] |= 0x01;
+
+            bits--;
+            this.nextBit++;
+        }
+
+        if (this.nextBit > 7) {
+            this.interrupt.raise(irq.serial);
+            this.transferInProgress = false;
+            this.reg[reg.sc] &= 0x01;
+        }
+    }
+
+    private read: ReadHandler = (address) => this.reg[address - reg.base];
+
+    private sbWrite: WriteHandler = (_, value) => !this.transferInProgress && (this.reg[reg.sb] = value);
     private scWrite: WriteHandler = (_, value) => {
-        this.regSC = value & 0xff;
+        if (this.transferInProgress) return;
+        this.reg[reg.sc] = value & 0x81;
 
-        if ((value & 0x81) === 0x81) this.interrupt.raise(irq.serial);
+        if (this.reg[reg.sc] === 0x81) {
+            this.transferInProgress = true;
+            this.transferClock = 0;
+            this.nextBit = 0;
+        }
     };
+
+    private reg = new Uint8Array(2);
+
+    private transferInProgress = false;
+    private nextBit = 0;
+    private transferClock = 0;
 }

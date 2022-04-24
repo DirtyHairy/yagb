@@ -31,10 +31,10 @@ export class Emulator {
         this.ppu = new Ppu(this.system, this.interrupt);
         this.audio = new Audio();
         this.timer = new Timer(this.interrupt);
-        this.clock = new Clock(this.ppu, this.timer);
+        this.serial = new Serial(this.interrupt);
+        this.clock = new Clock(this.ppu, this.timer, this.serial);
         this.cpu = new Cpu(this.bus, this.clock, this.interrupt, this.system);
         this.ram = new Ram();
-        this.serial = new Serial(this.interrupt);
         this.joypad = new Joypad(this.interrupt);
         const unmapped = new Unmapped();
 
