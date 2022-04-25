@@ -55,9 +55,7 @@ export class Emulator {
         this.joypad.install(this.bus);
         unmapped.install(this.bus);
 
-        this.cpu.onExecute.addHandler((address) => this.trace.add(address));
-        this.bus.onRead.addHandler((address) => this.busTraps.get(address)?.trapRead && this.system.trap(`trap read from ${hex16(address)}`));
-        this.bus.onWrite.addHandler((address) => this.busTraps.get(address)?.trapWrite && this.system.trap(`trap write to ${hex16(address)}`));
+        this.cpu.onExecute.addHandler(this.onExecuteHandler);
         this.onTrap = this.system.onTrap;
 
         this.reset(savedRam);
@@ -73,21 +71,17 @@ export class Emulator {
 
     addBreakpoint(address: number): void {
         this.breakpoints.add(address);
-
-        if (!this.cpu.onAfterExecute.isHandlerAttached(this.onAfterExecuteHandler)) {
-            this.cpu.onAfterExecute.addHandler(this.onAfterExecuteHandler);
-        }
+        this.updateHooks();
     }
 
     clearBreakpoint(address: number): void {
         this.breakpoints.delete(address);
-
-        if (this.breakpoints.size === 0) this.cpu.onAfterExecute.removeHandler(this.onAfterExecuteHandler);
+        this.updateHooks();
     }
 
     clearBreakpoints(): void {
         this.breakpoints.clear();
-        this.cpu.onAfterExecute.removeHandler(this.onAfterExecuteHandler);
+        this.updateHooks();
     }
 
     getBreakpoints(): Array<number> {
@@ -96,18 +90,22 @@ export class Emulator {
 
     addTrapWrite(address: number): void {
         this.busTraps.set(address, { ...(this.busTraps.get(address) || { address, trapRead: false, trapWrite: false }), trapWrite: true });
+        this.updateHooks();
     }
 
     addTrapRead(address: number): void {
         this.busTraps.set(address, { ...(this.busTraps.get(address) || { address, trapRead: false, trapWrite: false }), trapRead: true });
+        this.updateHooks();
     }
 
     clearRWTrap(address: number) {
         this.busTraps.delete(address);
+        this.updateHooks();
     }
 
     clearRWTraps(): void {
         this.busTraps.clear();
+        this.updateHooks();
     }
 
     getTraps(): Array<BusTrap> {
@@ -219,6 +217,39 @@ export class Emulator {
         if (this.breakpoints.has(p)) this.system.trap(`hit breakpoint at ${hex16(p)}`);
     };
 
+    private updateHooks(): void {
+        if (this.breakpoints.size > 0 && !this.cpu.onAfterExecute.isHandlerAttached(this.onAfterExecuteHandler)) {
+            this.cpu.onAfterExecute.addHandler(this.onAfterExecuteHandler);
+        }
+
+        if (this.breakpoints.size === 0) {
+            this.cpu.onAfterExecute.removeHandler(this.onAfterExecuteHandler);
+        }
+
+        const hasReadTraps = Array.from(this.busTraps.values()).some((trap) => trap.trapRead);
+        const hasWriteTrap = Array.from(this.busTraps.values()).some((trap) => trap.trapWrite);
+
+        if (hasReadTraps && !this.bus.onRead.isHandlerAttached(this.onBusReadHandler)) {
+            this.bus.onRead.addHandler(this.onBusReadHandler);
+        }
+
+        if (!hasReadTraps) {
+            this.bus.onRead.removeHandler(this.onBusReadHandler);
+        }
+
+        if (hasWriteTrap && !this.bus.onWrite.isHandlerAttached(this.onBusWriteHandler)) {
+            this.bus.onWrite.addHandler(this.onBusWriteHandler);
+        }
+
+        if (!hasWriteTrap) {
+            this.bus.onWrite.removeHandler(this.onBusWriteHandler);
+        }
+    }
+
+    private onBusReadHandler = (address: number) => this.busTraps.get(address)?.trapRead && this.system.trap(`trap read from ${hex16(address)}`);
+    private onBusWriteHandler = (address: number) => this.busTraps.get(address)?.trapWrite && this.system.trap(`trap write to ${hex16(address)}`);
+    private onExecuteHandler = (address: number) => this.trace.add(address);
+
     readonly onTrap: Event<string>;
 
     private system: System;
@@ -235,7 +266,7 @@ export class Emulator {
     private timer: Timer;
     private joypad: Joypad;
 
-    private trace: Trace = new Trace();
+    private trace: Trace = new Trace(10000);
 
     private breakpoints = new Set<number>();
     private busTraps = new Map<number, BusTrap>();
