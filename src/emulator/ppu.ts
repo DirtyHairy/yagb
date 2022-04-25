@@ -168,6 +168,12 @@ export class Ppu {
                     this.mode3ExtraClocks = 0;
                     this.updateStat();
 
+                    // Save wx and wy at the beginning and draw and use them later. This helps games
+                    // like Popeye 2 that disable the window by moving it off screen during the last
+                    // scanline where it should be visible.
+                    this.wx = this.reg[reg.wx];
+                    this.wy = this.reg[reg.wy];
+
                     return consumed;
                 } else {
                     this.clockInMode += clocks;
@@ -224,11 +230,7 @@ export class Ppu {
                 if (clocks + this.clockInMode >= 4560) {
                     const consumed = 4560 - this.clockInMode;
 
-                    this.mode = ppuMode.oamScan;
-                    this.clockInMode = 0;
-                    this.scanline = 0;
-                    this.windowTriggered = false;
-                    this.windowLine = 0;
+                    this.startFrame();
 
                     if (this.skipFrame <= 0) {
                         this.swapBuffers();
@@ -292,8 +294,8 @@ export class Ppu {
         const backgroundY = this.reg[reg.scy] + this.scanline;
         const bgEnable = (this.reg[reg.lcdc] & lcdc.bgEnable) !== 0;
         const windowEnable = (this.reg[reg.lcdc] & lcdc.windowEnable) !== 0;
-        const windowX = this.reg[reg.wx] - 7;
-        const windowY = this.reg[reg.wy];
+        const windowX = this.wx - 7;
+        const windowY = this.wy;
 
         let bgTileNY = 0;
         let bgTileY = 0;
@@ -468,6 +470,14 @@ export class Ppu {
         }
     }
 
+    private startFrame(): void {
+        this.mode = ppuMode.oamScan;
+        this.clockInMode = 0;
+        this.scanline = 0;
+        this.windowTriggered = false;
+        this.windowLine = 0;
+    }
+
     private stubWrite: WriteHandler = () => undefined;
 
     private vramRead: ReadHandler = (address) => ((this.reg[reg.lcdc] & lcdc.enable) === 0 || this.mode !== ppuMode.draw ? this.vram[address & 0x1fff] : 0xff);
@@ -524,7 +534,10 @@ export class Ppu {
         this.reg[reg.lcdc] = value;
 
         if (~oldValue & this.reg[reg.lcdc] & lcdc.enable) {
-            this.skipFrame = 2;
+            this.startFrame();
+            this.skipFrame = 1;
+
+            this.updateStat();
         }
 
         if (oldValue & ~this.reg[reg.lcdc] & lcdc.enable) {
@@ -543,6 +556,9 @@ export class Ppu {
     private frame = 0;
     private mode: ppuMode = ppuMode.oamScan;
     private skipFrame = 0;
+
+    private wx = 0;
+    private wy = 0;
 
     private vram = new Uint8Array(0x2000);
     private oam = new Uint8Array(0xa0);
