@@ -8,6 +8,10 @@ export class Unmapped {
         for (let i = 0xff4c; i < 0xff80; i++) {
             bus.map(i, this.stubRead, this.stubWrite);
         }
+
+        for (let i = 0xff27; i < 0xff30; i++) {
+            bus.map(i, this.stubRead, this.stubWrite);
+        }
     }
 
     private stubRead: ReadHandler = () => 0;
