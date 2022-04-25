@@ -497,19 +497,19 @@ describe('PPU', () => {
             expect(ppu.getMode()).toBe(ppuMode.draw);
         });
 
-        it('state machine continues once PPU is reenabled', () => {
+        it('state machine restarts once PPU is reenabled', () => {
             const { bus, ppu } = setup();
 
-            ppu.cycle(79);
-            expect(ppu.getMode()).toBe(ppuMode.oamScan);
+            ppu.cycle(80);
+            expect(ppu.getMode()).toBe(ppuMode.draw);
 
             bus.write(0xff40, 0x00);
             ppu.cycle(1);
-            expect(ppu.getMode()).toBe(ppuMode.oamScan);
+            expect(ppu.getMode()).toBe(ppuMode.draw);
 
             bus.write(0xff40, 0x80);
             ppu.cycle(1);
-            expect(ppu.getMode()).toBe(ppuMode.draw);
+            expect(ppu.getMode()).toBe(ppuMode.oamScan);
         });
     });
 

@@ -422,7 +422,8 @@ export class Ppu {
                 if (this.spriteQueue.flag[spriteIndex] & 0x80) {
                     // Sprite behind background
                     const bgValue = bgEnable ? ((bgTileData & 0x8000) >>> 14) | ((bgTileData & 0x80) >>> 7) : 0;
-                    this.backBuffer[pixelAddress++] = bgValue > 0 ? this.paletteBG[bgValue] : this.spriteQueue.palette[spriteIndex][spriteValue];
+                    this.backBuffer[pixelAddress++] =
+                        bgValue > 0 || spriteValue === 0 ? this.paletteBG[bgValue] : this.spriteQueue.palette[spriteIndex][spriteValue];
                 } else {
                     // Sprite in front of background
                     if (spriteValue > 0) {
