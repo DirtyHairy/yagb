@@ -28,7 +28,7 @@ export class Joypad {
         this.keys[k] = 1;
         const after = this.joypadRead(0xff00) & 0x0f;
 
-        if (before & ~after) this.interrupt.raise(irq.joypad);
+        if (!!before && !after) this.interrupt.raise(irq.joypad);
     }
 
     up(k: key): void {
@@ -40,11 +40,11 @@ export class Joypad {
         this.keys.fill(0);
         const after = this.joypadRead(0xff00) & 0x0f;
 
-        if (before & ~after) this.interrupt.raise(irq.joypad);
+        if (!!before && !after) this.interrupt.raise(irq.joypad);
     }
 
     private joypadRead: ReadHandler = () => {
-        let result = this.joypad | 0x0f;
+        let result = this.joypad | 0xcf;
 
         if ((this.joypad & 0x20) === 0) {
             if (this.keys[key.start]) result &= ~0x08;
@@ -68,7 +68,7 @@ export class Joypad {
         this.joypad = value & 0xff;
         const after = this.joypadRead(0xff00) & 0x0f;
 
-        if (before & ~after) this.interrupt.raise(irq.joypad);
+        if (!!before && !after) this.interrupt.raise(irq.joypad);
     };
 
     private joypad = 0x00;
