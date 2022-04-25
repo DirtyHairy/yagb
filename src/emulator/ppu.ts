@@ -212,7 +212,7 @@ export class Ppu {
 
                     if (this.scanline === 144) {
                         this.mode = ppuMode.vblank;
-                        this.interrupt.raise(irq.vblank);
+                        this.vblankFired = false;
                     } else {
                         this.mode = ppuMode.oamScan;
                     }
@@ -244,7 +244,14 @@ export class Ppu {
                 } else {
                     this.clockInMode += clocks;
 
-                    const scanline = 144 + ((this.clockInMode / 456) | 0);
+                    if (!this.vblankFired && this.clockInMode >= 4) {
+                        this.interrupt.raise(irq.vblank);
+                        this.vblankFired = true;
+                    }
+
+                    let scanline = 144 + ((this.clockInMode / 456) | 0);
+                    if (scanline === 153 && this.clockInMode >= 9 * 456 + 4) scanline = 0;
+
                     if (scanline !== this.scanline) {
                         this.scanline = scanline;
                         this.updateStat();
@@ -557,6 +564,7 @@ export class Ppu {
     private frame = 0;
     private mode: ppuMode = ppuMode.oamScan;
     private skipFrame = 0;
+    private vblankFired = false;
 
     private wx = 0;
     private wy = 0;

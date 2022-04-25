@@ -110,7 +110,7 @@ describe('PPU', () => {
                 increment(ppu, 70223);
 
                 expect(ppu.getMode()).toBe(ppuMode.vblank);
-                expect(bus.read(0xff44)).toBe(153);
+                expect(bus.read(0xff44)).toBe(0);
                 expect(ppu.getFrameIndex()).toBe(0);
 
                 increment(ppu, 1);
@@ -118,6 +118,21 @@ describe('PPU', () => {
                 expect(ppu.getMode()).toBe(ppuMode.oamScan);
                 expect(bus.read(0xff44)).toBe(0);
                 expect(ppu.getFrameIndex()).toBe(1);
+            });
+
+            it('last line lasts only four cycles', () => {
+                const { ppu, bus } = setup();
+
+                increment(ppu, 153 * 456);
+
+                expect(ppu.getMode()).toBe(ppuMode.vblank);
+                expect(bus.read(0xff44)).toBe(153);
+
+                increment(ppu, 3);
+                expect(bus.read(0xff44)).toBe(153);
+
+                increment(ppu, 1);
+                expect(bus.read(0xff44)).toBe(0);
             });
         }
 
@@ -252,7 +267,7 @@ describe('PPU', () => {
     });
 
     describe('Interrupts', () => {
-        it('entering vblank triggers vblank irq', () => {
+        it('entering vblank triggers vblank irq after four cycles', () => {
             const { ppu, raiseSpy } = setup();
 
             ppu.cycle(144 * 456 - 1);
@@ -260,9 +275,12 @@ describe('PPU', () => {
             expect(raiseSpy).not.toHaveBeenCalled();
             expect(ppu.getMode()).not.toBe(ppuMode.vblank);
 
-            ppu.cycle(1);
+            ppu.cycle(4);
 
             expect(ppu.getMode()).toBe(ppuMode.vblank);
+            expect(raiseSpy).not.toHaveBeenCalled();
+
+            ppu.cycle(1);
             expect(raiseSpy).toBeCalledTimes(1);
             expect(raiseSpy).toBeCalledWith(irq.vblank);
         });
@@ -309,7 +327,7 @@ describe('PPU', () => {
 
             ppu.cycle(1);
             expect(ppu.getMode()).toBe(ppuMode.vblank);
-            expect(raiseSpy).toBeCalledTimes(2);
+            expect(raiseSpy).toBeCalledTimes(1);
             expect(raiseSpy).toBeCalledWith(irq.stat);
         });
 
@@ -325,8 +343,7 @@ describe('PPU', () => {
 
             ppu.cycle(1);
             expect(ppu.getMode()).toBe(ppuMode.vblank);
-            expect(raiseSpy).toBeCalledTimes(1);
-            expect(raiseSpy).not.toHaveBeenCalledWith(irq.stat);
+            expect(raiseSpy).not.toHaveBeenCalled();
         });
 
         it('entering mode 0 (hblank) triggers STAT interrupt if configured', () => {
@@ -386,7 +403,7 @@ describe('PPU', () => {
             expect(raiseSpy).not.toHaveBeenCalledWith(irq.stat);
         });
 
-        it('STAT does not trigger multiple times trough consecutive conditions', () => {
+        it('STAT does not trigger multiple times trough consecutive conditions (STAT blocking)', () => {
             const { bus, ppu, raiseSpy } = setup();
 
             bus.write(0xff41, 0x48);
