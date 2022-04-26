@@ -38,6 +38,7 @@ export interface CpuState {
     r16: Uint16Array;
     p: number;
     interruptsEnabled: boolean;
+    pendingEi: boolean;
     halt: boolean;
 }
 
@@ -67,6 +68,7 @@ export class Cpu {
             p: 0x00,
             interruptsEnabled: false,
             halt: false,
+            pendingEi: false,
         };
     }
 
@@ -79,6 +81,7 @@ export class Cpu {
         this.state.r16[r16.sp] = 0xfffe;
         this.state.interruptsEnabled = false;
         this.state.halt = false;
+        this.state.pendingEi = false;
     }
 
     step(count: number): number {
@@ -139,7 +142,7 @@ export class Cpu {
         this.stackPush16(this.state.p);
 
         this.state.p = getIrqVector(irq);
-        this.clock.increment(5);
+        this.tick(5);
 
         return 5;
     }
@@ -159,7 +162,7 @@ export class Cpu {
 
     private dispatch(instruction: Instruction): number {
         if (this.state.halt) {
-            this.clock.increment(1);
+            this.tick(1);
             return 1;
         }
 
@@ -329,7 +332,7 @@ export class Cpu {
     }
 
     private opAdc(instruction: Instruction): number {
-        this.clock.increment(instruction.cycles);
+        this.tick(instruction.cycles);
 
         const operand1 = this.getArg1(instruction);
         const operand2 = this.getArg2(instruction);
@@ -349,7 +352,7 @@ export class Cpu {
     }
 
     private opAdd(instruction: Instruction): number {
-        this.clock.increment(instruction.cycles);
+        this.tick(instruction.cycles);
 
         const operand1 = this.getArg1(instruction);
         const operand2 = this.getArg2(instruction);
@@ -368,7 +371,7 @@ export class Cpu {
     }
 
     private opAdd16(instruction: Instruction): number {
-        this.clock.increment(instruction.cycles);
+        this.tick(instruction.cycles);
 
         const operand1 = this.getArg1(instruction);
         const operand2 = this.getArg2(instruction);
@@ -387,7 +390,7 @@ export class Cpu {
     }
 
     private opAdd16s(instruction: Instruction): number {
-        this.clock.increment(instruction.cycles);
+        this.tick(instruction.cycles);
 
         const operand1 = this.getArg1(instruction);
         const operand2 = this.getArg2(instruction);
@@ -404,7 +407,7 @@ export class Cpu {
     }
 
     private opAnd(instruction: Instruction): number {
-        this.clock.increment(instruction.cycles);
+        this.tick(instruction.cycles);
 
         this.state.r8[r8.a] &= this.getArg1(instruction);
         this.state.r8[r8.f] = flag.h | (this.state.r8[r8.a] === 0 ? flag.z : 0x00);
@@ -416,7 +419,7 @@ export class Cpu {
     private opCall(instruction: Instruction) {
         const condition = this.evaluateCondition(instruction);
         const cycles = instruction.cycles + (condition ? 3 : 0);
-        this.clock.increment(cycles);
+        this.tick(cycles);
 
         const returnTo = (this.state.p + instruction.len) & 0xffff;
 
@@ -431,7 +434,7 @@ export class Cpu {
     }
 
     private opCcf(instruction: Instruction): number {
-        this.clock.increment(instruction.cycles);
+        this.tick(instruction.cycles);
 
         // flip flag C and reset flags N, H, do not touch flag Z
         this.state.r8[r8.f] = (this.state.r8[r8.f] ^ flag.c) & (flag.z | flag.c);
@@ -441,7 +444,7 @@ export class Cpu {
     }
 
     private opCp(instruction: Instruction): number {
-        this.clock.increment(instruction.cycles);
+        this.tick(instruction.cycles);
 
         const a = this.state.r8[r8.a];
         const operand = this.getArg1(instruction);
@@ -458,7 +461,7 @@ export class Cpu {
     }
 
     private opCpl(instruction: Instruction): number {
-        this.clock.increment(instruction.cycles);
+        this.tick(instruction.cycles);
 
         this.state.r8[r8.a] ^= 0xff;
 
@@ -469,7 +472,7 @@ export class Cpu {
     }
 
     private opDec(instruction: Instruction) {
-        this.clock.increment(instruction.cycles);
+        this.tick(instruction.cycles);
 
         const operand = this.getArg1(instruction);
         const result = operand - 0x01;
@@ -488,7 +491,7 @@ export class Cpu {
     }
 
     private opDaa(instruction: Instruction): number {
-        this.clock.increment(instruction.cycles);
+        this.tick(instruction.cycles);
 
         let result = this.state.r8[r8.a];
 
@@ -512,7 +515,7 @@ export class Cpu {
     }
 
     private opDec16(instruction: Instruction): number {
-        this.clock.increment(instruction.cycles);
+        this.tick(instruction.cycles);
 
         const operand = this.getArg1(instruction);
         const result = operand - 0x01;
@@ -524,7 +527,7 @@ export class Cpu {
     }
 
     private opDi(instruction: Instruction): number {
-        this.clock.increment(instruction.cycles);
+        this.tick(instruction.cycles);
 
         this.state.interruptsEnabled = false;
 
@@ -533,26 +536,29 @@ export class Cpu {
     }
 
     private opEi(instruction: Instruction): number {
-        this.clock.increment(instruction.cycles);
+        this.tick(instruction.cycles);
 
-        this.state.interruptsEnabled = true;
+        this.state.pendingEi = true;
 
         this.state.p = (this.state.p + instruction.len) & 0xffff;
         return instruction.cycles;
     }
 
     private opHalt(instruction: Instruction): number {
-        const cycles = instruction.cycles;
-        this.clock.increment(cycles);
+        const halt = this.state.interruptsEnabled || !this.interrupt.isPending();
+        // Incomplete emulation of HALT bug: we include a clock penalty, but we
+        // don't account for the double P read.
+        const cycles = instruction.cycles + (halt ? 0 : 1);
 
-        this.state.halt = this.state.interruptsEnabled || !this.interrupt.isPending();
+        this.tick(cycles);
+        this.state.halt = halt;
 
-        this.state.p = this.state.p + instruction.len;
+        this.state.p = this.state.p + 1;
         return cycles;
     }
 
     private opInc(instruction: Instruction): number {
-        this.clock.increment(instruction.cycles);
+        this.tick(instruction.cycles);
 
         const operand = this.getArg1(instruction);
         const result = operand + 0x01;
@@ -570,7 +576,7 @@ export class Cpu {
     }
 
     private opInc16(instruction: Instruction): number {
-        this.clock.increment(instruction.cycles);
+        this.tick(instruction.cycles);
 
         const operand = this.getArg1(instruction);
         const result = operand + 0x01;
@@ -584,7 +590,7 @@ export class Cpu {
     private opJp(instruction: Instruction): number {
         const condition = this.evaluateCondition(instruction);
         const cycles = instruction.cycles + (condition ? 1 : 0);
-        this.clock.increment(cycles);
+        this.tick(cycles);
 
         const target = this.getArg1(instruction);
 
@@ -598,7 +604,7 @@ export class Cpu {
     }
 
     private opLd(instruction: Instruction): number {
-        this.clock.increment(instruction.cycles);
+        this.tick(instruction.cycles);
 
         this.setArg1(instruction, this.getArg2(instruction));
 
@@ -609,7 +615,7 @@ export class Cpu {
     private opJr(instruction: Instruction): number {
         const condition = this.evaluateCondition(instruction);
         const cycles = instruction.cycles + (condition ? 1 : 0);
-        this.clock.increment(cycles);
+        this.tick(cycles);
 
         const displacement = this.getArg1(instruction);
 
@@ -622,7 +628,7 @@ export class Cpu {
     }
 
     private opLdd(instruction: Instruction): number {
-        this.clock.increment(instruction.cycles);
+        this.tick(instruction.cycles);
 
         this.setArg1(instruction, this.getArg2(instruction));
         this.state.r16[r16.hl] -= 0x01;
@@ -632,7 +638,7 @@ export class Cpu {
     }
 
     private opLdi(instruction: Instruction): number {
-        this.clock.increment(instruction.cycles);
+        this.tick(instruction.cycles);
 
         this.setArg1(instruction, this.getArg2(instruction));
         this.state.r16[r16.hl] += 0x01;
@@ -642,7 +648,7 @@ export class Cpu {
     }
 
     private opLds(instruction: Instruction): number {
-        this.clock.increment(instruction.cycles);
+        this.tick(instruction.cycles);
 
         const operand = this.getArg1(instruction);
         const stackPointer = this.state.r16[r16.sp];
@@ -659,14 +665,14 @@ export class Cpu {
     }
 
     private opNop(instruction: Instruction): number {
-        this.clock.increment(instruction.cycles);
+        this.tick(instruction.cycles);
 
         this.state.p = (this.state.p + instruction.len) & 0xffff;
         return instruction.cycles;
     }
 
     private opOr(instruction: Instruction): number {
-        this.clock.increment(instruction.cycles);
+        this.tick(instruction.cycles);
 
         this.state.r8[r8.a] |= this.getArg1(instruction);
         this.state.r8[r8.f] = this.state.r8[r8.a] === 0 ? flag.z : 0x00;
@@ -676,7 +682,7 @@ export class Cpu {
     }
 
     private opPop(instruction: Instruction): number {
-        this.clock.increment(instruction.cycles);
+        this.tick(instruction.cycles);
 
         this.setArg1(instruction, this.stackPop16());
         this.state.r8[r8.f] &= 0xf0;
@@ -686,7 +692,7 @@ export class Cpu {
     }
 
     private opPush(instruction: Instruction): number {
-        this.clock.increment(instruction.cycles);
+        this.tick(instruction.cycles);
 
         const operand = this.getArg1(instruction);
 
@@ -699,7 +705,7 @@ export class Cpu {
     private opRet(instruction: Instruction): number {
         const condition = this.evaluateCondition(instruction);
         const cycles = instruction.cycles + (condition ? 3 : 0);
-        this.clock.increment(cycles);
+        this.tick(cycles);
 
         if (condition) {
             this.state.p = this.stackPop16();
@@ -711,7 +717,7 @@ export class Cpu {
     }
 
     private opReti(instruction: Instruction): number {
-        this.clock.increment(instruction.cycles);
+        this.tick(instruction.cycles);
 
         this.state.p = this.stackPop16();
 
@@ -721,7 +727,7 @@ export class Cpu {
     }
 
     private opRlca(instruction: Instruction): number {
-        this.clock.increment(instruction.cycles);
+        this.tick(instruction.cycles);
 
         const operand = this.state.r8[r8.a];
 
@@ -736,7 +742,7 @@ export class Cpu {
     }
 
     private opRla(instruction: Instruction): number {
-        this.clock.increment(instruction.cycles);
+        this.tick(instruction.cycles);
 
         const operand = this.state.r8[r8.a];
 
@@ -751,7 +757,7 @@ export class Cpu {
     }
 
     private opRrca(instruction: Instruction): number {
-        this.clock.increment(instruction.cycles);
+        this.tick(instruction.cycles);
 
         const operand = this.state.r8[r8.a];
 
@@ -766,7 +772,7 @@ export class Cpu {
     }
 
     private opRra(instruction: Instruction): number {
-        this.clock.increment(instruction.cycles);
+        this.tick(instruction.cycles);
 
         const operand = this.state.r8[r8.a];
 
@@ -781,7 +787,7 @@ export class Cpu {
     }
 
     private opSbc(instruction: Instruction): number {
-        this.clock.increment(instruction.cycles);
+        this.tick(instruction.cycles);
 
         const operand1 = this.getArg1(instruction);
         const operand2 = this.getArg2(instruction);
@@ -802,7 +808,7 @@ export class Cpu {
     }
 
     private opScf(instruction: Instruction): number {
-        this.clock.increment(instruction.cycles);
+        this.tick(instruction.cycles);
 
         // prettier-ignore
         this.state.r8[r8.f] =
@@ -814,14 +820,14 @@ export class Cpu {
     }
 
     private opStop(instruction: Instruction): number {
-        this.clock.increment(instruction.cycles);
+        this.tick(instruction.cycles);
 
         this.state.p = (this.state.p + instruction.len) & 0xffff;
         return instruction.cycles;
     }
 
     private opSub(instruction: Instruction): number {
-        this.clock.increment(instruction.cycles);
+        this.tick(instruction.cycles);
 
         const operand1 = this.state.r8[r8.a];
         const operand2 = this.getArg1(instruction);
@@ -841,7 +847,7 @@ export class Cpu {
     }
 
     private opXor(instruction: Instruction): number {
-        this.clock.increment(instruction.cycles);
+        this.tick(instruction.cycles);
 
         this.state.r8[r8.a] ^= this.getArg1(instruction);
         this.state.r8[r8.f] = this.state.r8[r8.a] ? 0x00 : flag.z;
@@ -851,7 +857,7 @@ export class Cpu {
     }
 
     private opBit(instruction: Instruction): number {
-        this.clock.increment(instruction.cycles);
+        this.tick(instruction.cycles);
 
         const operand = this.getArg2(instruction);
         const bitMask = 1 << this.getArg1(instruction);
@@ -867,7 +873,7 @@ export class Cpu {
     }
 
     private opSet(instruction: Instruction): number {
-        this.clock.increment(instruction.cycles);
+        this.tick(instruction.cycles);
 
         const operand = this.getArg2(instruction);
         const bitMask = 1 << this.getArg1(instruction);
@@ -879,7 +885,7 @@ export class Cpu {
     }
 
     private opRes(instruction: Instruction): number {
-        this.clock.increment(instruction.cycles);
+        this.tick(instruction.cycles);
 
         const operand = this.getArg2(instruction);
         const bitMask = ~(1 << this.getArg1(instruction));
@@ -891,7 +897,7 @@ export class Cpu {
     }
 
     private opSwap(instruction: Instruction): number {
-        this.clock.increment(instruction.cycles);
+        this.tick(instruction.cycles);
 
         const operand = this.getArg1(instruction);
         const result = ((operand & 0xf0) >>> 4) | ((operand & 0x0f) << 4);
@@ -905,7 +911,7 @@ export class Cpu {
     }
 
     private opRlc(instruction: Instruction): number {
-        this.clock.increment(instruction.cycles);
+        this.tick(instruction.cycles);
 
         const operand = this.getArg1(instruction);
         const result = ((operand << 1) | (operand >>> 7)) & 0xff;
@@ -922,7 +928,7 @@ export class Cpu {
     }
 
     private opRl(instruction: Instruction): number {
-        this.clock.increment(instruction.cycles);
+        this.tick(instruction.cycles);
 
         const operand = this.getArg1(instruction);
         const result = ((operand << 1) | ((this.state.r8[r8.f] & flag.c) >>> 4)) & 0xff;
@@ -939,7 +945,7 @@ export class Cpu {
     }
 
     private opRrc(instruction: Instruction): number {
-        this.clock.increment(instruction.cycles);
+        this.tick(instruction.cycles);
 
         const operand = this.getArg1(instruction);
         const result = ((operand >>> 1) | (operand << 7)) & 0xff;
@@ -956,7 +962,7 @@ export class Cpu {
     }
 
     private opRr(instruction: Instruction): number {
-        this.clock.increment(instruction.cycles);
+        this.tick(instruction.cycles);
 
         const operand = this.getArg1(instruction);
         const result = ((operand >>> 1) | ((this.state.r8[r8.f] & flag.c) << 3)) & 0xff;
@@ -973,7 +979,7 @@ export class Cpu {
     }
 
     private opSla(instruction: Instruction): number {
-        this.clock.increment(instruction.cycles);
+        this.tick(instruction.cycles);
 
         const operand = this.getArg1(instruction);
         const result = (operand << 1) & 0xff;
@@ -990,7 +996,7 @@ export class Cpu {
     }
 
     private opSra(instruction: Instruction): number {
-        this.clock.increment(instruction.cycles);
+        this.tick(instruction.cycles);
 
         const operand = this.getArg1(instruction);
         const result = ((operand >> 1) | (operand & 0x80)) & 0xff;
@@ -1007,7 +1013,7 @@ export class Cpu {
     }
 
     private opSrl(instruction: Instruction): number {
-        this.clock.increment(instruction.cycles);
+        this.tick(instruction.cycles);
 
         const operand = this.getArg1(instruction);
         const result = (operand >> 1) & 0xff;
@@ -1024,7 +1030,7 @@ export class Cpu {
     }
 
     private opRst(instruction: Instruction): number {
-        this.clock.increment(instruction.cycles);
+        this.tick(instruction.cycles);
 
         this.stackPush16((this.state.p + 1) & 0xffff);
 
@@ -1145,6 +1151,21 @@ export class Cpu {
         }
 
         return true;
+    }
+
+    private tick(cycles: number) {
+        // Emulate delayed EI
+        if (this.state.pendingEi && cycles > 0) {
+            this.clock.increment(1);
+            this.state.pendingEi = false;
+            this.state.interruptsEnabled = true;
+
+            cycles--;
+
+            if (cycles === 0) return;
+        }
+
+        this.clock.increment(cycles);
     }
 
     readonly onExecute = new Event<number>();
