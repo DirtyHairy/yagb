@@ -320,6 +320,7 @@ describe('PPU', () => {
             const { bus, ppu, raiseSpy } = setup();
 
             bus.write(0xff41, 0x10);
+            raiseSpy.mockClear();
 
             ppu.cycle(144 * 456 - 1);
             expect(ppu.getMode()).not.toBe(ppuMode.vblank);
