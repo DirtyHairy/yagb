@@ -72,7 +72,7 @@ export class Ppu {
 
         bus.map(reg.base + reg.lcdc, this.registerRead, this.lcdcWrite);
         bus.map(reg.base + reg.ly, this.lyRead, this.stubWrite);
-        bus.map(reg.base + reg.stat, this.statRead, this.registerWrite);
+        bus.map(reg.base + reg.stat, this.statRead, this.statWrite);
         bus.map(reg.base + reg.dma, this.registerRead, this.dmaWrite);
         bus.map(reg.base + reg.bgp, this.registerRead, this.bgpWrite);
         bus.map(reg.base + reg.obp0, this.registerRead, this.obp0Write);
@@ -250,6 +250,7 @@ export class Ppu {
                     }
 
                     let scanline = 144 + ((this.clockInMode / 456) | 0);
+                    // Emulate short line 153 (monochrome GB flavor)
                     if (scanline === 153 && this.clockInMode >= 9 * 456 + 4) scanline = 0;
 
                     if (scanline !== this.scanline) {
@@ -273,7 +274,7 @@ export class Ppu {
                 (!!(statval & stat.sourceModeVblank) && this.mode === ppuMode.vblank) ||
                 (!!(statval & stat.sourceModeHblank) && this.mode === ppuMode.hblank));
 
-        if (this.stat && !oldStat && (this.reg[reg.lcdc] & lcdc.enable) !== 0x00) this.interrupt.raise(irq.stat);
+        if (this.stat && !oldStat) this.interrupt.raise(irq.stat);
     }
 
     private executeDma(): void {
@@ -556,6 +557,23 @@ export class Ppu {
 
     private lycWrite: WriteHandler = (_, value) => {
         this.reg[reg.lyc] = value;
+        this.updateStat();
+    };
+
+    private statWrite: WriteHandler = (_, value) => {
+        this.reg[reg.stat] = value;
+
+        const oldStat = this.stat;
+
+        // Emulate monochrome GB stat quirk. We do take a short cut here though by not waiting
+        // for one cycle between transitioning between 0xff and the actual value. Technically, this
+        // might lead to one extra STAT interrupt in very edgy edge cases.
+        this.stat =
+            !!(this.reg[reg.lcdc] & lcdc.enable) &&
+            (this.scanline === this.reg[reg.lyc] || this.mode === ppuMode.oamScan || this.mode === ppuMode.vblank || this.mode === ppuMode.hblank);
+
+        if (this.stat && !oldStat) this.interrupt.raise(irq.stat);
+
         this.updateStat();
     };
 
