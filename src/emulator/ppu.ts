@@ -96,7 +96,8 @@ export class Ppu {
         this.oam.fill(0);
         this.reg.fill(0);
 
-        this.reg[reg.lcdc] = lcdc.enable;
+        this.reg[reg.lcdc] = 0x91;
+        this.reg[reg.stat] = 0x80;
 
         this.reg[reg.bgp] = 0xfc;
         this.reg[reg.obp0] = 0x00;
@@ -250,8 +251,11 @@ export class Ppu {
                     }
 
                     let scanline = 144 + ((this.clockInMode / 456) | 0);
-                    // Emulate short line 153 (monochrome GB flavor)
-                    if (scanline === 153 && this.clockInMode >= 9 * 456 + 4) scanline = 0;
+                    // Emulate short line 153. It is unclear how long this should be.
+                    // The no$gb docs say ~56 cycles, the cycle-exact docs say 4, the SameBoy source
+                    // says 12. 4 Kills Prehistorik Man, 12 makes it flicker, so we go with 56 until
+                    // we find reason to change it.
+                    if (scanline === 153 && this.clockInMode >= 9 * 456 + 56) scanline = 0;
 
                     if (scanline !== this.scanline) {
                         this.scanline = scanline;
@@ -561,7 +565,7 @@ export class Ppu {
     };
 
     private statWrite: WriteHandler = (_, value) => {
-        this.reg[reg.stat] = value;
+        this.reg[reg.stat] = value | 0x80;
 
         const oldStat = this.stat;
 

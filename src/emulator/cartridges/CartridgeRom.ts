@@ -2,7 +2,6 @@ import { Bus, ReadHandler, WriteHandler } from '../bus';
 
 import { CartridgeBase } from './CartridgeBase';
 import { System } from '../system';
-import { hex16 } from '../../helper/format';
 
 export class CartridgeRom extends CartridgeBase {
     constructor(image: Uint8Array, system: System) {
@@ -12,17 +11,21 @@ export class CartridgeRom extends CartridgeBase {
 
     install(bus: Bus): void {
         super.install(bus);
+
         for (let i = 0; i < 0x8000; i++) {
-            bus.map(i, this.romReadHandler, this.romWriteHandler);
+            bus.map(i, this.romRead, this.stubWrite);
         }
+
+        for (let i = 0xa000; i < 0xc000; i++) bus.map(i, this.ramRead, this.stubWrite);
     }
 
     printState(): string {
         return `rom only`;
     }
 
-    protected romReadHandler: ReadHandler = (address) => this.rom[address];
-    protected romWriteHandler: WriteHandler = (address) => this.system.warning(`attempt to write ROM at ${hex16(address)}`);
+    private romRead: ReadHandler = (address) => this.rom[address];
+    private ramRead: ReadHandler = () => 0xff;
+    private stubWrite: WriteHandler = () => undefined;
 
-    protected rom: Uint8Array;
+    private rom: Uint8Array;
 }

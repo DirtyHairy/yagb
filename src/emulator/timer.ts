@@ -4,6 +4,7 @@ import { Interrupt, irq } from './interrupt';
 import { hex8 } from '../helper/format';
 
 export const enum reg {
+    base = 0xff04,
     div = 0x00,
     tima = 0x01,
     tma = 0x02,
@@ -34,14 +35,21 @@ export class Timer {
     constructor(private interrupt: Interrupt) {}
 
     install(bus: Bus): void {
-        for (let i = 0xff04; i < 0xff08; i++) {
-            bus.map(i, this.read, this.write);
+        for (let i = reg.base; i <= reg.base + 0x03; i++) {
+            bus.map(i, this.regRead, this.regWrite);
         }
+
+        bus.map(reg.base + reg.tima, this.timeRead, this.regWrite);
+        bus.map(reg.base + reg.div, this.regRead, this.divWrite);
+        bus.map(reg.base + reg.tac, this.regRead, this.tacWrite);
     }
 
     reset(): void {
         this.reg.fill(0);
-        this.divider = 256;
+        this.reg[reg.div] = 0xac;
+        this.reg[reg.tac] = 0xf8;
+
+        this.divider = divider(this.reg[reg.tac]);
         this.accDiv = this.accTima = 0;
         this.irqPending = false;
         this.overflowCycle = false;
@@ -93,19 +101,17 @@ export class Timer {
         return this.reg[address - 0xff04];
     };
 
-    private write: WriteHandler = (address, value) => {
-        this.reg[address - 0xff04] = value;
+    private regRead: ReadHandler = (address) => this.reg[address - reg.base];
+    private regWrite: WriteHandler = (address, value) => (this.reg[address - reg.base] = value);
 
-        switch (address - 0xff04) {
-            case reg.tac:
-                this.divider = divider(value);
-                break;
+    private timeRead: ReadHandler = () => (this.overflowCycle ? 0x00 : this.reg[reg.tima]);
 
-            case reg.div:
-                this.reg[reg.div] = 0;
-                break;
-        }
+    private tacWrite: WriteHandler = (_, value) => {
+        this.reg[reg.tac] = value;
+        this.divider = divider(this.reg[reg.tac]);
     };
+
+    private divWrite: WriteHandler = () => (this.reg[reg.div] = 0);
 
     private reg = new Uint8Array(0x04);
     private divider = 1024;

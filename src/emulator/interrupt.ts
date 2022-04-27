@@ -22,8 +22,8 @@ export class Interrupt {
     }
 
     reset(): void {
-        this.ie = 0;
-        this.if = 0;
+        this.ie = 0x00;
+        this.if = 0xe1;
     }
 
     raise(irq: irq): void {
@@ -61,5 +61,5 @@ export class Interrupt {
     private writeIE: WriteHandler = (_, value) => (this.ie = value & 0xff);
 
     private readIF: ReadHandler = () => this.if;
-    private writeIF: WriteHandler = (_, value) => (this.if = value & 0xff);
+    private writeIF: WriteHandler = (_, value) => (this.if = (value & 0xff) | 0xe0);
 }

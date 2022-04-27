@@ -1,7 +1,7 @@
 import { Bus, ReadHandler, WriteHandler } from '../../src/emulator/bus';
+import { Cpu, r8 } from '../../src/emulator/cpu';
 
 import { Clock } from '../../src/emulator/clock';
-import { Cpu } from '../../src/emulator/cpu';
 import { Interrupt } from '../../src/emulator/interrupt';
 import { Ppu } from '../../src/emulator/ppu';
 import { Ram } from '../../src/emulator/ram';
@@ -78,5 +78,7 @@ export class TestEnvironment {
 
         this.cpu.state.p = this.address;
         this.cartridge.subarray(this.address).set(this.code);
+
+        this.cpu.state.r8[r8.f] = 0x00;
     }
 }

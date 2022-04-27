@@ -120,7 +120,7 @@ describe('PPU', () => {
                 expect(ppu.getFrameIndex()).toBe(1);
             });
 
-            it('last line lasts only four cycles', () => {
+            it('last line lasts only 56 cycles', () => {
                 const { ppu, bus } = setup();
 
                 increment(ppu, 153 * 456);
@@ -128,7 +128,7 @@ describe('PPU', () => {
                 expect(ppu.getMode()).toBe(ppuMode.vblank);
                 expect(bus.read(0xff44)).toBe(153);
 
-                increment(ppu, 3);
+                increment(ppu, 55);
                 expect(bus.read(0xff44)).toBe(153);
 
                 increment(ppu, 1);

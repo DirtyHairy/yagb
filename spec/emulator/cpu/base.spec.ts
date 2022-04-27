@@ -80,7 +80,7 @@ describe('The glorious CPU', () => {
 
             cpu.step(1);
 
-            expect(bus.read(0xff0f)).toBe(irq.stat);
+            expect(bus.read(0xff0f)).toBe(0xe0 | irq.stat);
         });
 
         it('does not execute if interrupts are disabled', () => {
@@ -105,7 +105,7 @@ describe('The glorious CPU', () => {
             cpu.step(1);
 
             expect(cpu.state.p).toBe(0x50);
-            expect(bus.read(0xff0f)).toBe(irq.vblank);
+            expect(bus.read(0xff0f)).toBe(0xe0 | irq.vblank);
         });
     });
 });

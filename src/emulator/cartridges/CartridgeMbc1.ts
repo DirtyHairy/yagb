@@ -117,7 +117,7 @@ export class CartridgeMbc1 extends CartridgeBase {
 
     private readBank0: ReadHandler = (address) => this.romBank0[address];
     private readBank1: ReadHandler = (address) => this.romBank1[address & 0x3fff];
-    private readBankRam: ReadHandler = (address) => (this.ramEnable ? this.ramBank[address - 0xa000] : 0);
+    private readBankRam: ReadHandler = (address) => (this.ramEnable ? this.ramBank[address - 0xa000] : 0xff);
 
     private writeRamEnable: WriteHandler = (_, value) => this.ram.length > 0 && (this.ramEnable = (value & 0x0f) === 0x0a);
 

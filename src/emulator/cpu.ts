@@ -73,7 +73,7 @@ export class Cpu {
     }
 
     reset() {
-        this.state.r16[r16.af] = 0x0100;
+        this.state.r16[r16.af] = 0x01b0;
         this.state.r16[r16.bc] = 0x0013;
         this.state.r16[r16.de] = 0x00d8;
         this.state.r16[r16.hl] = 0x014d;

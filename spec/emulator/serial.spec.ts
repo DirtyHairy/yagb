@@ -21,8 +21,8 @@ describe('serial out', () => {
     it('only bits 0 and 7 of SC can be written', () => {
         const { bus } = setup();
 
-        bus.write(0xff02, 0xff);
-        expect(bus.read(0xff02)).toBe(0x81);
+        bus.write(0xff02, 0x00);
+        expect(bus.read(0xff02)).toBe(0x7e);
     });
 
     it('transfer does not start if clock is set to internal', () => {
@@ -34,7 +34,7 @@ describe('serial out', () => {
         serial.clock(8 * 128);
 
         expect(bus.read(0xff01)).toBe(0x01);
-        expect(bus.read(0xff02)).toBe(0x80);
+        expect(bus.read(0xff02)).toBe(0xfe);
     });
 
     it('transfer shifts 0xff into SB ab 8kHz', () => {
@@ -66,10 +66,10 @@ describe('serial out', () => {
         bus.write(0xff02, 0x81);
 
         serial.clock(128 * 8 - 1);
-        expect(bus.read(0xff02)).toBe(0x81);
+        expect(bus.read(0xff02)).toBe(0xff);
 
         serial.clock(1);
-        expect(bus.read(0xff02)).toBe(0x01);
+        expect(bus.read(0xff02)).toBe(0x7f);
     });
 
     it('transfer raises serial interrupt after transfer has finished', () => {

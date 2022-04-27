@@ -16,7 +16,9 @@ export class Serial {
     }
 
     reset(): void {
-        this.reg.fill(0);
+        this.reg[reg.sb] = 0x00;
+        this.reg[reg.sc] = 0x7e;
+
         this.transferInProgress = false;
         this.transferClock = 0;
         this.nextBit = 0;
@@ -42,7 +44,7 @@ export class Serial {
         if (this.nextBit > 7) {
             this.interrupt.raise(irq.serial);
             this.transferInProgress = false;
-            this.reg[reg.sc] &= 0x01;
+            this.reg[reg.sc] &= 0x7f;
         }
     }
 
@@ -51,9 +53,9 @@ export class Serial {
     private sbWrite: WriteHandler = (_, value) => !this.transferInProgress && (this.reg[reg.sb] = value);
     private scWrite: WriteHandler = (_, value) => {
         if (this.transferInProgress) return;
-        this.reg[reg.sc] = value & 0x81;
+        this.reg[reg.sc] = value | 0x7e;
 
-        if (this.reg[reg.sc] === 0x81) {
+        if ((this.reg[reg.sc] & 0x81) === 0x81) {
             this.transferInProgress = true;
             this.transferClock = 0;
             this.nextBit = 0;
