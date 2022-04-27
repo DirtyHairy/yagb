@@ -207,7 +207,7 @@ Keyboard controls (canvas needs focus): arrows = joypad, a/b = a/b, space = sele
             localStorage.setItem(STORAGE_KEY_YAGB_CARTERIDGE_NAME, name);
 
             loadCartridge(data, name);
-        });
+        }, '.gb');
     },
     disassemble(count?: string, address?: string): void {
         if (!assertEmulator()) return;

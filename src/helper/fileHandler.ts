@@ -1,5 +1,5 @@
 export class FileHandler {
-    openFile(handler: (data: Uint8Array, name: string) => void) {
+    openFile(handler: (data: Uint8Array, name: string) => void, accept?: string) {
         if (this.fileInput) {
             document.body.removeChild(this.fileInput);
         }
@@ -9,6 +9,10 @@ export class FileHandler {
         this.fileInput.style.display = 'none';
         this.fileInput.multiple = false;
         this.fileInput.type = 'file';
+
+        if (accept) {
+            this.fileInput.accept = accept;
+        }
 
         this.fileInput.addEventListener('change', async (e) => {
             const target = e.target as HTMLInputElement;
