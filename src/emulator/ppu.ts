@@ -207,7 +207,7 @@ export class Ppu {
 
             case ppuMode.hblank:
                 if (clocks + this.clockInMode >= 204 - this.mode3ExtraClocks) {
-                    const consumed = 204 - this.clockInMode;
+                    const consumed = 204 - this.mode3ExtraClocks - this.clockInMode;
 
                     this.scanline++;
 
