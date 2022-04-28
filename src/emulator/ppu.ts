@@ -305,7 +305,7 @@ export class Ppu {
         const backgroundX = this.reg[reg.scx];
         const backgroundY = this.reg[reg.scy] + this.scanline;
         const bgEnable = (this.reg[reg.lcdc] & lcdc.bgEnable) !== 0;
-        const windowEnable = (this.reg[reg.lcdc] & lcdc.windowEnable) !== 0;
+        const windowEnable = bgEnable && (this.reg[reg.lcdc] & lcdc.windowEnable) !== 0 && this.wx <= 166;
         const windowX = this.wx - 7;
         const windowY = this.wy;
 
