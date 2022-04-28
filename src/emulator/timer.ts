@@ -111,7 +111,11 @@ export class Timer {
         this.divider = divider(this.reg[reg.tac]);
     };
 
-    private divWrite: WriteHandler = () => (this.reg[reg.div] = 0);
+    private divWrite: WriteHandler = () => {
+        this.reg[reg.div] = 0;
+        this.accDiv = 0;
+        this.accTima = 0;
+    };
 
     private reg = new Uint8Array(0x04);
     private divider = 1024;
