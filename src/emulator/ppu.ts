@@ -72,12 +72,11 @@ export class Ppu {
 
         bus.map(reg.base + reg.lcdc, this.registerRead, this.lcdcWrite);
         bus.map(reg.base + reg.ly, this.lyRead, this.stubWrite);
-        bus.map(reg.base + reg.stat, this.statRead, this.statWrite);
+        bus.map(reg.base + reg.stat, this.statRead, this.registerWrite);
         bus.map(reg.base + reg.dma, this.registerRead, this.dmaWrite);
         bus.map(reg.base + reg.bgp, this.registerRead, this.bgpWrite);
         bus.map(reg.base + reg.obp0, this.registerRead, this.obp0Write);
         bus.map(reg.base + reg.obp1, this.registerRead, this.obp1Write);
-        bus.map(reg.base + reg.lyc, this.registerRead, this.lycWrite);
 
         this.bus = bus;
     }
@@ -549,36 +548,12 @@ export class Ppu {
         if (~oldValue & this.reg[reg.lcdc] & lcdc.enable) {
             this.startFrame();
             this.skipFrame = 1;
-
-            this.updateStat();
         }
 
         if (oldValue & ~this.reg[reg.lcdc] & lcdc.enable) {
             this.backBuffer.fill(PALETTE_CLASSIC[4]);
             this.swapBuffers();
         }
-    };
-
-    private lycWrite: WriteHandler = (_, value) => {
-        this.reg[reg.lyc] = value;
-        this.updateStat();
-    };
-
-    private statWrite: WriteHandler = (_, value) => {
-        this.reg[reg.stat] = value | 0x80;
-
-        const oldStat = this.stat;
-
-        // Emulate monochrome GB stat quirk. We do take a short cut here though by not waiting
-        // for one cycle between transitioning between 0xff and the actual value. Technically, this
-        // might lead to one extra STAT interrupt in very edgy edge cases.
-        this.stat =
-            !!(this.reg[reg.lcdc] & lcdc.enable) &&
-            (this.scanline === this.reg[reg.lyc] || this.mode === ppuMode.oamScan || this.mode === ppuMode.vblank || this.mode === ppuMode.hblank);
-
-        if (this.stat && !oldStat) this.interrupt.raise(irq.stat);
-
-        this.updateStat();
     };
 
     private clockInMode = 0;
