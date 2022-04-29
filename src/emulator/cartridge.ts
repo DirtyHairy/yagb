@@ -58,6 +58,8 @@ export function createCartridge(image: Uint8Array, system: System): Cartridge | 
     const mapper = image[CartridgeAddress.type];
     switch (mapper) {
         case CartridgeType.rom:
+        case CartridgeType.rom_ram:
+        case CartridgeType.rom_ram_battery:
             return new CartridgeRom(image, system);
 
         case CartridgeType.mbc1:
