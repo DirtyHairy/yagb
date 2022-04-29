@@ -40,6 +40,7 @@ export class AudioDriver {
 
             await this.context.resume();
             if (!this.isRunning) await this.context.suspend();
+            else if (this.sampleQueue) this.sampleQueue.reset();
 
             this.contextHasStarted = true;
             console.log('context initialized');
@@ -61,6 +62,7 @@ export class AudioDriver {
 
         this.isRunning = true;
         if (this.contextHasStarted) this.context?.resume();
+        if (this.sampleQueue) this.sampleQueue.reset();
 
         console.log('audio started');
     }
@@ -75,6 +77,7 @@ export class AudioDriver {
     continue(): void {
         this.isRunning = true;
         if (this.contextHasStarted) this.context?.resume();
+        if (this.sampleQueue) this.sampleQueue.reset();
 
         console.log('audio resumed');
     }
@@ -90,7 +93,6 @@ export class AudioDriver {
         if (!this.sampleQueue) return;
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         if (this.sampleQueue.getLength() < evt.outputBuffer.length + this.context!.sampleRate / 30) {
-            console.log('underrun');
             return;
         }
 

@@ -7,10 +7,7 @@ export class SampleQueue {
     }
 
     reset(): void {
-        this.channelLeftData.fill(0);
-        this.channelRightData.fill(0);
         this.length = 0;
-        this.nextSample = 0;
     }
 
     push(left: number, right: number): void {
@@ -20,6 +17,7 @@ export class SampleQueue {
         if (this.length < this.capacity) {
             this.length++;
         }
+
         this.nextSample = (this.nextSample + 1) % this.capacity;
     }
 
