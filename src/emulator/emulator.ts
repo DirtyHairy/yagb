@@ -2,7 +2,7 @@ import { Cartridge, createCartridge } from './cartridge';
 import { Joypad, key } from './joypad';
 import { decodeInstruction, disassembleInstruction } from './instruction';
 
-import { Audio } from './audio';
+import { Apu } from './apu';
 import { Bus } from './bus';
 import { Clock } from './clock';
 import { Cpu } from './cpu';
@@ -29,7 +29,7 @@ export class Emulator {
         this.bus = new Bus(this.system);
         this.interrupt = new Interrupt();
         this.ppu = new Ppu(this.system, this.interrupt);
-        this.audio = new Audio();
+        this.audio = new Apu();
         this.timer = new Timer(this.interrupt);
         this.serial = new Serial(this.interrupt);
         this.clock = new Clock(this.ppu, this.timer, this.serial);
@@ -263,7 +263,7 @@ export class Emulator {
     private interrupt: Interrupt;
     private serial: Serial;
     private ppu: Ppu;
-    private audio: Audio;
+    private audio: Apu;
     private timer: Timer;
     private joypad: Joypad;
 

@@ -28,7 +28,7 @@ const enum reg {
     nr51_terminal = 0x15,
     nr52_onoff = 0x16,
 }
-export class Audio {
+export class Apu {
     install(bus: Bus): void {
         for (let i = reg.base; i <= reg.base + 0x16; i++) {
             bus.map(i, this.regRead, this.regWrite);
