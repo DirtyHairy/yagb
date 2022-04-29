@@ -1,10 +1,12 @@
 import { Bus, ReadHandler, WriteHandler } from '../../src/emulator/bus';
 import { Cpu, r8 } from '../../src/emulator/cpu';
 
+import { Apu } from '../../src/emulator/apu';
 import { Clock } from '../../src/emulator/clock';
 import { Interrupt } from '../../src/emulator/interrupt';
 import { Ppu } from '../../src/emulator/ppu';
 import { Ram } from '../../src/emulator/ram';
+import { SampleQueue } from './../../src/emulator/apu/sample-queue';
 import { Serial } from './../../src/emulator/serial';
 import { System } from '../../src/emulator/system';
 import { Timer } from '../../src/emulator/timer';
@@ -22,6 +24,8 @@ export class TestEnvironment {
     public readonly cpu: Cpu;
     public readonly unmapped: Unmapped;
     public readonly cartridge: Uint8Array;
+    public readonly sampleQueue: SampleQueue;
+    public readonly apu: Apu;
 
     public readonly code: ArrayLike<number>;
     public readonly address: number;
@@ -36,9 +40,9 @@ export class TestEnvironment {
         this.ppu = new Ppu(this.system, this.interrupt);
         this.timer = new Timer(this.interrupt);
         this.serial = new Serial(this.interrupt);
-
-        this.clock = new Clock(this.ppu, this.timer, this.serial);
-
+        this.sampleQueue = new SampleQueue();
+        this.apu = new Apu(this.sampleQueue);
+        this.clock = new Clock(this.ppu, this.timer, this.serial, this.apu);
         this.bus = new Bus(this.system);
         this.ram = new Ram();
         this.cpu = new Cpu(this.bus, this.clock, this.interrupt, this.system);

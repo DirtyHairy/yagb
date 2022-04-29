@@ -10,6 +10,7 @@ import { Event } from 'microevent.ts';
 import { Interrupt } from './interrupt';
 import { Ppu } from './ppu';
 import { Ram } from './ram';
+import { SampleQueue } from './apu/sample-queue';
 import { Serial } from './serial';
 import { System } from './system';
 import { Timer } from './timer';
@@ -26,13 +27,14 @@ export interface BusTrap {
 export class Emulator {
     constructor(cartridgeImage: Uint8Array, printCb: (message: string) => void, savedRam?: Uint8Array) {
         this.system = new System(printCb);
+        this.sampleQueue = new SampleQueue();
         this.bus = new Bus(this.system);
         this.interrupt = new Interrupt();
         this.ppu = new Ppu(this.system, this.interrupt);
-        this.audio = new Apu();
+        this.apu = new Apu(this.sampleQueue);
         this.timer = new Timer(this.interrupt);
         this.serial = new Serial(this.interrupt);
-        this.clock = new Clock(this.ppu, this.timer, this.serial);
+        this.clock = new Clock(this.ppu, this.timer, this.serial, this.apu);
         this.cpu = new Cpu(this.bus, this.clock, this.interrupt, this.system);
         this.ram = new Ram();
         this.joypad = new Joypad(this.interrupt);
@@ -50,7 +52,7 @@ export class Emulator {
         this.interrupt.install(this.bus);
         this.serial.install(this.bus);
         this.ppu.install(this.bus);
-        this.audio.install(this.bus);
+        this.apu.install(this.bus);
         this.timer.install(this.bus);
         this.joypad.install(this.bus);
         unmapped.install(this.bus);
@@ -150,7 +152,7 @@ export class Emulator {
         this.trace.reset();
         this.bus.reset();
         this.serial.reset();
-        this.audio.reset();
+        this.apu.reset();
     }
 
     printCartridgeInfo(): string {
@@ -263,9 +265,10 @@ export class Emulator {
     private interrupt: Interrupt;
     private serial: Serial;
     private ppu: Ppu;
-    private audio: Apu;
+    private apu: Apu;
     private timer: Timer;
     private joypad: Joypad;
+    private sampleQueue: SampleQueue;
 
     private trace: Trace = new Trace(10000);
 

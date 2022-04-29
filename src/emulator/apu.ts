@@ -1,8 +1,15 @@
 import { Bus, ReadHandler, WriteHandler } from './bus';
 
+import { SampleQueue } from './apu/sample-queue';
+
 const REG_INITIAL = new Uint8Array([
     0x80, 0xbf, 0xf3, 0xff, 0xbf, 0xff, 0x3f, 0x00, 0xff, 0xbf, 0x7f, 0xff, 0x9f, 0xff, 0xbf, 0xff, 0xff, 0x00, 0x00, 0xbf, 0x77, 0xf3, 0xf1,
 ]);
+
+const enum cnst {
+    SAMPLE_RATE = 44100,
+    CLOCK = 1048576,
+}
 
 const enum reg {
     base = 0xff10,
@@ -29,6 +36,8 @@ const enum reg {
     nr52_onoff = 0x16,
 }
 export class Apu {
+    constructor(private sampleQueue: SampleQueue) {}
+
     install(bus: Bus): void {
         for (let i = reg.base; i <= reg.base + 0x16; i++) {
             bus.map(i, this.regRead, this.regWrite);
@@ -45,7 +54,35 @@ export class Apu {
     reset(): void {
         this.reg.set(REG_INITIAL);
         this.waveRam.fill(0);
+
+        this.acc = 0;
     }
+
+    cycle(cpuClocks: number) {
+        while (cpuClocks > 0) {
+            cpuClocks -= this.consume(cpuClocks);
+        }
+    }
+
+    private consume(clocks: number): number {
+        if (this.acc + clocks * cnst.SAMPLE_RATE >= cnst.CLOCK) {
+            let consumed = ((cnst.CLOCK - this.acc) / cnst.SAMPLE_RATE) | 0;
+            if ((cnst.CLOCK - this.acc) % cnst.SAMPLE_RATE !== 0) consumed++;
+
+            this.acc = this.acc + consumed * cnst.SAMPLE_RATE - cnst.CLOCK;
+
+            this.clockChannels(consumed);
+
+            this.sampleQueue.push(0, 0);
+
+            return consumed;
+        } else {
+            this.acc += clocks * cnst.SAMPLE_RATE;
+            return clocks;
+        }
+    }
+
+    private clockChannels(clocks: number): void {}
 
     private unmappedRead: ReadHandler = () => 0xff;
     private unmappedWrite: WriteHandler = () => undefined;
@@ -58,4 +95,6 @@ export class Apu {
 
     private reg = new Uint8Array(0x17);
     private waveRam = new Uint8Array(0x0f);
+
+    private acc = 0;
 }
