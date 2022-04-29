@@ -28,6 +28,8 @@ export class Scheduler {
             () => this.onEmitStatistics.dispatch({ hostSpeed: this.hostSpeedAverage.calculateAverage(), speed: this.speed }),
             EMIT_STATISTICS_INTERVAL
         );
+
+        this.onStart.dispatch();
     }
 
     stop(): void {
@@ -38,6 +40,8 @@ export class Scheduler {
 
         this.animationFrameHandle = undefined;
         this.emitStatisticsIntervalHandle = undefined;
+
+        this.onStop.dispatch();
     }
 
     isRunning(): boolean {
@@ -84,6 +88,8 @@ export class Scheduler {
 
     readonly onTimesliceComplete = new Event<void>();
     readonly onEmitStatistics = new Event<Statistics>();
+    readonly onStart = new Event<void>();
+    readonly onStop = new Event<void>();
 
     private virtualClockSeconds = 0.0;
     private realClockBase = 0;

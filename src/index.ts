@@ -5,6 +5,7 @@ import { decodeBase64, encodeBase64 } from './helper/base64';
 import { hex16, hex8 } from './helper/format';
 
 import $ from 'jquery';
+import { AudioDriver } from './emulator/apu/audio-driver';
 import { Emulator } from './emulator/emulator';
 import { FileHandler } from './helper/fileHandler';
 import { Scheduler } from './emulator/scheduler';
@@ -16,6 +17,8 @@ const STORAGE_KEY_YAGB_CARTERIDGE_DATA = 'yagb-cartridge-data';
 const STORAGE_KEY_YAGB_CARTERIDGE_NAME = 'yagb-cartridge-name';
 
 const fileHandler = new FileHandler();
+const audioDriver = new AudioDriver();
+
 let emulator: Emulator;
 let scheduler: Scheduler;
 let savedRamKey = '';
@@ -50,6 +53,7 @@ function floatval<T>(value: T, defaultValue?: number | undefined): number | unde
 
 async function loadCartridge(data: Uint8Array, name: string) {
     try {
+        audioDriver.stop();
         scheduler?.stop();
 
         savedRamKey = `ram_${md5(data)}`;
@@ -72,6 +76,9 @@ async function loadCartridge(data: Uint8Array, name: string) {
             if (ram) localStorage.setItem(savedRamKey, await encodeBase64(ram));
         });
 
+        scheduler.onStart.addHandler(() => audioDriver.continue());
+        scheduler.onStop.addHandler(() => audioDriver.pause());
+
         emulator.onTrap.addHandler((msg) => {
             if (scheduler.isRunning()) print(`Encountered trap: ${msg}. Stopping emulator.`);
             updatePrompt(undefined, undefined, false);
@@ -81,6 +88,7 @@ async function loadCartridge(data: Uint8Array, name: string) {
         print(`running cartridge image: ${name}`);
         print(emulator.printCartridgeInfo());
 
+        audioDriver.start(emulator.startAudio(audioDriver.getSampleRate()));
         scheduler.start();
         updatePrompt();
     } catch (e) {

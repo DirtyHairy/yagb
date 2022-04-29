@@ -27,11 +27,10 @@ export interface BusTrap {
 export class Emulator {
     constructor(cartridgeImage: Uint8Array, printCb: (message: string) => void, savedRam?: Uint8Array) {
         this.system = new System(printCb);
-        this.sampleQueue = new SampleQueue();
         this.bus = new Bus(this.system);
         this.interrupt = new Interrupt();
         this.ppu = new Ppu(this.system, this.interrupt);
-        this.apu = new Apu(this.sampleQueue);
+        this.apu = new Apu();
         this.timer = new Timer(this.interrupt);
         this.serial = new Serial(this.interrupt);
         this.clock = new Clock(this.ppu, this.timer, this.serial, this.apu);
@@ -212,6 +211,13 @@ export class Emulator {
         this.joypad.clearKeys();
     }
 
+    startAudio(sampleRate: number): SampleQueue {
+        this.sampleQueue = new SampleQueue(sampleRate);
+        this.apu.setSampleQueue(this.sampleQueue);
+
+        return this.sampleQueue;
+    }
+
     private disassemblyLineAt(address: number): string {
         return `${this.breakpoints.has(address) ? ' *' : '  '} ${hex16(address)}: ${disassembleInstruction(this.bus, address)}`;
     }
@@ -268,7 +274,7 @@ export class Emulator {
     private apu: Apu;
     private timer: Timer;
     private joypad: Joypad;
-    private sampleQueue: SampleQueue;
+    private sampleQueue: SampleQueue | undefined = undefined;
 
     private trace: Trace = new Trace(10000);
 
