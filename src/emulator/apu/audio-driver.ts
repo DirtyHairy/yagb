@@ -30,7 +30,7 @@ export class AudioDriver {
         this.gainNode.connect(this.context.destination);
 
         this.filterNode = this.context.createBiquadFilter();
-        this.filterNode.frequency.value = 7000;
+        this.filterNode.frequency.value = 15000;
         this.filterNode.type = 'lowpass';
         this.filterNode.Q.value = 0.1;
         this.filterNode.connect(this.gainNode);
