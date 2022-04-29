@@ -25,7 +25,7 @@ export class AudioDriver {
         }
 
         this.gainNode = this.context.createGain();
-        this.gainNode.gain.value = 0.1;
+        this.gainNode.gain.value = 0.75;
 
         this.gainNode.connect(this.context.destination);
 

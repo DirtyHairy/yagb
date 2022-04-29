@@ -52,49 +52,57 @@ function floatval<T>(value: T, defaultValue?: number | undefined): number | unde
 }
 
 async function loadCartridge(data: Uint8Array, name: string) {
+    const newSavedRamKey = `ram_${md5(data)}`;
+
+    let savedRam: Uint8Array | undefined;
     try {
-        audioDriver.stop();
-        scheduler?.stop();
+        savedRam = await decodeBase64(localStorage.getItem(newSavedRamKey) || '');
+        // eslint-disable-next-line no-empty
+    } catch (e) {}
 
-        savedRamKey = `ram_${md5(data)}`;
-        let savedRam: Uint8Array | undefined;
-        try {
-            savedRam = await decodeBase64(localStorage.getItem(savedRamKey) || '');
-            // eslint-disable-next-line no-empty
-        } catch (e) {}
-
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        emulator = new Emulator(data, print, savedRam);
-        scheduler = new Scheduler(emulator);
-
-        scheduler.onTimesliceComplete.addHandler(() => updateCanvas());
-
-        scheduler.onEmitStatistics.addHandler(async ({ hostSpeed, speed }) => {
-            updatePrompt(speed, hostSpeed);
-
-            const ram = emulator.getCartridgeRam();
-            if (ram) localStorage.setItem(savedRamKey, await encodeBase64(ram));
-        });
-
-        scheduler.onStart.addHandler(() => audioDriver.continue());
-        scheduler.onStop.addHandler(() => audioDriver.pause());
-
-        emulator.onTrap.addHandler((msg) => {
-            if (scheduler.isRunning()) print(`Encountered trap: ${msg}. Stopping emulator.`);
-            updatePrompt(undefined, undefined, false);
-        });
-
-        updateCanvas();
-        print(`running cartridge image: ${name}`);
-        print(emulator.printCartridgeInfo());
-
-        audioDriver.start(emulator.startAudio(audioDriver.getSampleRate()));
-        scheduler.start();
-        updatePrompt();
+    let newEmulator: Emulator;
+    try {
+        newEmulator = new Emulator(data, print, savedRam);
     } catch (e) {
         print((e as Error).message);
         print('failed to initialize emulator');
+
+        return;
     }
+
+    emulator = newEmulator;
+    savedRamKey = newSavedRamKey;
+
+    const autostart = !!scheduler?.isRunning();
+
+    audioDriver.stop();
+    scheduler?.stop();
+    scheduler = new Scheduler(emulator);
+
+    scheduler.onTimesliceComplete.addHandler(() => updateCanvas());
+
+    scheduler.onEmitStatistics.addHandler(async ({ hostSpeed, speed }) => {
+        updatePrompt(speed, hostSpeed);
+
+        const ram = emulator.getCartridgeRam();
+        if (ram) localStorage.setItem(savedRamKey, await encodeBase64(ram));
+    });
+
+    scheduler.onStart.addHandler(() => audioDriver.continue());
+    scheduler.onStop.addHandler(() => audioDriver.pause());
+
+    emulator.onTrap.addHandler((msg) => {
+        if (scheduler.isRunning()) print(`Encountered trap: ${msg}. Stopping emulator.`);
+        updatePrompt(undefined, undefined, false);
+    });
+
+    updateCanvas();
+    print(`running cartridge image: ${name}`);
+    print(emulator.printCartridgeInfo());
+
+    audioDriver.start(emulator.startAudio(audioDriver.getSampleRate()));
+    if (autostart) scheduler.start();
+    updatePrompt();
 }
 
 async function onInit(): Promise<void> {
