@@ -29,8 +29,14 @@ export class AudioDriver {
 
         this.gainNode.connect(this.context.destination);
 
+        this.filterNode = this.context.createBiquadFilter();
+        this.filterNode.frequency.value = 7000;
+        this.filterNode.type = 'lowpass';
+        this.filterNode.Q.value = 0.1;
+        this.filterNode.connect(this.gainNode);
+
         this.scriptProcessor = this.context.createScriptProcessor();
-        this.scriptProcessor.connect(this.gainNode);
+        this.scriptProcessor.connect(this.filterNode);
         this.scriptProcessor.onaudioprocess = this.onAudioprocess;
 
         const handler = async () => {
@@ -101,6 +107,7 @@ export class AudioDriver {
 
     private context: AudioContext | undefined = undefined;
     private gainNode: GainNode | undefined = undefined;
+    private filterNode: BiquadFilterNode | undefined = undefined;
     private scriptProcessor: ScriptProcessorNode | undefined = undefined;
 
     private isRunning = false;

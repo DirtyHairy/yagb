@@ -23,11 +23,11 @@ const enum reg {
     nr22_envelope = 0x07,
     nr23_freq_lo = 0x08,
     nr24_ctrl_freq_hi = 0x09,
-    nr30 = 0x0a,
-    nr31 = 0x0b,
-    nr32 = 0x0c,
-    nr33 = 0x0d,
-    nr34 = 0x0e,
+    nr30_onoff = 0x0a,
+    nr31_length = 0x0b,
+    nr32_level = 0x0c,
+    nr33_freq_lo = 0x0d,
+    nr34_ctrl_freq_hi = 0x0e,
     nr41 = 0x10,
     nr42 = 0x11,
     nr43 = 0x12,
@@ -37,8 +37,6 @@ const enum reg {
     nr52_ctrl = 0x16,
 }
 export class Apu {
-    constructor() {}
-
     setSampleQueue(sampleQueue: SampleQueue) {
         this.sampleQueue = sampleQueue;
         this.sampleRate = sampleQueue.sampleRate;
@@ -61,6 +59,8 @@ export class Apu {
         bus.map(reg.base + reg.nr13_freq_lo, this.regRead, this.writeNR13);
         bus.map(reg.base + reg.nr14_ctrl_freq_hi, this.readNR14, this.writeNR14);
 
+        bus.map(reg.base + reg.nr34_ctrl_freq_hi, this.readNR34, this.writeNR34);
+
         bus.map(reg.base + reg.nr52_ctrl, this.readNR52, this.writeNR52);
 
         bus.map(0xff15, this.unmappedRead, this.unmappedWrite);
@@ -71,6 +71,7 @@ export class Apu {
         this.reg.set(REG_INITIAL);
         this.waveRam.fill(0);
         this.acc = 0;
+        this.accClocks = 0;
         this.accLengthCtr = 0;
 
         this.channel2Active = false;
@@ -98,14 +99,29 @@ export class Apu {
             let consumed = ((cnst.CLOCK - this.acc) / this.sampleRate) | 0;
             if ((cnst.CLOCK - this.acc) % this.sampleRate !== 0) consumed++;
 
-            const oldAcc = this.acc;
             this.acc = this.acc + consumed * this.sampleRate - cnst.CLOCK;
 
-            this.clockChannels((((oldAcc - this.acc) / this.sampleRate) | 0) + consumed);
+            this.clockChannels(this.accClocks + consumed);
+            this.accClocks = 0;
 
             if (this.sampleQueue) {
                 if (this.reg[reg.nr52_ctrl] & 0x80) {
-                    this.sampleQueue.push((this.sampleChannel2 + this.sampleChannel1) / 0x3c, (this.sampleChannel2 + this.sampleChannel1) / 0x3c);
+                    const nr51 = this.reg[reg.nr51_terminal];
+
+                    const signalLeft =
+                        (nr51 & 0x80 ? this.sampleChannel4 : 0) +
+                        (nr51 & 0x40 ? this.sampleChannel3 : 0) +
+                        (nr51 & 0x20 ? this.sampleChannel2 : 0) +
+                        (nr51 & 0x10 ? this.sampleChannel1 : 0);
+
+                    const signalRight =
+                        (nr51 & 0x08 ? this.sampleChannel4 : 0) +
+                        (nr51 & 0x04 ? this.sampleChannel3 : 0) +
+                        (nr51 & 0x02 ? this.sampleChannel2 : 0) +
+                        (nr51 & 0x01 ? this.sampleChannel1 : 0);
+
+                    const nr50 = this.reg[reg.nr50_volume];
+                    this.sampleQueue.push((signalLeft * ((nr50 & 0x70) >>> 4)) / 420, (signalRight * (nr50 & 0x07)) / 420);
                 } else {
                     this.sampleQueue.push(0, 0);
                 }
@@ -114,6 +130,7 @@ export class Apu {
             return consumed;
         } else {
             this.acc += clocks * this.sampleRate;
+            this.accClocks += clocks;
             return clocks;
         }
     }
@@ -129,10 +146,12 @@ export class Apu {
 
         this.clockChannel1(clocks, lengthCtrClocks);
         this.clockChannel2(clocks, lengthCtrClocks);
+        this.clockChannel3(clocks, lengthCtrClocks);
     }
 
     private clockChannel1(cpuClocks: number, lengthCtrClocks: number) {
         this.sampleChannel1 = 0;
+
         if (!this.channel1Active) return;
 
         if (this.reg[reg.nr14_ctrl_freq_hi] & 0x40) {
@@ -190,7 +209,6 @@ export class Apu {
         if (this.reg[reg.nr24_ctrl_freq_hi] & 0x40) {
             this.counterChannel2 += lengthCtrClocks;
             if (this.counterChannel2 >= 64 - (this.reg[reg.nr21_duty_length] & 0x3f)) {
-                this.sampleChannel2 = 0;
                 this.channel2Active = false;
 
                 return;
@@ -218,6 +236,37 @@ export class Apu {
         this.freqCtrChannel2 = this.freqCtrChannel2 % freq;
 
         this.sampleChannel2 = WAVEFORMS[this.reg[reg.nr21_duty_length] >>> 6] & (1 << this.samplePointChannel2) ? this.volumeChannel2 : 0;
+    }
+
+    private clockChannel3(cpuClocks: number, lengthCtrClocks: number) {
+        this.sampleChannel3 = 0;
+        if (!this.channel3Active || !(this.reg[reg.nr30_onoff] & 0x80)) return;
+
+        if (this.reg[reg.nr34_ctrl_freq_hi] & 0x40) {
+            this.counterChannel3 += lengthCtrClocks;
+            if (this.counterChannel3 >= 256 - this.reg[reg.nr31_length]) {
+                this.channel3Active = false;
+
+                return;
+            }
+        }
+
+        const level = (this.reg[reg.nr32_level] & 0x60) >> 5;
+        if (level === 0) return;
+
+        const freq = (0x0800 - ((this.reg[reg.nr33_freq_lo] | (this.reg[reg.nr34_ctrl_freq_hi] << 8)) & 0x07ff)) >>> 1;
+        this.freqCtrChannel3 += cpuClocks;
+
+        this.samplePointChannel3 += (this.freqCtrChannel3 / freq) | 0;
+        this.samplePointChannel3 %= 32;
+
+        this.freqCtrChannel3 = this.freqCtrChannel3 % freq;
+
+        let sample = this.waveRam[this.samplePointChannel3 >>> 1];
+        if (this.samplePointChannel3 % 2 === 0) sample >>>= 4;
+        else sample &= 0x0f;
+
+        this.sampleChannel3 = sample >>> (level - 1);
     }
 
     private unmappedRead: ReadHandler = () => 0xff;
@@ -285,6 +334,18 @@ export class Apu {
         }
     };
 
+    private readNR34: ReadHandler = () => this.reg[reg.nr34_ctrl_freq_hi] | 0xbf;
+    private writeNR34: WriteHandler = (_, value) => {
+        this.reg[reg.nr34_ctrl_freq_hi] = value;
+
+        if (value & 0x80 && this.reg[reg.nr30_onoff] & 0x80) {
+            this.channel3Active = true;
+            this.counterChannel3 = 0;
+            this.freqCtrChannel3 = 0;
+            this.samplePointChannel3 = 0;
+        }
+    };
+
     private readNR52: ReadHandler = () => (this.reg[reg.nr52_ctrl] & 0x80) | 0x70 | (this.channel2Active ? 0x02 : 0x00);
     private writeNR52: WriteHandler = (_, value) => {
         this.reg[reg.nr52_ctrl] = value;
@@ -300,6 +361,7 @@ export class Apu {
     private waveRam = new Uint8Array(0x0f);
 
     private acc = 0;
+    private accClocks = 0;
     private accLengthCtr = 0;
 
     private channel2Active = false;
@@ -319,6 +381,13 @@ export class Apu {
     private envelopeCtrChannel1 = 0;
     private sweepCtrChannel1 = 0;
     private freqChannel1 = 0;
+
+    private channel3Active = false;
+    private counterChannel3 = 0;
+    private freqCtrChannel3 = 0;
+    private samplePointChannel3 = 0;
+    private sampleChannel3 = 0;
+    private sampleChannel4 = 0;
 
     private sampleQueue: SampleQueue | undefined = undefined;
     private sampleRate = 44100;
