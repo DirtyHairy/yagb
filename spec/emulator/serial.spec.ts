@@ -31,7 +31,7 @@ describe('serial out', () => {
         bus.write(0xff01, 0x01);
         bus.write(0xff02, 0x80);
 
-        serial.clock(8 * 128);
+        serial.cycle(8 * 128);
 
         expect(bus.read(0xff01)).toBe(0x01);
         expect(bus.read(0xff02)).toBe(0xfe);
@@ -43,19 +43,19 @@ describe('serial out', () => {
         bus.write(0xff01, 0x02);
         bus.write(0xff02, 0x81);
 
-        serial.clock(127);
+        serial.cycle(127);
         expect(bus.read(0xff01)).toBe(0x02);
 
-        serial.clock(1);
+        serial.cycle(1);
         expect(bus.read(0xff01)).toBe(0x05);
 
-        serial.clock(128);
+        serial.cycle(128);
         expect(bus.read(0xff01)).toBe(0x0b);
 
-        serial.clock(5 * 128);
+        serial.cycle(5 * 128);
         expect(bus.read(0xff01)).toBe(0x7f);
 
-        serial.clock(128);
+        serial.cycle(128);
         expect(bus.read(0xff01)).toBe(0xff);
     });
 
@@ -65,10 +65,10 @@ describe('serial out', () => {
         bus.write(0xff01, 0x02);
         bus.write(0xff02, 0x81);
 
-        serial.clock(128 * 8 - 1);
+        serial.cycle(128 * 8 - 1);
         expect(bus.read(0xff02)).toBe(0xff);
 
-        serial.clock(1);
+        serial.cycle(1);
         expect(bus.read(0xff02)).toBe(0x7f);
     });
 
@@ -78,10 +78,10 @@ describe('serial out', () => {
         bus.write(0xff01, 0x02);
         bus.write(0xff02, 0x81);
 
-        serial.clock(128 * 8 - 1);
+        serial.cycle(128 * 8 - 1);
         expect(raiseSpy).not.toHaveBeenCalled();
 
-        serial.clock(1);
+        serial.cycle(1);
         expect(raiseSpy).toHaveBeenCalledTimes(1);
         expect(raiseSpy).toHaveBeenCalledWith(irq.serial);
     });

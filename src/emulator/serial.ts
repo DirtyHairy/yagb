@@ -24,7 +24,7 @@ export class Serial {
         this.nextBit = 0;
     }
 
-    clock(cpuClocks: number) {
+    cycle(cpuClocks: number) {
         if (!this.transferInProgress) return;
 
         this.transferClock += cpuClocks;
