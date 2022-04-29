@@ -51,7 +51,6 @@ function floatval<T>(value: T, defaultValue?: number | undefined): number | unde
 async function loadCartridge(data: Uint8Array, name: string) {
     try {
         scheduler?.stop();
-        updatePrompt();
 
         savedRamKey = `ram_${md5(data)}`;
         let savedRam: Uint8Array | undefined;
@@ -83,6 +82,7 @@ async function loadCartridge(data: Uint8Array, name: string) {
         print(emulator.printCartridgeInfo());
 
         scheduler.start();
+        updatePrompt();
     } catch (e) {
         print((e as Error).message);
         print('failed to initialize emulator');
