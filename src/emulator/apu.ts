@@ -53,7 +53,9 @@ export class Apu {
             bus.map(i, this.waveRamRead, this.waveRamWrite);
         }
 
+        bus.map(reg.base + reg.nr22_envelope, this.regRead, this.writeNR22);
         bus.map(reg.base + reg.nr24_ctrl_freq_hi, this.readNR24, this.writeNR24);
+        bus.map(reg.base + reg.nr12_envelope, this.regRead, this.writeNR12);
         bus.map(reg.base + reg.nr14_ctrl_freq_hi, this.readNR14, this.writeNR14);
         bus.map(reg.base + reg.nr52_ctrl, this.readNR52, this.writeNR52);
 
@@ -71,11 +73,13 @@ export class Apu {
         this.counterChannel2 = 0;
         this.freqCtrChannel2 = 0;
         this.samplePointChannel2 = 0;
+        this.envelopeCtrChannel2 = 0;
 
         this.channel1Active = false;
         this.counterChannel1 = 0;
         this.freqCtrChannel1 = 0;
         this.samplePointChannel1 = 0;
+        this.envelopeCtrChannel1 = 0;
     }
 
     cycle(cpuClocks: number) {
@@ -124,7 +128,7 @@ export class Apu {
 
     private clockChannel1(cpuClocks: number, lengthCtrClocks: number) {
         this.sampleChannel1 = 0;
-        if (!this.channel1Active || (this.reg[reg.nr12_envelope] & 0xf0) === 0) return;
+        if (!this.channel1Active) return;
 
         if (this.reg[reg.nr14_ctrl_freq_hi] & 0x40) {
             this.counterChannel1 += lengthCtrClocks;
@@ -135,6 +139,18 @@ export class Apu {
             }
         }
 
+        if ((this.reg[reg.nr12_envelope] & 0x07) > 0) {
+            this.envelopeCtrChannel1 += lengthCtrClocks;
+            const envelopeSteps = (this.envelopeCtrChannel1 / (4 * (this.reg[reg.nr12_envelope] & 0x07))) | 0;
+            this.envelopeCtrChannel1 %= 4 * (this.reg[reg.nr12_envelope] & 0x07);
+
+            this.volumeChannel1 = this.reg[reg.nr12_envelope] & 0x08 ? this.volumeChannel1 + envelopeSteps : this.volumeChannel1 - envelopeSteps;
+            if (this.volumeChannel1 < 0) this.volumeChannel1 = 0;
+            if (this.volumeChannel1 > 0x0f) this.volumeChannel1 = 0x0f;
+        }
+
+        if (this.volumeChannel1 === 0) return;
+
         const freq = 0x0800 - ((this.reg[reg.nr13_freq_lo] | (this.reg[reg.nr14_ctrl_freq_hi] << 8)) & 0x07ff);
         this.freqCtrChannel1 += cpuClocks;
 
@@ -143,12 +159,12 @@ export class Apu {
 
         this.freqCtrChannel1 = this.freqCtrChannel1 % freq;
 
-        this.sampleChannel1 = WAVEFORMS[this.reg[reg.nr11_duty_length] >>> 6] & (1 << this.samplePointChannel1) ? 0x0f : 0;
+        this.sampleChannel1 = WAVEFORMS[this.reg[reg.nr11_duty_length] >>> 6] & (1 << this.samplePointChannel1) ? this.volumeChannel1 : 0;
     }
 
     private clockChannel2(cpuClocks: number, lengthCtrClocks: number) {
         this.sampleChannel2 = 0;
-        if (!this.channel2Active || (this.reg[reg.nr22_envelope] & 0xf0) === 0) return;
+        if (!this.channel2Active) return;
 
         if (this.reg[reg.nr24_ctrl_freq_hi] & 0x40) {
             this.counterChannel2 += lengthCtrClocks;
@@ -160,6 +176,18 @@ export class Apu {
             }
         }
 
+        if ((this.reg[reg.nr22_envelope] & 0x07) > 0) {
+            this.envelopeCtrChannel2 += lengthCtrClocks;
+            const envelopeSteps = (this.envelopeCtrChannel2 / (4 * (this.reg[reg.nr22_envelope] & 0x07))) | 0;
+            this.envelopeCtrChannel2 %= 4 * (this.reg[reg.nr22_envelope] & 0x07);
+
+            this.volumeChannel2 = this.reg[reg.nr22_envelope] & 0x08 ? this.volumeChannel2 + envelopeSteps : this.volumeChannel2 - envelopeSteps;
+            if (this.volumeChannel2 < 0) this.volumeChannel2 = 0;
+            if (this.volumeChannel2 > 0x0f) this.volumeChannel2 = 0x0f;
+        }
+
+        if (this.volumeChannel2 === 0) return;
+
         const freq = 0x0800 - ((this.reg[reg.nr23_freq_lo] | (this.reg[reg.nr24_ctrl_freq_hi] << 8)) & 0x07ff);
         this.freqCtrChannel2 += cpuClocks;
 
@@ -168,7 +196,7 @@ export class Apu {
 
         this.freqCtrChannel2 = this.freqCtrChannel2 % freq;
 
-        this.sampleChannel2 = WAVEFORMS[this.reg[reg.nr21_duty_length] >>> 6] & (1 << this.samplePointChannel2) ? 0x0f : 0;
+        this.sampleChannel2 = WAVEFORMS[this.reg[reg.nr21_duty_length] >>> 6] & (1 << this.samplePointChannel2) ? this.volumeChannel2 : 0;
     }
 
     private unmappedRead: ReadHandler = () => 0xff;
@@ -180,6 +208,12 @@ export class Apu {
     private waveRamRead: ReadHandler = (address) => this.waveRam[address - 0xff30];
     private waveRamWrite: WriteHandler = (address, value) => (this.waveRam[address - 0xff30] = value);
 
+    private writeNR22: WriteHandler = (_, value) => {
+        this.reg[reg.nr22_envelope] = value;
+        this.volumeChannel2 = this.reg[reg.nr22_envelope] >>> 4;
+        this.envelopeCtrChannel2 = 0;
+    };
+
     private readNR24: ReadHandler = () => this.reg[reg.nr24_ctrl_freq_hi] | 0xbf;
     private writeNR24: WriteHandler = (_, value) => {
         this.reg[reg.nr24_ctrl_freq_hi] = value;
@@ -189,7 +223,14 @@ export class Apu {
             this.counterChannel2 = 0;
             this.freqCtrChannel2 = 0;
             this.samplePointChannel2 = 0;
+            this.envelopeCtrChannel2 = 0;
         }
+    };
+
+    private writeNR12: WriteHandler = (_, value) => {
+        this.reg[reg.nr12_envelope] = value;
+        this.volumeChannel1 = this.reg[reg.nr12_envelope] >>> 4;
+        this.envelopeCtrChannel1 = 0;
     };
 
     private readNR14: ReadHandler = () => this.reg[reg.nr14_ctrl_freq_hi] | 0xbf;
@@ -201,6 +242,7 @@ export class Apu {
             this.counterChannel1 = 0;
             this.freqCtrChannel1 = 0;
             this.samplePointChannel1 = 0;
+            this.envelopeCtrChannel1 = 0;
         }
     };
 
@@ -226,12 +268,16 @@ export class Apu {
     private counterChannel2 = 0;
     private freqCtrChannel2 = 0;
     private samplePointChannel2 = 0;
+    private volumeChannel2 = 0;
+    private envelopeCtrChannel2 = 0;
 
     private channel1Active = false;
     private sampleChannel1 = 0;
     private counterChannel1 = 0;
     private freqCtrChannel1 = 0;
     private samplePointChannel1 = 0;
+    private volumeChannel1 = 0;
+    private envelopeCtrChannel1 = 0;
 
     private sampleQueue: SampleQueue | undefined = undefined;
     private sampleRate = 44100;
