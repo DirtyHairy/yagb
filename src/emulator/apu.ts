@@ -10,6 +10,7 @@ const WAVEFORMS = new Uint8Array([0x01, 0x03, 0x0f, 0xfc]);
 
 const enum cnst {
     CLOCK = 1048576,
+    CUTOFF_HZ = 20000,
 }
 
 const enum reg {
@@ -219,6 +220,7 @@ export class Apu {
 
         this.freqCtrChannel1 = this.freqCtrChannel1 % freq;
 
+        if (((131072 / freq) | 0) > cnst.CUTOFF_HZ) return;
         this.sampleChannel1 = WAVEFORMS[this.reg[reg.nr11_duty_length] >>> 6] & (1 << this.samplePointChannel1) ? this.volumeChannel1 : 0;
     }
 
@@ -262,6 +264,7 @@ export class Apu {
 
         this.freqCtrChannel2 = this.freqCtrChannel2 % freq;
 
+        if (((131072 / freq) | 0) > cnst.CUTOFF_HZ) return;
         this.sampleChannel2 = WAVEFORMS[this.reg[reg.nr21_duty_length] >>> 6] & (1 << this.samplePointChannel2) ? this.volumeChannel2 : 0;
     }
 
@@ -293,6 +296,7 @@ export class Apu {
         if (this.samplePointChannel3 % 2 === 0) sample >>>= 4;
         else sample &= 0x0f;
 
+        if (((131072 / freq) | 0) > cnst.CUTOFF_HZ) return;
         this.sampleChannel3 = sample >>> (level - 1);
     }
 
