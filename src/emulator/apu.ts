@@ -54,9 +54,7 @@ export class Apu {
         bus.map(reg.base + reg.nr22_envelope, this.regRead, this.writeNR22);
         bus.map(reg.base + reg.nr24_ctrl_freq_hi, this.readNR24, this.writeNR24);
 
-        bus.map(reg.base + reg.nr10_sweep, this.regRead, this.writeNR10);
         bus.map(reg.base + reg.nr12_envelope, this.regRead, this.writeNR12);
-        bus.map(reg.base + reg.nr13_freq_lo, this.regRead, this.writeNR13);
         bus.map(reg.base + reg.nr14_ctrl_freq_hi, this.readNR14, this.writeNR14);
 
         bus.map(reg.base + reg.nr34_ctrl_freq_hi, this.readNR34, this.writeNR34);
@@ -86,6 +84,7 @@ export class Apu {
         this.samplePointChannel1 = 0;
         this.envelopeCtrChannel1 = 0;
         this.sweepCtrChannel1 = 0;
+        this.sweepOnChannel1 = false;
     }
 
     cycle(cpuClocks: number) {
@@ -151,33 +150,45 @@ export class Apu {
 
     private clockChannel1(cpuClocks: number, lengthCtrClocks: number) {
         this.sampleChannel1 = 0;
-
         if (!this.channel1Active) return;
 
         if (this.reg[reg.nr14_ctrl_freq_hi] & 0x40) {
             this.counterChannel1 += lengthCtrClocks;
-            if (this.counterChannel1 >= 64 - (this.reg[reg.nr21_duty_length] & 0x3f)) {
+            if (this.counterChannel1 >= 64 - (this.reg[reg.nr11_duty_length] & 0x3f || 64)) {
                 this.channel1Active = false;
 
                 return;
             }
         }
 
-        if ((this.reg[reg.nr10_sweep] & 0x77) !== 0) {
+        let freqX = (this.reg[reg.nr13_freq_lo] | (this.reg[reg.nr14_ctrl_freq_hi] << 8)) & 0x07ff;
+
+        if (this.sweepOnChannel1) {
             this.sweepCtrChannel1 += lengthCtrClocks;
-            const sweepPeriod = (this.reg[reg.nr22_envelope] & 0x07) >>> 4 || 8;
+
+            const sweepPeriod = (this.reg[reg.nr10_sweep] & 0x70) >>> 4 || 8;
             const sweepSteps = (this.sweepCtrChannel1 / (2 * sweepPeriod)) | 0;
             this.sweepCtrChannel1 %= 2 * sweepPeriod;
 
-            for (let i = 0; i < sweepSteps; i++) {
-                this.freqChannel1 =
-                    this.reg[reg.nr10_sweep] & 0x08
-                        ? this.freqChannel1 + (this.freqChannel1 >>> (this.reg[reg.nr10_sweep] & 0x07))
-                        : this.freqChannel1 - (this.freqChannel1 >>> (this.reg[reg.nr10_sweep] & 0x07));
+            const sweepShift = this.reg[reg.nr10_sweep] & 0x07;
+            if (sweepSteps > 0) {
+                for (let i = 0; i < sweepSteps; i++) {
+                    this.freqShadowChannel1 = this.calculateSweep();
+
+                    if (this.freqShadowChannel1 > 0x07ff) {
+                        this.channel1Active = false;
+                        return;
+                    }
+                }
+
+                if (sweepShift > 0) {
+                    this.reg[reg.nr13_freq_lo] = this.freqShadowChannel1 & 0xff;
+                    this.reg[reg.nr14_ctrl_freq_hi] = (this.reg[reg.nr14_ctrl_freq_hi] & 0xf8) | (this.freqShadowChannel1 >>> 8);
+
+                    freqX = this.freqShadowChannel1;
+                }
             }
         }
-
-        if (this.freqChannel1 === 0) return;
 
         if ((this.reg[reg.nr12_envelope] & 0x07) > 0) {
             this.envelopeCtrChannel1 += lengthCtrClocks;
@@ -191,7 +202,7 @@ export class Apu {
 
         if (this.volumeChannel1 === 0) return;
 
-        const freq = 0x0800 - this.freqChannel1;
+        const freq = 0x0800 - freqX;
         this.freqCtrChannel1 += cpuClocks;
 
         this.samplePointChannel1 += (this.freqCtrChannel1 / freq) | 0;
@@ -269,6 +280,12 @@ export class Apu {
         this.sampleChannel3 = sample >>> (level - 1);
     }
 
+    private calculateSweep(): number {
+        return this.reg[reg.nr10_sweep] & 0x08
+            ? this.freqShadowChannel1 - (this.freqShadowChannel1 >>> (this.reg[reg.nr10_sweep] & 0x07))
+            : this.freqShadowChannel1 + (this.freqShadowChannel1 >>> (this.reg[reg.nr10_sweep] & 0x07));
+    }
+
     private unmappedRead: ReadHandler = () => 0xff;
     private unmappedWrite: WriteHandler = () => undefined;
 
@@ -297,13 +314,6 @@ export class Apu {
         }
     };
 
-    private writeNR10: WriteHandler = (_, value) => {
-        this.reg[reg.nr10_sweep] = value;
-
-        this.sweepCtrChannel1 = 0;
-        this.freqChannel1 = (this.reg[reg.nr13_freq_lo] | (this.reg[reg.nr14_ctrl_freq_hi] << 8)) & 0x07ff;
-    };
-
     private writeNR12: WriteHandler = (_, value) => {
         this.reg[reg.nr12_envelope] = value;
 
@@ -311,19 +321,12 @@ export class Apu {
         this.envelopeCtrChannel1 = 0;
     };
 
-    private writeNR13: WriteHandler = (_, value) => {
-        this.reg[reg.nr13_freq_lo] = value;
-
-        this.sweepCtrChannel1 = 0;
-        this.freqChannel1 = (this.reg[reg.nr13_freq_lo] | (this.reg[reg.nr14_ctrl_freq_hi] << 8)) & 0x07ff;
-    };
-
     private readNR14: ReadHandler = () => this.reg[reg.nr14_ctrl_freq_hi] | 0xbf;
     private writeNR14: WriteHandler = (_, value) => {
         this.reg[reg.nr14_ctrl_freq_hi] = value;
 
         this.sweepCtrChannel1 = 0;
-        this.freqChannel1 = (this.reg[reg.nr13_freq_lo] | (this.reg[reg.nr14_ctrl_freq_hi] << 8)) & 0x07ff;
+        this.freqShadowChannel1 = (this.reg[reg.nr13_freq_lo] | (this.reg[reg.nr14_ctrl_freq_hi] << 8)) & 0x07ff;
 
         if (value & 0x80) {
             this.channel1Active = true;
@@ -331,6 +334,11 @@ export class Apu {
             this.freqCtrChannel1 = 0;
             this.samplePointChannel1 = 0;
             this.envelopeCtrChannel1 = 0;
+
+            this.sweepCtrChannel1 = 0;
+            this.freqShadowChannel1 = (this.reg[reg.nr13_freq_lo] | (this.reg[reg.nr14_ctrl_freq_hi] << 8)) & 0x07ff;
+            this.sweepOnChannel1 = (this.reg[reg.nr10_sweep] & 0x77) !== 0;
+            if ((this.reg[reg.nr10_sweep] & 0x07) > 0 && this.calculateSweep() > 0x07ff) this.channel1Active = false;
         }
     };
 
@@ -354,6 +362,9 @@ export class Apu {
             this.reg.subarray(0, reg.nr52_ctrl).fill(0);
             this.acc = 0;
             this.accLengthCtr = 0;
+            this.channel1Active = false;
+            this.channel2Active = false;
+            this.channel3Active = false;
         }
     };
 
@@ -380,7 +391,8 @@ export class Apu {
     private volumeChannel1 = 0;
     private envelopeCtrChannel1 = 0;
     private sweepCtrChannel1 = 0;
-    private freqChannel1 = 0;
+    private freqShadowChannel1 = 0;
+    private sweepOnChannel1 = false;
 
     private channel3Active = false;
     private counterChannel3 = 0;
