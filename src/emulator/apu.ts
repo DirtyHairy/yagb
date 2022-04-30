@@ -77,12 +77,14 @@ export class Apu {
         this.freqCtrChannel2 = 0;
         this.samplePointChannel2 = 0;
         this.envelopeCtrChannel2 = 0;
+        this.envelopeActiveChannel2 = false;
 
         this.channel1Active = false;
         this.counterChannel1 = 0;
         this.freqCtrChannel1 = 0;
         this.samplePointChannel1 = 0;
         this.envelopeCtrChannel1 = 0;
+        this.envelopeActiveChannel1 = false;
         this.sweepCtrChannel1 = 0;
         this.sweepOnChannel1 = false;
     }
@@ -190,14 +192,21 @@ export class Apu {
             }
         }
 
-        if ((this.reg[reg.nr12_envelope] & 0x07) > 0) {
+        if (this.envelopeActiveChannel1 && (this.reg[reg.nr12_envelope] & 0x07) > 0) {
             this.envelopeCtrChannel1 += lengthCtrClocks;
             const envelopeSteps = (this.envelopeCtrChannel1 / (4 * (this.reg[reg.nr12_envelope] & 0x07))) | 0;
             this.envelopeCtrChannel1 %= 4 * (this.reg[reg.nr12_envelope] & 0x07);
 
             this.volumeChannel1 = this.reg[reg.nr12_envelope] & 0x08 ? this.volumeChannel1 + envelopeSteps : this.volumeChannel1 - envelopeSteps;
-            if (this.volumeChannel1 < 0) this.volumeChannel1 = 0;
-            if (this.volumeChannel1 > 0x0f) this.volumeChannel1 = 0x0f;
+            if (this.volumeChannel1 < 0) {
+                this.volumeChannel1 = 0;
+                this.envelopeActiveChannel1 = false;
+            }
+
+            if (this.volumeChannel1 > 0x0f) {
+                this.volumeChannel1 = 0x0f;
+                this.envelopeActiveChannel1 = false;
+            }
         }
 
         if (this.volumeChannel1 === 0) return;
@@ -226,14 +235,21 @@ export class Apu {
             }
         }
 
-        if ((this.reg[reg.nr22_envelope] & 0x07) > 0) {
+        if (this.envelopeActiveChannel2 && (this.reg[reg.nr22_envelope] & 0x07) > 0) {
             this.envelopeCtrChannel2 += lengthCtrClocks;
             const envelopeSteps = (this.envelopeCtrChannel2 / (4 * (this.reg[reg.nr22_envelope] & 0x07))) | 0;
             this.envelopeCtrChannel2 %= 4 * (this.reg[reg.nr22_envelope] & 0x07);
 
             this.volumeChannel2 = this.reg[reg.nr22_envelope] & 0x08 ? this.volumeChannel2 + envelopeSteps : this.volumeChannel2 - envelopeSteps;
-            if (this.volumeChannel2 < 0) this.volumeChannel2 = 0;
-            if (this.volumeChannel2 > 0x0f) this.volumeChannel2 = 0x0f;
+            if (this.volumeChannel2 < 0) {
+                this.volumeChannel2 = 0;
+                this.envelopeActiveChannel2 = false;
+            }
+
+            if (this.volumeChannel2 > 0x0f) {
+                this.volumeChannel2 = 0x0f;
+                this.envelopeActiveChannel2 = false;
+            }
         }
 
         if (this.volumeChannel2 === 0) return;
@@ -296,9 +312,12 @@ export class Apu {
     private waveRamWrite: WriteHandler = (address, value) => (this.waveRam[address - 0xff30] = value);
 
     private writeNR22: WriteHandler = (_, value) => {
+        const oldValue = this.reg[reg.nr22_envelope];
         this.reg[reg.nr22_envelope] = value;
-        this.volumeChannel2 = this.reg[reg.nr22_envelope] >>> 4;
-        this.envelopeCtrChannel2 = 0;
+
+        if (this.envelopeActiveChannel2 && (oldValue & 0x07) === 0) {
+            this.volumeChannel2 = (this.volumeChannel2 + (oldValue & 0x08 ? 1 : 2)) & 0x0f;
+        }
     };
 
     private readNR24: ReadHandler = () => this.reg[reg.nr24_ctrl_freq_hi] | 0xbf;
@@ -311,14 +330,18 @@ export class Apu {
             this.freqCtrChannel2 = 0;
             this.samplePointChannel2 = 0;
             this.envelopeCtrChannel2 = 0;
+            this.volumeChannel2 = this.reg[reg.nr22_envelope] >>> 4;
+            this.envelopeActiveChannel2 = true;
         }
     };
 
     private writeNR12: WriteHandler = (_, value) => {
+        const oldValue = this.reg[reg.nr12_envelope];
         this.reg[reg.nr12_envelope] = value;
 
-        this.volumeChannel1 = this.reg[reg.nr12_envelope] >>> 4;
-        this.envelopeCtrChannel1 = 0;
+        if (this.envelopeActiveChannel1 && (oldValue & 0x07) === 0) {
+            this.volumeChannel1 = (this.volumeChannel1 + (oldValue & 0x08 ? 1 : 2)) & 0x0f;
+        }
     };
 
     private readNR14: ReadHandler = () => this.reg[reg.nr14_ctrl_freq_hi] | 0xbf;
@@ -334,6 +357,8 @@ export class Apu {
             this.freqCtrChannel1 = 0;
             this.samplePointChannel1 = 0;
             this.envelopeCtrChannel1 = 0;
+            this.volumeChannel1 = this.reg[reg.nr12_envelope] >>> 4;
+            this.envelopeActiveChannel1 = true;
 
             this.sweepCtrChannel1 = 0;
             this.freqShadowChannel1 = (this.reg[reg.nr13_freq_lo] | (this.reg[reg.nr14_ctrl_freq_hi] << 8)) & 0x07ff;
@@ -382,6 +407,7 @@ export class Apu {
     private samplePointChannel2 = 0;
     private volumeChannel2 = 0;
     private envelopeCtrChannel2 = 0;
+    private envelopeActiveChannel2 = false;
 
     private channel1Active = false;
     private sampleChannel1 = 0;
@@ -393,6 +419,7 @@ export class Apu {
     private sweepCtrChannel1 = 0;
     private freqShadowChannel1 = 0;
     private sweepOnChannel1 = false;
+    private envelopeActiveChannel1 = false;
 
     private channel3Active = false;
     private counterChannel3 = 0;
