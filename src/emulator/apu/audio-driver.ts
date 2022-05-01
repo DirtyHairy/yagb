@@ -25,7 +25,7 @@ export class AudioDriver {
         }
 
         this.gainNode = this.context.createGain();
-        this.gainNode.gain.value = 0.75;
+        this.gainNode.gain.value = this.volume;
 
         this.gainNode.connect(this.context.destination);
 
@@ -95,6 +95,17 @@ export class AudioDriver {
         console.log('audio stopped');
     }
 
+    setVolume(volume: number): void {
+        if (volume < 0 || volume > 1) return;
+
+        this.volume = volume;
+        if (this.gainNode) this.gainNode.gain.value = volume;
+    }
+
+    getVolume(): number {
+        return this.volume;
+    }
+
     private onAudioprocess = (evt: AudioProcessingEvent) => {
         if (!this.sampleQueue) return;
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -105,6 +116,7 @@ export class AudioDriver {
         this.sampleQueue.fill(evt.outputBuffer.getChannelData(0), evt.outputBuffer.getChannelData(1));
     };
 
+    private volume = 0.75;
     private context: AudioContext | undefined = undefined;
     private gainNode: GainNode | undefined = undefined;
     private filterNode: BiquadFilterNode | undefined = undefined;

@@ -212,6 +212,7 @@ state-on-step [0|1]                     Print state on every step
 run                                     Run the emulator continuosly
 stop                                    Stop the emulator
 speed <speed>                           Set emulator speed
+volume [volume0]                        Get or set volume (range 0 - 100)
 
 Keyboard controls (canvas needs focus): arrows = joypad, a/s = b/a, space = select, enter = start`);
     },
@@ -435,6 +436,12 @@ Keyboard controls (canvas needs focus): arrows = joypad, a/s = b/a, space = sele
         }
 
         scheduler.setSpeed(parsed);
+    },
+    volume(volume: string) {
+        const parsed = uintval(volume);
+        if (parsed !== undefined) audioDriver.setVolume(Math.max(Math.min(parsed, 100), 0) / 100);
+
+        print(`volume: ${Math.floor(audioDriver.getVolume() * 100)}`);
     },
 };
 
