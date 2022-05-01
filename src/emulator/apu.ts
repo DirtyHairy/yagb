@@ -11,6 +11,7 @@ const WAVEFORMS = new Uint8Array([0x01, 0x03, 0x0f, 0xfc]);
 const enum cnst {
     CLOCK = 1048576,
     CUTOFF_HZ = 20000,
+    RNG_SEED = 0x12345678,
 }
 
 const enum reg {
@@ -42,6 +43,15 @@ const enum reg {
     nr51_terminal = 0x15,
     nr52_ctrl = 0x16,
 }
+
+function xorshift(x: number): number {
+    x ^= x << 13;
+    x ^= x >>> 17;
+    x ^= x << 5;
+
+    return x;
+}
+
 export class Apu {
     setSampleQueue(sampleQueue: SampleQueue) {
         this.sampleQueue = sampleQueue;
@@ -110,6 +120,7 @@ export class Apu {
         this.volumeChannel4 = 0;
         this.envelopeCtrChannel4 = 0;
         this.envelopeActiveChannel4 = false;
+        this.rng = 0;
         this.lfsr = 0;
     }
 
@@ -371,17 +382,12 @@ export class Apu {
                 const xor = ((this.lfsr >>> 1) ^ this.lfsr) & 0x01;
                 this.lfsr = ((this.lfsr >>> 1) & ~0x40) | (xor << 15) | (xor << 6);
             }
-        } else {
-            for (let i = 0; i < lfsrCycles; i++) {
-                const xor = ((this.lfsr >>> 1) ^ this.lfsr) & 0x01;
-                this.lfsr = (this.lfsr >>> 1) | (xor << 15);
-            }
-        }
 
-        if ((((4 * 1024 * 1024) / freq) | 0) > this.sampleRate >>> 2) {
-            this.sampleChannel4 = (this.sampleChannel4 + (this.lfsr & 0x01 ? 0 : this.volumeChannel4)) >>> 1;
-        } else {
             this.sampleChannel4 = this.lfsr & 0x01 ? 0 : this.volumeChannel4;
+        } else {
+            if (lfsrCycles >= 1) this.rng = xorshift(this.rng);
+
+            this.sampleChannel4 = this.rng & 0x01 ? 0 : this.volumeChannel4;
         }
     }
 
@@ -488,6 +494,7 @@ export class Apu {
             this.envelopeCtrChannel4 = 0;
             this.volumeChannel4 = this.reg[reg.nr42_envelope] >>> 4;
             this.envelopeActiveChannel4 = true;
+            this.rng = 0x12345678;
             this.lfsr = 0xffff;
         }
     };
@@ -548,6 +555,7 @@ export class Apu {
     private volumeChannel4 = 0;
     private envelopeCtrChannel4 = 0;
     private envelopeActiveChannel4 = false;
+    private rng = 0;
     private lfsr = 0;
 
     private sampleQueue: SampleQueue | undefined = undefined;
