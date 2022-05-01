@@ -35,7 +35,7 @@ export class AudioDriver {
         this.filterNode.Q.value = 0.1;
         this.filterNode.connect(this.gainNode);
 
-        this.scriptProcessor = this.context.createScriptProcessor();
+        this.scriptProcessor = this.context.createScriptProcessor(1024, 2, 2);
         this.scriptProcessor.connect(this.filterNode);
         this.scriptProcessor.onaudioprocess = this.onAudioprocess;
 
