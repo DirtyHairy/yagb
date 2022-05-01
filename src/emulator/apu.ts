@@ -188,7 +188,7 @@ export class Apu {
 
     private clockChannel1(cpuClocks: number, lengthCtrClocks: number) {
         this.sampleChannel1 = 0;
-        if (!this.channel1Active) return;
+        if (!(this.reg[reg.nr12_envelope] & 0xf8 && this.channel1Active)) return;
 
         if (this.reg[reg.nr14_ctrl_freq_hi] & 0x40) {
             this.counterChannel1 += lengthCtrClocks;
@@ -261,7 +261,7 @@ export class Apu {
 
     private clockChannel2(cpuClocks: number, lengthCtrClocks: number) {
         this.sampleChannel2 = 0;
-        if (!this.channel2Active) return;
+        if (!(this.reg[reg.nr22_envelope] & 0xf8 && this.channel2Active)) return;
 
         if (this.reg[reg.nr24_ctrl_freq_hi] & 0x40) {
             this.counterChannel2 += lengthCtrClocks;
@@ -305,7 +305,7 @@ export class Apu {
 
     private clockChannel3(cpuClocks: number, lengthCtrClocks: number) {
         this.sampleChannel3 = 0;
-        if (!this.channel3Active || !(this.reg[reg.nr30_onoff] & 0x80)) return;
+        if (!(this.reg[reg.nr30_onoff] & 0x80 && this.channel3Active)) return;
 
         if (this.reg[reg.nr34_ctrl_freq_hi] & 0x40) {
             this.counterChannel3 += lengthCtrClocks;
@@ -337,7 +337,7 @@ export class Apu {
 
     private clockChannel4(cpuClocks: number, lengthCtrClocks: number) {
         this.sampleChannel4 = 0;
-        if (!this.channel4Active) return;
+        if (!(this.reg[reg.nr42_envelope] & 0xf8 && this.channel4Active)) return;
 
         if (this.reg[reg.nr44_ctrl] & 0x40) {
             this.counterChannel4 += lengthCtrClocks;
