@@ -1,6 +1,6 @@
 export class SampleQueue {
     constructor(public readonly sampleRate: number) {
-        this.capacity = sampleRate / 2;
+        this.capacity = sampleRate / 10;
 
         this.channelLeftData = new Float32Array(this.capacity);
         this.channelRightData = new Float32Array(this.capacity);
@@ -25,13 +25,13 @@ export class SampleQueue {
         return this.length;
     }
 
-    fill(buffer: AudioBuffer): void {
+    fill(channelLeft: Float32Array, channelRight: Float32Array): void {
+        const length = channelLeft.length;
+        if (length !== channelRight.length) return;
+
         let iIn = (this.nextSample - this.length + this.capacity) % this.capacity;
 
-        const channelLeft = buffer.getChannelData(0);
-        const channelRight = buffer.getChannelData(1);
-
-        for (let iOut = 0; iOut < buffer.length && this.length > 0; iOut++) {
+        for (let iOut = 0; iOut < length && this.length > 0; iOut++) {
             channelLeft[iOut] = this.channelLeftData[iIn];
             channelRight[iOut] = this.channelRightData[iIn];
 

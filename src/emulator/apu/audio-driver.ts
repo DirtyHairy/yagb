@@ -102,7 +102,7 @@ export class AudioDriver {
             return;
         }
 
-        this.sampleQueue.fill(evt.outputBuffer);
+        this.sampleQueue.fill(evt.outputBuffer.getChannelData(0), evt.outputBuffer.getChannelData(1));
     };
 
     private context: AudioContext | undefined = undefined;

@@ -24,7 +24,6 @@ export class TestEnvironment {
     public readonly cpu: Cpu;
     public readonly unmapped: Unmapped;
     public readonly cartridge: Uint8Array;
-    public readonly sampleQueue: SampleQueue;
     public readonly apu: Apu;
 
     public readonly code: ArrayLike<number>;
@@ -40,8 +39,7 @@ export class TestEnvironment {
         this.ppu = new Ppu(this.system, this.interrupt);
         this.timer = new Timer(this.interrupt);
         this.serial = new Serial(this.interrupt);
-        this.sampleQueue = new SampleQueue();
-        this.apu = new Apu(this.sampleQueue);
+        this.apu = new Apu();
         this.clock = new Clock(this.ppu, this.timer, this.serial, this.apu);
         this.bus = new Bus(this.system);
         this.ram = new Ram();
