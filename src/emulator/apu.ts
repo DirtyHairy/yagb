@@ -192,7 +192,7 @@ export class Apu {
 
         if (this.reg[reg.nr14_ctrl_freq_hi] & 0x40) {
             this.counterChannel1 += lengthCtrClocks;
-            if (this.counterChannel1 >= 64 - (this.reg[reg.nr11_duty_length] & 0x3f || 64)) {
+            if (this.counterChannel1 >= 64 - (this.reg[reg.nr11_duty_length] & 0x3f)) {
                 this.channel1Active = false;
 
                 return;
