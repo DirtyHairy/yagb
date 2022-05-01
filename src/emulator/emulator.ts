@@ -54,6 +54,7 @@ export class Emulator {
         this.apu.install(this.bus);
         this.timer.install(this.bus);
         this.joypad.install(this.bus);
+        this.sampleQueue?.reset();
         unmapped.install(this.bus);
 
         this.cpu.onExecute.addHandler(this.onExecuteHandler);
