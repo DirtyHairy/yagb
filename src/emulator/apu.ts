@@ -419,9 +419,6 @@ export class Apu {
     private writeNR14: WriteHandler = (_, value) => {
         this.reg[reg.nr14_ctrl_freq_hi] = value;
 
-        this.sweepCtrChannel1 = 0;
-        this.freqShadowChannel1 = (this.reg[reg.nr13_freq_lo] | (this.reg[reg.nr14_ctrl_freq_hi] << 8)) & 0x07ff;
-
         if (value & 0x80) {
             this.channel1Active = true;
             this.counterChannel1 = 0;
@@ -494,7 +491,7 @@ export class Apu {
             this.envelopeCtrChannel4 = 0;
             this.volumeChannel4 = this.reg[reg.nr42_envelope] >>> 4;
             this.envelopeActiveChannel4 = true;
-            this.rng = 0x12345678;
+            this.rng = cnst.RNG_SEED;
             this.lfsr = 0xffff;
         }
     };

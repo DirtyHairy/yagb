@@ -102,6 +102,7 @@ async function loadCartridge(data: Uint8Array, name: string) {
 
     audioDriver.start(emulator.startAudio(audioDriver.getSampleRate()));
     if (autostart) scheduler.start();
+    else print('\ntype "run" to start emulator');
     updatePrompt();
 }
 
