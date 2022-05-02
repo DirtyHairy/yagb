@@ -230,8 +230,10 @@ export class Apu {
 
         if (this.envelopeActiveChannel1 && (this.reg[reg.nr12_envelope] & 0x07) > 0) {
             this.envelopeCtrChannel1 += lengthCtrClocks;
-            const envelopeSteps = (this.envelopeCtrChannel1 / (4 * (this.reg[reg.nr12_envelope] & 0x07))) | 0;
-            this.envelopeCtrChannel1 %= 4 * (this.reg[reg.nr12_envelope] & 0x07);
+
+            const envelopePeriod = this.reg[reg.nr12_envelope] & 0x07 || 8;
+            const envelopeSteps = (this.envelopeCtrChannel1 / (4 * envelopePeriod)) | 0;
+            this.envelopeCtrChannel1 %= 4 * envelopePeriod;
 
             this.volumeChannel1 = this.reg[reg.nr12_envelope] & 0x08 ? this.volumeChannel1 + envelopeSteps : this.volumeChannel1 - envelopeSteps;
             if (this.volumeChannel1 < 0) {
@@ -274,8 +276,10 @@ export class Apu {
 
         if (this.envelopeActiveChannel2 && (this.reg[reg.nr22_envelope] & 0x07) > 0) {
             this.envelopeCtrChannel2 += lengthCtrClocks;
-            const envelopeSteps = (this.envelopeCtrChannel2 / (4 * (this.reg[reg.nr22_envelope] & 0x07))) | 0;
-            this.envelopeCtrChannel2 %= 4 * (this.reg[reg.nr22_envelope] & 0x07);
+
+            const envelopePeriod = this.reg[reg.nr22_envelope] & 0x07 || 8;
+            const envelopeSteps = (this.envelopeCtrChannel2 / (4 * envelopePeriod)) | 0;
+            this.envelopeCtrChannel2 %= 4 * envelopePeriod;
 
             this.volumeChannel2 = this.reg[reg.nr22_envelope] & 0x08 ? this.volumeChannel2 + envelopeSteps : this.volumeChannel2 - envelopeSteps;
             if (this.volumeChannel2 < 0) {
@@ -350,8 +354,10 @@ export class Apu {
 
         if (this.envelopeActiveChannel4 && (this.reg[reg.nr42_envelope] & 0x07) > 0) {
             this.envelopeCtrChannel4 += lengthCtrClocks;
-            const envelopeSteps = (this.envelopeCtrChannel4 / (4 * (this.reg[reg.nr42_envelope] & 0x07))) | 0;
-            this.envelopeCtrChannel4 %= 4 * (this.reg[reg.nr42_envelope] & 0x07);
+
+            const envelopePeriod = this.reg[reg.nr42_envelope] & 0x07 || 0;
+            const envelopeSteps = (this.envelopeCtrChannel4 / (4 * envelopePeriod)) | 0;
+            this.envelopeCtrChannel4 %= 4 * envelopePeriod;
 
             this.volumeChannel4 = this.reg[reg.nr42_envelope] & 0x08 ? this.volumeChannel4 + envelopeSteps : this.volumeChannel4 - envelopeSteps;
             if (this.volumeChannel4 < 0) {
