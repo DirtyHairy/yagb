@@ -155,9 +155,12 @@ function getKey(code: string): key | undefined {
             return key.select;
 
         case 's':
+        case 'x':
             return key.a;
 
         case 'a':
+        case 'y':
+        case 'z':
             return key.b;
 
         case 'ArrowLeft':
@@ -215,7 +218,7 @@ stop                                    Stop the emulator
 speed <speed>                           Set emulator speed
 volume [volume0]                        Get or set volume (range 0 - 100)
 
-Keyboard controls (canvas needs focus): arrows = joypad, a/s = b/a, space = select, enter = start`);
+Keyboard controls (canvas needs focus): arrows = joypad, a/y = b, s/x = a, space = select, enter = start`);
     },
     load(): void {
         fileHandler.openFile(async (data, name) => {
