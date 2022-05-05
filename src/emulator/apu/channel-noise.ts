@@ -9,6 +9,7 @@ const enum reg {
     nrx4_ctrl = 0x04,
 }
 
+// https://en.wikipedia.org/wiki/Xorshift
 function xorshift(x: number): number {
     x ^= x << 13;
     x ^= x >>> 17;
@@ -37,6 +38,7 @@ export class ChannelNoise extends ChannelTone {
         this.freqCtr = this.freqCtr % freq;
 
         if (poly & 0x80) {
+            // Use the original 8bit LFSR for "warm" mode...
             for (let i = 0; i < lfsrCycles; i++) {
                 const xor = ((this.lfsr >>> 1) ^ this.lfsr) & 0x01;
                 this.lfsr = ((this.lfsr >>> 1) & ~0x40) | (xor << 15) | (xor << 6);
@@ -44,6 +46,7 @@ export class ChannelNoise extends ChannelTone {
 
             this.sample = this.lfsr & 0x01 ? 0 : this.volume;
         } else {
+            // ... and use XORSHIFT for 16bit mode (see apu.ts for an explanation)
             if (lfsrCycles >= 1) this.rng = xorshift(this.rng);
 
             this.sample = this.rng & 0x01 ? 0 : this.volume;

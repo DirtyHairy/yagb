@@ -79,6 +79,8 @@ export class ChannelTone {
 
         this.freqCtr = this.freqCtr % freq;
 
+        // We discard sounds above a threshold (20kHz). This avoids high-pitched
+        // aliasing artifacts from otherwise inaudible sounds.
         if (((131072 / freq) | 0) > cnst.CUTOFF_HZ) return;
 
         this.sample = WAVEFORMS[this.reg[reg.nrx1_duty_length] >>> 6] & (1 << this.samplePoint) ? this.volume : 0;
@@ -100,6 +102,10 @@ export class ChannelTone {
         const oldValue = this.reg[reg.nrx2_envelope];
         this.reg[reg.nrx2_envelope] = value;
 
+        // The following is based on the description of zombie mode in the gbdev wiki,
+        // with some details taken from Sameboy. This is only an approximation (as
+        // the channel state is usually not in sync with the main clock), but it is
+        // good enough for Prehistorik Man.
         if (!this.isActive) return;
 
         let preventTick = false;
