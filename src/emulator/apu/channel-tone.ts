@@ -100,8 +100,25 @@ export class ChannelTone {
         const oldValue = this.reg[reg.nrx2_envelope];
         this.reg[reg.nrx2_envelope] = value;
 
-        if (this.envelopeActive && (oldValue & 0x07) === 0) {
-            this.volume = (this.volume + (oldValue & 0x08 ? 1 : 2)) & 0x0f;
+        if (!this.isActive) return;
+
+        let preventTick = false;
+
+        if ((value ^ oldValue) & 0x08) {
+            if (value & 0x08) {
+                if (!(oldValue & 0x07) && this.envelopeActive) this.volume ^= 0x0f;
+                else this.volume = 0x0e - this.volume;
+
+                preventTick = true;
+            } else {
+                this.volume = 0x0f - this.volume;
+            }
+
+            this.volume &= 0x0f;
+        }
+
+        if (this.envelopeActive && ((value | oldValue) & 0x07) === 0 && !preventTick) {
+            this.volume = (this.volume + (value & 0x08 ? 1 : -1)) & 0x0f;
         }
     };
 
