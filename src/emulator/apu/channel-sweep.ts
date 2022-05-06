@@ -48,6 +48,8 @@ export class ChannelSweep extends ChannelTone {
             const sweepSteps = (this.sweepCtr / (2 * sweepPeriod)) | 0;
             this.sweepCtr %= 2 * sweepPeriod;
 
+            if (sweepPeriod === 8) return;
+
             const sweepShift = this.reg[reg.nrx0_sweep] & 0x07;
             if (sweepSteps > 0) {
                 for (let i = 0; i < sweepSteps; i++) {
@@ -62,6 +64,8 @@ export class ChannelSweep extends ChannelTone {
                 if (sweepShift > 0) {
                     this.reg[reg.nrx3_freq_lo] = this.freqShadow & 0xff;
                     this.reg[reg.nrx4_ctrl_freq_hi] = (this.reg[reg.nrx4_ctrl_freq_hi] & 0xf8) | (this.freqShadow >>> 8);
+
+                    if (this.freqShadow > 0x07ff) this.isActive = false;
                 }
             }
         }
