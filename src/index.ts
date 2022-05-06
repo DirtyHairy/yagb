@@ -218,7 +218,15 @@ stop                                    Stop the emulator
 speed <speed>                           Set emulator speed
 volume [volume0]                        Get or set volume (range 0 - 100)
 
-Keyboard controls (canvas needs focus): arrows = joypad, a/y = b, s/x = a, space = select, enter = start`);
+Keyboard controls (canvas needs focus):
+
+* arrows: joypad, a/y: b, s/x: a, space: select, enter: start
+* shift-enter: run / stop
+* +/-: adjust volume
+* Page up / down: adjust speed
+* l: load cartridge
+* shift-space: reset
+`);
     },
     load(): void {
         fileHandler.openFile(async (data, name) => {
@@ -434,12 +442,11 @@ Keyboard controls (canvas needs focus): arrows = joypad, a/y = b, s/x = a, space
     },
     speed(speed: string) {
         const parsed = floatval(speed);
-        if (parsed === undefined || parsed <= 0) {
-            print('invalid speed');
-            return;
+        if (parsed !== undefined && parsed > 0) {
+            scheduler.setSpeed(parsed);
         }
 
-        scheduler.setSpeed(parsed);
+        print(`speed: ${scheduler.getSpeed().toFixed(2)}`);
     },
     volume(volume: string) {
         const parsed = uintval(volume);
@@ -461,7 +468,58 @@ updatePrompt();
 
 const canvas = document.getElementById('canvas') as HTMLCanvasElement;
 
+function keyboardAction(e: KeyboardEvent): boolean {
+    switch (e.key) {
+        case 'Enter':
+            if (!e.shiftKey || !scheduler) return false;
+
+            scheduler.isRunning() ? interpreter.stop() : interpreter.run();
+            return true;
+
+        case '+': {
+            const volume = audioDriver.getVolume();
+            interpreter.volume('' + Math.min((Math.floor(volume * 5) + 1) * 20, 100));
+
+            return true;
+        }
+        case '-': {
+            const volume = audioDriver.getVolume();
+            interpreter.volume('' + Math.max((Math.floor(volume * 5) - 1) * 20, 0));
+
+            return true;
+        }
+        case 'PageUp':
+            if (!scheduler) return false;
+            interpreter.speed('' + (Math.floor(scheduler.getSpeed() / 2.5) + 1) * 2.5);
+
+            return true;
+
+        case 'PageDown':
+            if (!scheduler) return false;
+            interpreter.speed('' + Math.max((Math.floor(scheduler.getSpeed() / 2.5) - 1) * 2.5, 1));
+
+            return true;
+
+        case ' ':
+            if (!e.shiftKey) return false;
+            interpreter.reset();
+
+            return true;
+
+        case 'l':
+            interpreter.load();
+            return true;
+    }
+
+    return false;
+}
+
 canvas.addEventListener('keydown', (e) => {
+    if (keyboardAction(e)) {
+        e.preventDefault();
+        return;
+    }
+
     const key = getKey(e.key);
 
     if (key !== undefined && emulator !== undefined) {

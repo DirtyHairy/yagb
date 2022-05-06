@@ -116,7 +116,7 @@ export class AudioDriver {
         this.sampleQueue.fill(evt.outputBuffer.getChannelData(0), evt.outputBuffer.getChannelData(1));
     };
 
-    private volume = 0.75;
+    private volume = 0.6;
     private context: AudioContext | undefined = undefined;
     private gainNode: GainNode | undefined = undefined;
     private filterNode: BiquadFilterNode | undefined = undefined;
