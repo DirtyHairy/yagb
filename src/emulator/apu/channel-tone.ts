@@ -87,14 +87,15 @@ export class ChannelTone {
     }
 
     protected trigger(): void {
-        this.isActive = true;
         this.counter = 0;
-        this.freqCtr = 0;
-        this.samplePoint = 0;
         this.envelopeCtr = 0;
         this.sample = 0;
         this.volume = this.reg[reg.nrx2_envelope] >>> 4;
         this.envelopeActive = true;
+
+        if (!this.isActive) this.freqCtr = 0;
+
+        this.isActive = true;
     }
 
     protected readNRX2: ReadHandler = () => this.reg[reg.nrx2_envelope];
