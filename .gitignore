@@ -8,3 +8,4 @@
 *.txt
 .DS_Store
 *.log
+/tmp/

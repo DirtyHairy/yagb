@@ -1,4 +1,4 @@
-import { CartridgeBase, CartridgeType } from './CartridgeBase';
+import { CartridgeBase, CartridgeRAMBankSize, CartridgeROMBankSize, CartridgeType } from './CartridgeBase';
 import { ReadHandler, WriteHandler } from './../bus';
 
 import { Bus } from '../bus';
@@ -33,7 +33,7 @@ export class CartridgeMbc1 extends CartridgeBase {
     install(bus: Bus): void {
         super.install(bus);
 
-        for (let i = 0; i < 0x2000; i++) bus.map(i, this.readBank0, this.writeRamEnable);
+        for (let i = 0x0000; i < 0x2000; i++) bus.map(i, this.readBank0, this.writeRamEnable);
         for (let i = 0x2000; i < 0x4000; i++) bus.map(i, this.readBank0, this.writeReg0);
         for (let i = 0x4000; i < 0x6000; i++) bus.map(i, this.readBank1, this.writeReg1);
         for (let i = 0x6000; i < 0x8000; i++) bus.map(i, this.readBank1, this.writeMode);
@@ -78,10 +78,10 @@ export class CartridgeMbc1 extends CartridgeBase {
         const ramBanks = Math.max((ramSize / 8) | 0, 1);
 
         const romSlices = new Array(romBanks);
-        for (let i = 0; i < romBanks; i++) romSlices[i] = this.image.subarray(i * 0x4000, (i + 1) * 0x4000);
+        for (let i = 0; i < romBanks; i++) romSlices[i] = this.image.subarray(i * CartridgeROMBankSize, (i + 1) * CartridgeROMBankSize);
 
         const ramSlices = new Array(ramBanks);
-        for (let i = 0; i < ramBanks; i++) ramSlices[i] = this.ram.subarray(i * 0x2000, (i + 1) * 0x2000);
+        for (let i = 0; i < ramBanks; i++) ramSlices[i] = this.ram.subarray(i * CartridgeRAMBankSize, (i + 1) * CartridgeRAMBankSize);
 
         for (let i = 0; i < 0x100; i++) {
             const mode = i >>> 7;

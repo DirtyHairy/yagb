@@ -204,9 +204,9 @@ breakpoint-add [address, ...]           Add a breakpoint
 breakpoint-clear <address>              Clear a breakpoint
 breakpoint-clear-all                    Clear all breakpoints
 breakpoint-list                         List breakpoints
-trap-add-read <address, ...>            Add a read trap
-trap-add-write <address, ...>           Add a write trap
-trep-clear <address>                    Remove traps at address
+trap-read-add <address, ...>            Add a read trap
+trap-write-add <address, ...>           Add a write trap
+trap-clear <address>                    Remove traps at address
 trap-clear-all                          Remove all traps
 trap-list                               List traps
 trace [count]                           Prints trace
