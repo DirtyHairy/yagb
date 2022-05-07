@@ -41,7 +41,7 @@ export class CartridgeMbc2 extends CartridgeBase {
     }
 
     printState(): string {
-        return `bank=${hex8(this.bankIndex)} ramEnable=${this.ramEnable ? 'true' : 'false'}`;
+        return `bank=${hex8(this.bankIndex)} ramEnable=${this.ramEnable}`;
     }
 
     getRam(): Uint8Array | undefined {
