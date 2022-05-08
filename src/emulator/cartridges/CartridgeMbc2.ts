@@ -9,9 +9,17 @@ export class CartridgeMbc2 extends CartridgeBase {
     constructor(image: Uint8Array, system: System) {
         super(image, system);
 
-        for (let i = 0; i < 0x10; i++) {
+        const romSize = this.size();
+        if (romSize % 0x4000 !== 0 || romSize > 16 * 0x4000 || romSize < 2 * 0x4000) {
+            throw new Error('invalid ROM size; not a MBC2 image');
+        }
+
+        this.romBanks = new Array((romSize / 0x4000) | 0);
+        for (let i = 0; i < this.romBanks.length; i++) {
             this.romBanks[i] = this.image.subarray(i * 0x4000, (i + 1) * 0x4000);
         }
+
+        this.romBank1 = this.romBanks[this.bankIndex];
     }
 
     install(bus: Bus): void {
@@ -23,8 +31,8 @@ export class CartridgeMbc2 extends CartridgeBase {
     }
 
     reset(savedRam?: Uint8Array): void {
-        this.romBank1 = this.romBanks[0];
         this.bankIndex = 1;
+        this.romBank1 = this.romBanks[this.bankIndex];
         this.ramEnable = false;
 
         if (this.type() === CartridgeType.mbc2_battery && savedRam && savedRam.length === this.ram.length) {
@@ -66,7 +74,7 @@ export class CartridgeMbc2 extends CartridgeBase {
 
     private romBank1!: Uint8Array;
     private bankIndex = 0x01;
-    private romBanks = new Array<Uint8Array>(0x10);
+    private romBanks: Array<Uint8Array>;
 
     private ramEnable = false;
     private ram = new Uint8Array(512);
