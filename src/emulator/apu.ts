@@ -154,7 +154,10 @@ export class Apu {
                         (nr51 & 0x01 ? this.channel1.sample : 0);
 
                     const nr50 = this.reg[reg.nr50_volume];
-                    this.sampleQueue.push((signalLeft * ((nr50 & 0x70) >>> 4)) / 420, (signalRight * (nr50 & 0x07)) / 420);
+                    this.sampleQueue.push(
+                        (signalLeft * ((nr50 & 0x70) >>> 4)) / cnst.SAMPLE_NORMALIZATION,
+                        (signalRight * (nr50 & 0x07)) / cnst.SAMPLE_NORMALIZATION
+                    );
                 } else {
                     this.sampleQueue.push(0, 0);
                 }

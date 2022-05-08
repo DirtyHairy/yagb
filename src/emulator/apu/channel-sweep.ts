@@ -12,7 +12,12 @@ export class ChannelSweep extends ChannelTone {
     }
 
     cycle(cpuClocks: number, lengthCtrClocks: number): void {
-        this.sample = 0;
+        if ((this.reg[reg.nrx2_envelope] & 0xf8) === 0) {
+            this.sample = 0;
+            return;
+        }
+
+        this.sample = 0x0f + this.volume;
         if (!(this.reg[reg.nrx2_envelope] & 0xf8 && this.isActive)) return;
 
         this.cycleLengthCtr(lengthCtrClocks);

@@ -35,7 +35,12 @@ export class ChannelWave {
     }
 
     cycle(cpuClocks: number, lengthCtrClocks: number): void {
-        this.sample = 0;
+        if ((this.reg[reg.nrX0_onoff] & 0x80) === 0) {
+            this.sample = 0;
+            return;
+        }
+
+        this.sample = 0x0f;
         if (!(this.reg[reg.nrX0_onoff] & 0x80 && this.isActive)) return;
 
         if (this.reg[reg.nrX4_ctrl_freq_hi] & 0x40) {
@@ -63,7 +68,7 @@ export class ChannelWave {
         else sample &= 0x0f;
 
         if (((131072 / freq) | 0) > cnst.CUTOFF_HZ) return;
-        this.sample = sample >>> (level - 1);
+        this.sample -= 2 * (sample >>> (level - 1));
     }
 
     private waveRamRead: ReadHandler = (address) => this.waveRam[address - 0xff30];

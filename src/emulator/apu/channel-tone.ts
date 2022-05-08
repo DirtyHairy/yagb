@@ -31,7 +31,12 @@ export class ChannelTone {
     }
 
     cycle(cpuClocks: number, lengthCtrClocks: number): void {
-        this.sample = 0;
+        if ((this.reg[reg.nrx2_envelope] & 0xf8) === 0) {
+            this.sample = 0;
+            return;
+        }
+
+        this.sample = 0x0f + this.volume;
         if (!(this.reg[reg.nrx2_envelope] & 0xf8 && this.isActive)) return;
 
         this.cycleLengthCtr(lengthCtrClocks);
@@ -83,7 +88,7 @@ export class ChannelTone {
         // aliasing artifacts from otherwise inaudible sounds.
         if (((131072 / freq) | 0) > cnst.CUTOFF_HZ) return;
 
-        this.sample = WAVEFORMS[this.reg[reg.nrx1_duty_length] >>> 6] & (1 << this.samplePoint) ? this.volume : 0;
+        this.sample -= WAVEFORMS[this.reg[reg.nrx1_duty_length] >>> 6] & (1 << this.samplePoint) ? 2 * this.volume : 0;
     }
 
     protected trigger(): void {

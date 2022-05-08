@@ -29,14 +29,20 @@ export class AudioDriver {
 
         this.gainNode.connect(this.context.destination);
 
-        this.filterNode = this.context.createBiquadFilter();
-        this.filterNode.frequency.value = 15000;
-        this.filterNode.type = 'lowpass';
-        this.filterNode.Q.value = 0.1;
-        this.filterNode.connect(this.gainNode);
+        this.lowpassNode = this.context.createBiquadFilter();
+        this.lowpassNode.frequency.value = 15000;
+        this.lowpassNode.type = 'lowpass';
+        this.lowpassNode.Q.value = 0.1;
+        this.lowpassNode.connect(this.gainNode);
+
+        this.highpassNode = this.context.createBiquadFilter();
+        this.highpassNode.frequency.value = 50;
+        this.highpassNode.type = 'highpass';
+        this.highpassNode.Q.value = 0.1;
+        this.highpassNode.connect(this.lowpassNode);
 
         this.scriptProcessor = this.context.createScriptProcessor(1024, 2, 2);
-        this.scriptProcessor.connect(this.filterNode);
+        this.scriptProcessor.connect(this.highpassNode);
         this.scriptProcessor.onaudioprocess = this.onAudioprocess;
 
         const handler = async () => {
@@ -119,7 +125,8 @@ export class AudioDriver {
     private volume = 0.6;
     private context: AudioContext | undefined = undefined;
     private gainNode: GainNode | undefined = undefined;
-    private filterNode: BiquadFilterNode | undefined = undefined;
+    private lowpassNode: BiquadFilterNode | undefined = undefined;
+    private highpassNode: BiquadFilterNode | undefined = undefined;
     private scriptProcessor: ScriptProcessorNode | undefined = undefined;
 
     private isRunning = false;

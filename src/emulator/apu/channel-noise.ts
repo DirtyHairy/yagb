@@ -44,7 +44,7 @@ export class ChannelNoise extends ChannelTone {
                 this.lfsr = ((this.lfsr >>> 1) & ~0x40) | (xor << 15) | (xor << 6);
             }
 
-            this.sample = this.lfsr & 0x01 ? 0 : this.volume;
+            this.sample += this.lfsr & 0x01 ? 0 : this.volume;
         } else {
             // ... and use XORSHIFT for 16bit mode (see apu.ts for an explanation).
             // Assuming a truly random distribution, sampling the generator multiple
@@ -52,7 +52,7 @@ export class ChannelNoise extends ChannelTone {
             // sample once.
             if (lfsrCycles >= 1) this.rng = xorshift(this.rng);
 
-            this.sample = this.rng & 0x01 ? 0 : this.volume;
+            this.sample -= this.rng & 0x01 ? 0 : 2 * this.volume;
         }
     }
 
