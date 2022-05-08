@@ -5,6 +5,7 @@ import { Bus } from './bus';
 import { CartridgeMbc1 } from './cartridges/CartridgeMbc1';
 import { CartridgeMbc2 } from './cartridges/CartridgeMbc2';
 import { CartridgeMbc3 } from './cartridges/CartridgeMbc3';
+import { CartridgeMbc5 } from './cartridges/CartridgeMbc5';
 import { CartridgeRom } from './cartridges/CartridgeRom';
 import { System } from './system';
 
@@ -79,6 +80,14 @@ export function createCartridge(image: Uint8Array, system: System): Cartridge | 
         case CartridgeType.mbc3_timer_battery:
         case CartridgeType.mbc3_timer_ram_battery:
             return new CartridgeMbc3(image, system);
+
+        case CartridgeType.mbc5:
+        case CartridgeType.mbc5_ram:
+        case CartridgeType.mbc5_ram_battery:
+        case CartridgeType.mbc5_rumble:
+        case CartridgeType.mbc5_rumble_ram:
+        case CartridgeType.mbc5_rumble_ram_battery:
+            return new CartridgeMbc5(image, system);
 
         default:
             system.warning(`unsupported mapper type ${hex8(mapper)}`);

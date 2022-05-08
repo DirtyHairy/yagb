@@ -16,7 +16,7 @@ export class CartridgeMbc3 extends CartridgeBase {
             throw new Error('invalid ROM size; not a MBC3 image');
         }
 
-        if (ramSize % 0x2000 !== 0) {
+        if (ramSize % 0x2000 !== 0 || ramSize > 32 * 1024) {
             throw new Error('invalid RAM size; not a MBC3 image');
         }
 
@@ -65,29 +65,23 @@ export class CartridgeMbc3 extends CartridgeBase {
         this.registerSelect = 0;
         this.lastLatch = 0xff;
 
-        switch (this.type()) {
-            case CartridgeType.mbc3_ram_battery:
-            case CartridgeType.mbc3_timer_battery:
-            case CartridgeType.mbc3_timer_ram_battery: {
-                const saveSize = this.ram.length + 4;
-                if (savedRam && savedRam.length === saveSize) {
-                    if (this.ram.length > 0) {
-                        this.ram.set(savedRam.subarray(0, this.ram.length));
-                    }
+        if (this.hasBattery()) {
+            const saveSize = this.ram.length + 4;
 
-                    this.referenceTimestamp =
-                        savedRam[this.ram.length] |
-                        (savedRam[this.ram.length + 1] << 8) |
-                        (savedRam[this.ram.length + 2] << 16) |
-                        (savedRam[this.ram.length + 3] << 24);
+            if (savedRam && savedRam.length === saveSize) {
+                if (this.ram.length > 0) {
+                    this.ram.set(savedRam.subarray(0, this.ram.length));
                 }
 
-                break;
+                this.referenceTimestamp =
+                    savedRam[this.ram.length] |
+                    (savedRam[this.ram.length + 1] << 8) |
+                    (savedRam[this.ram.length + 2] << 16) |
+                    (savedRam[this.ram.length + 3] << 24);
             }
-
-            default:
-                this.ram.fill(0);
-                this.referenceTimestamp = (Date.now() / 1000) | 0;
+        } else {
+            this.ram.fill(0);
+            this.referenceTimestamp = (Date.now() / 1000) | 0;
         }
 
         this.latch();
@@ -107,23 +101,30 @@ export class CartridgeMbc3 extends CartridgeBase {
     }
 
     getRam(): Uint8Array | undefined {
+        if (this.hasBattery()) {
+            const save = new Uint8Array(this.ram.length + 4);
+            save.set(this.ram);
+
+            save[this.ram.length] = this.referenceTimestamp;
+            save[this.ram.length + 1] = this.referenceTimestamp >>> 8;
+            save[this.ram.length + 2] = this.referenceTimestamp >>> 16;
+            save[this.ram.length + 3] = this.referenceTimestamp >>> 24;
+
+            return save;
+        }
+
+        return undefined;
+    }
+
+    private hasBattery(): boolean {
         switch (this.type()) {
             case CartridgeType.mbc3_ram_battery:
             case CartridgeType.mbc3_timer_battery:
-            case CartridgeType.mbc3_timer_ram_battery: {
-                const save = new Uint8Array(this.ram.length + 4);
-                save.set(this.ram);
-
-                save[this.ram.length] = this.referenceTimestamp;
-                save[this.ram.length + 1] = this.referenceTimestamp >>> 8;
-                save[this.ram.length + 2] = this.referenceTimestamp >>> 16;
-                save[this.ram.length + 3] = this.referenceTimestamp >>> 24;
-
-                return save;
-            }
+            case CartridgeType.mbc3_timer_ram_battery:
+                return true;
 
             default:
-                return undefined;
+                return false;
         }
     }
 
@@ -232,9 +233,11 @@ export class CartridgeMbc3 extends CartridgeBase {
     };
     private writeRamBankIndex: WriteHandler = (_, value) => {
         if (value <= 0x03) {
+            this.registerSelect = 0;
+            if (this.ramBanks.length === 0) return;
+
             this.ramBankIndex = value % this.ramBanks.length;
             this.ramBank = this.ramBanks[this.ramBankIndex];
-            this.registerSelect = 0;
         } else {
             this.registerSelect = value;
         }
