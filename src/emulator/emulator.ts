@@ -64,11 +64,11 @@ export class Emulator {
     }
 
     getCartridgeRam(): Uint8Array | undefined {
-        return this.cartridge.getRam();
+        return this.cartridge.getNvData();
     }
 
     clearCartridgeRam(): void {
-        this.cartridge.clearRam();
+        this.cartridge.clearNvData();
     }
 
     addBreakpoint(address: number): void {

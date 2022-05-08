@@ -44,7 +44,7 @@ export class CartridgeMbc2 extends CartridgeBase {
         }
     }
 
-    clearRam(): void {
+    clearNvData(): void {
         this.ram.fill(0);
     }
 
@@ -52,7 +52,7 @@ export class CartridgeMbc2 extends CartridgeBase {
         return `bank=${hex8(this.bankIndex)} ramEnable=${this.ramEnable}`;
     }
 
-    getRam(): Uint8Array | undefined {
+    getNvData(): Uint8Array | undefined {
         return this.type() === CartridgeType.mbc2_battery ? this.ram.slice() : undefined;
     }
 

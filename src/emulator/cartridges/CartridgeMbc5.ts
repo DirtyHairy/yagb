@@ -70,7 +70,7 @@ export class CartridgeMbc5 extends CartridgeBase {
         }
     }
 
-    clearRam(): void {
+    clearNvData(): void {
         this.ram.fill(0);
     }
 
@@ -78,7 +78,7 @@ export class CartridgeMbc5 extends CartridgeBase {
         return `romBank=${hex8(this.romBankIndex)} ramBank=${hex8(this.ramBankIndex)} ramEnable=${this.ramEnable}`;
     }
 
-    getRam(): Uint8Array | undefined {
+    getNvData(): Uint8Array | undefined {
         return this.hasBattery() ? this.ram.slice() : undefined;
     }
 

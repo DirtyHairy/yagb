@@ -87,7 +87,7 @@ export class CartridgeMbc3 extends CartridgeBase {
         this.latch();
     }
 
-    clearRam(): void {
+    clearNvData(): void {
         this.ram.fill(0);
         this.referenceTimestamp = (Date.now() / 1000) | 0;
     }
@@ -100,7 +100,7 @@ export class CartridgeMbc3 extends CartridgeBase {
         } hours=${this.hoursCurrent} minutes=${this.minutesCurrent} seconds=${this.secondsCurrent}`;
     }
 
-    getRam(): Uint8Array | undefined {
+    getNvData(): Uint8Array | undefined {
         if (this.hasBattery()) {
             const save = new Uint8Array(this.ram.length + 4);
             save.set(this.ram);

@@ -12,8 +12,8 @@ import { System } from './system';
 export interface Cartridge {
     install(bus: Bus): void;
     reset(savedRam?: Uint8Array | undefined): void;
-    getRam(): Uint8Array | undefined;
-    clearRam(): void;
+    getNvData(): Uint8Array | undefined;
+    clearNvData(): void;
     type(): number;
     size(): number;
     printInfo(): string;

@@ -21,7 +21,7 @@ const audioDriver = new AudioDriver();
 
 let emulator: Emulator;
 let scheduler: Scheduler;
-let savedRamKey = '';
+let nvDataKey = '';
 let stateOnStep = false;
 let lastFrame = -1;
 
@@ -52,11 +52,11 @@ function floatval<T>(value: T, defaultValue?: number | undefined): number | unde
 }
 
 async function loadCartridge(data: Uint8Array, name: string) {
-    const newSavedRamKey = `ram_${md5(data)}`;
+    const newNvDataKey = `ram_${md5(data)}`;
 
     let savedRam: Uint8Array | undefined;
     try {
-        savedRam = await decodeBase64(localStorage.getItem(newSavedRamKey) || '');
+        savedRam = await decodeBase64(localStorage.getItem(newNvDataKey) || '');
         // eslint-disable-next-line no-empty
     } catch (e) {}
 
@@ -71,7 +71,7 @@ async function loadCartridge(data: Uint8Array, name: string) {
     }
 
     emulator = newEmulator;
-    savedRamKey = newSavedRamKey;
+    nvDataKey = newNvDataKey;
 
     const autostart = !!scheduler?.isRunning();
 
@@ -85,7 +85,7 @@ async function loadCartridge(data: Uint8Array, name: string) {
         updatePrompt(speed, hostSpeed);
 
         const ram = emulator.getCartridgeRam();
-        if (ram) localStorage.setItem(savedRamKey, await encodeBase64(ram));
+        if (ram) localStorage.setItem(nvDataKey, await encodeBase64(ram));
     });
 
     scheduler.onStart.addHandler(() => audioDriver.continue());
@@ -199,7 +199,7 @@ disassemble [count] [address=p]         Disassemble count bytes at address
 step [count=1]                          Step count instructions
 state                                   Print state
 reset                                   Reset system
-wipe                                    Reset and remove saved RAM state
+wipe                                    Reset and remove nonvolatile data
 breakpoint-add [address, ...]           Add a breakpoint
 breakpoint-clear <address>              Clear a breakpoint
 breakpoint-clear-all                    Clear all breakpoints
@@ -281,7 +281,7 @@ Keyboard controls (canvas needs focus):
         emulator.clearCartridgeRam();
         lastFrame = -1;
         updateCanvas();
-        print('system reset, RAM wiped');
+        print('system reset, nonvolatile data wiped');
     },
     'breakpoint-add': function (...args: Array<string | number | undefined>) {
         if (!assertEmulator()) return;

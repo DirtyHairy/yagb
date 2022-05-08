@@ -1,6 +1,6 @@
 import { Bus, ReadHandler, WriteHandler } from '../bus';
-
 import { CartridgeBase, CartridgeType } from './CartridgeBase';
+
 import { System } from '../system';
 
 export class CartridgeRom extends CartridgeBase {
@@ -30,7 +30,7 @@ export class CartridgeRom extends CartridgeBase {
         }
     }
 
-    clearRam(): void {
+    clearNvData(): void {
         this.ram.fill(0);
     }
 
@@ -38,14 +38,14 @@ export class CartridgeRom extends CartridgeBase {
         return `rom ${this.type() === CartridgeType.rom ? 'only' : `with ${this.ramSize() / 1024}kb ram`}`;
     }
 
-    getRam(): Uint8Array | undefined {
+    getNvData(): Uint8Array | undefined {
         return this.type() === CartridgeType.rom_ram_battery ? this.ram.slice() : undefined;
     }
 
     private romRead: ReadHandler = (address) => this.rom[address];
     private stubWrite: WriteHandler = () => undefined;
 
-    private readBankRam: ReadHandler = (address) => this.ram.length > 0 ? this.ram[address - 0xa000] : 0xff;
+    private readBankRam: ReadHandler = (address) => (this.ram.length > 0 ? this.ram[address - 0xa000] : 0xff);
     private writeBankRam: WriteHandler = (address, value) => this.ram.length > 0 && (this.ram[address - 0xa000] = value);
 
     private readonly rom: Uint8Array;

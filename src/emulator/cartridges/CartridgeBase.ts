@@ -90,11 +90,11 @@ export abstract class CartridgeBase implements Cartridge {
         }
     }
 
-    getRam(): Uint8Array | undefined {
+    getNvData(): Uint8Array | undefined {
         return undefined;
     }
 
-    clearRam(): void {}
+    clearNvData(): void {}
 
     install(bus: Bus): void {}
 
