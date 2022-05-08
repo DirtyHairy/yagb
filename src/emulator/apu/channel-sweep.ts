@@ -17,7 +17,7 @@ export class ChannelSweep extends ChannelTone {
             return;
         }
 
-        this.sample = 0x0f + this.volume;
+        this.sample = 0x0f;
         if (!(this.reg[reg.nrx2_envelope] & 0xf8 && this.isActive)) return;
 
         this.cycleLengthCtr(lengthCtrClocks);
