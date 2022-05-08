@@ -101,9 +101,9 @@ export class CartridgeMbc3 extends CartridgeBase {
     printState(): string {
         this.materializeClock();
 
-        return `romBank=${hex8(this.romBankIndex)} ramEnable=${this.ramEnable} ramBank=${hex8(this.ramBankIndex)} days=${this.daysCurrent} hours=${
-            this.hoursCurrent
-        } minutes=${this.minutesCurrent} seconds=${this.secondsCurrent}`;
+        return `romBank=${hex8(this.romBankIndex)} ramEnable=${this.ramEnable} halt=${this.halt} ramBank=${hex8(this.ramBankIndex)} days=${
+            this.daysCurrent
+        } hours=${this.hoursCurrent} minutes=${this.minutesCurrent} seconds=${this.secondsCurrent}`;
     }
 
     getRam(): Uint8Array | undefined {
@@ -137,6 +137,8 @@ export class CartridgeMbc3 extends CartridgeBase {
     }
 
     private materializeClock(): void {
+        if (this.halt) return;
+
         let time = ((Date.now() / 1000) | 0) - this.referenceTimestamp;
         if (time < 0) time = 0;
 
@@ -177,34 +179,34 @@ export class CartridgeMbc3 extends CartridgeBase {
     private writeRegister(register: number, value: number) {
         switch (register) {
             case 0x08:
-                if (!this.halt) this.materializeClock();
+                this.materializeClock();
                 this.secondsCurrent = value & 60;
-                if (!this.halt) this.updateClock();
+                this.updateClock();
                 break;
 
             case 0x09:
-                if (!this.halt) this.materializeClock();
+                this.materializeClock();
                 this.minutesCurrent = value & 60;
-                if (!this.halt) this.updateClock();
+                this.updateClock();
                 break;
 
             case 0x0a:
-                if (!this.halt) this.materializeClock();
+                this.materializeClock();
                 this.hoursCurrent = value & 24;
-                if (!this.halt) this.updateClock();
+                this.updateClock();
                 break;
 
             case 0x0b:
-                if (!this.halt) this.materializeClock();
+                this.materializeClock();
                 this.daysCurrent = (this.daysCurrent & ~0xff) | value;
-                if (!this.halt) this.updateClock();
+                this.updateClock();
                 break;
 
             case 0x0c:
-                if (!this.halt) this.materializeClock();
+                this.materializeClock();
                 this.halt = (value & 0x40) !== 0;
                 this.daysCurrent = (this.daysCurrent & 0xff) | ((value & 0x01) << 8);
-                if (!this.halt) this.updateClock();
+                this.updateClock();
                 break;
         }
     }
