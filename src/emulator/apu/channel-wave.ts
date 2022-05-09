@@ -31,6 +31,7 @@ export class ChannelWave {
             bus.map(i, this.waveRamRead, this.waveRamWrite);
         }
 
+        bus.map(base + reg.nrX0_onoff, this.readNRX0, this.writeNRX0);
         bus.map(base + reg.nrX4_ctrl_freq_hi, this.readNRX4, this.writeNRX4);
     }
 
@@ -76,6 +77,7 @@ export class ChannelWave {
     private waveRamRead: ReadHandler = (address) => this.waveRam[address - 0xff30];
     private waveRamWrite: WriteHandler = (address, value) => (this.waveRam[address - 0xff30] = value);
 
+    private readNRX0: ReadHandler = () => this.reg[reg.nrX0_onoff];
     private writeNRX0: WriteHandler = (_, value) => {
         this.reg[reg.nrX0_onoff] = value;
 
