@@ -211,7 +211,7 @@ export class Apu {
             this.accLengthCtr = 0;
             this.channel1.reset();
             this.channel2.reset();
-            this.channel3.reset();
+            this.channel3.softReset();
             this.channel4.reset();
         }
     };

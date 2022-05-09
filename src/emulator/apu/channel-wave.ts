@@ -17,13 +17,17 @@ export class ChannelWave {
     }
 
     reset(): void {
+        this.softReset();
+
+        this.waveRam.fill(0);
+    }
+
+    softReset(): void {
         this.isActive = false;
         this.counter = 0;
         this.freqCtr = 0;
         this.samplePoint = 0;
         this.sample = 0;
-
-        this.waveRam.fill(0);
     }
 
     install(bus: Bus, base: number): void {
