@@ -110,7 +110,7 @@ export class ChannelTone {
         const oldValue = this.reg[reg.nrx2_envelope];
         this.reg[reg.nrx2_envelope] = value;
 
-        if ((value & 0xf8) === 0x00) this.reset();
+        if ((value & 0xf8) === 0x00) this.isActive = false;
 
         // The following is based on the description of zombie mode in the gbdev wiki,
         // with some details taken from Sameboy. This is only an approximation (as

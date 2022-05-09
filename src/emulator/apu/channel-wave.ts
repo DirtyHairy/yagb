@@ -81,7 +81,7 @@ export class ChannelWave {
     private writeNRX0: WriteHandler = (_, value) => {
         this.reg[reg.nrX0_onoff] = value;
 
-        if ((value & 0x80) === 0x00) this.reset();
+        if ((value & 0x80) === 0x00) this.isActive = false;
     };
 
     private readNRX4: ReadHandler = () => this.reg[reg.nrX4_ctrl_freq_hi] | 0xbf;
