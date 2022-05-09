@@ -67,12 +67,20 @@ export class ChannelWave {
         if (this.samplePoint % 2 === 0) sample >>>= 4;
         else sample &= 0x0f;
 
+        // It would be more correct to replace this with an average like for the wave
+        // channels, but I know of now example to test this.
         if (((131072 / freq) | 0) > cnst.CUTOFF_HZ) return;
         this.sample -= 2 * (sample >>> (level - 1));
     }
 
     private waveRamRead: ReadHandler = (address) => this.waveRam[address - 0xff30];
     private waveRamWrite: WriteHandler = (address, value) => (this.waveRam[address - 0xff30] = value);
+
+    private writeNRX0: WriteHandler = (_, value) => {
+        this.reg[reg.nrX0_onoff] = value;
+
+        if ((value & 0x80) === 0x00) this.reset();
+    };
 
     private readNRX4: ReadHandler = () => this.reg[reg.nrX4_ctrl_freq_hi] | 0xbf;
     private writeNRX4: WriteHandler = (_, value) => {

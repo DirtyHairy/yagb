@@ -84,11 +84,14 @@ export class ChannelTone {
 
         this.freqCtr = this.freqCtr % freq;
 
-        // We discard sounds above a threshold (20kHz). This avoids high-pitched
-        // aliasing artifacts from otherwise inaudible sounds.
-        if (((131072 / freq) | 0) > cnst.CUTOFF_HZ) return;
-
-        this.sample -= WAVEFORMS[this.reg[reg.nrx1_duty_length] >>> 6] & (1 << this.samplePoint) ? 2 * this.volume : 0;
+        // We average the wave above a threshold (20kHz) to a constant value. This avoids high-pitched
+        // aliasing artifacts from otherwise inaudible sounds while preserving the samples in
+        // Gauntlet II.
+        if (((131072 / freq) | 0) > cnst.CUTOFF_HZ) {
+            this.sample -= this.reg[reg.nrx1_duty_length] >>> 6 === 0x02 ? 0 : this.volume;
+        } else {
+            this.sample -= WAVEFORMS[this.reg[reg.nrx1_duty_length] >>> 6] & (1 << this.samplePoint) ? 2 * this.volume : 0;
+        }
     }
 
     protected trigger(): void {
@@ -97,8 +100,7 @@ export class ChannelTone {
         this.sample = 0;
         this.volume = this.reg[reg.nrx2_envelope] >>> 4;
         this.envelopeActive = true;
-
-        if (!this.isActive) this.freqCtr = 0;
+        this.freqCtr = 0;
 
         this.isActive = true;
     }
@@ -107,6 +109,8 @@ export class ChannelTone {
     protected writeNRX2: WriteHandler = (_, value) => {
         const oldValue = this.reg[reg.nrx2_envelope];
         this.reg[reg.nrx2_envelope] = value;
+
+        if ((value & 0xf8) === 0x00) this.reset();
 
         // The following is based on the description of zombie mode in the gbdev wiki,
         // with some details taken from Sameboy. This is only an approximation (as
