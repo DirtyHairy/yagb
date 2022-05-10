@@ -86,9 +86,11 @@ export class ChannelTone {
 
         // We average the wave above a threshold (20kHz) to a constant value. This avoids high-pitched
         // aliasing artifacts from otherwise inaudible sounds while preserving the samples in
-        // Gauntlet II.
+        // Gauntlet II. The average is only correct for 50% duty cycle, but doing it correctly for
+        // other duty cycles would require switching to a larger integer range or floating point
+        // arithmetics.
         if (((131072 / freq) | 0) > cnst.CUTOFF_HZ) {
-            this.sample -= this.reg[reg.nrx1_duty_length] >>> 6 === 0x02 ? 0 : this.volume;
+            this.sample -= this.volume;
         } else {
             this.sample -= WAVEFORMS[this.reg[reg.nrx1_duty_length] >>> 6] & (1 << this.samplePoint) ? 2 * this.volume : 0;
         }
