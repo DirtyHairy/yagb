@@ -4,7 +4,7 @@
 
 YAGB is a gameboy emulator that runs in your browser. It started as a fun project
 at a [company](https://mayflower.de) hackathon and evolved into a full-fledged
-emulator in about one month. It is written in TypeScript, and you can either try the
+emulator in about one month. It is written in TypeScript, and you can either run the
 [build on github.io](https://dirtyhairy.github.io/yagb) or build and run it from scratch.
 
 # Usage
