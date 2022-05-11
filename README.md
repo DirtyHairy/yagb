@@ -5,7 +5,7 @@
 YAGB is a gameboy emulator that runs in your browser. It started as a fun project
 at a [company](https://mayflower.de) hackathon and evolved into a full-fledged
 emulator in about one month. It is written in TypeScript, and you can either try the
-[build on github.io](https://dirtyhairy.github.io/yagb) or build and run it on scratch.
+[build on github.io](https://dirtyhairy.github.io/yagb) or build and run it from scratch.
 
 # Usage
 
@@ -66,6 +66,29 @@ displays [mattcurrie's ACID2 test](https://github.com/mattcurrie/dmg-acid2) corr
 and passes parts of the [Mooneye suite](https://github.com/Gekkio/mooneye-test-suite).
 Almost all games that I tried run flawlessly, including notrious oddballs like
 the Addams Family and Hook (not Road Rash though).
+
+# Building and runnning
+
+Simple. Make sure that you have [yarn](https://yarnpkg.com) installed, then do
+
+```
+    $ yarn install
+```
+
+to install the dependencies and
+
+```
+    $ yarn start
+```
+
+or
+
+```
+    $ yarn build
+```
+
+to start the development server (on port 9000) or do a release build. The build
+will end up in `dist`.
 
 # Resources
 
