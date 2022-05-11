@@ -107,10 +107,17 @@ async function loadCartridge(data: Uint8Array, name: string) {
 }
 
 async function onInit(): Promise<void> {
+    await Promise.resolve();
+
+    print("Type 'help' in order to show all commands\n");
+
     const cartridgeData = localStorage.getItem(STORAGE_KEY_YAGB_CARTERIDGE_DATA);
     const cartridgeName = localStorage.getItem(STORAGE_KEY_YAGB_CARTERIDGE_NAME);
 
-    if (cartridgeData === null || cartridgeName === null) return;
+    if (cartridgeData === null || cartridgeName === null) {
+        print('Type "load" in order to load a cartridge image.');
+        return;
+    }
 
     try {
         loadCartridge(await decodeBase64(cartridgeData), cartridgeName);
@@ -218,7 +225,7 @@ stop                                    Stop the emulator
 speed <speed>                           Set emulator speed
 volume [volume0]                        Get or set volume (range 0 - 100)
 
-Keyboard controls (canvas needs focus):
+Keyboard controls (click the canvas to give it focus):
 
 * arrows: joypad, a/y: b, s/x: a, space: select, enter: start
 * shift-enter: run / stop
