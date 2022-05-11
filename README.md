@@ -64,7 +64,7 @@ so high pitched sounds may exhibit slight ringing due to aliasing artifacts.
 That said, YAGB passes the CPU tests in the [Blargg suite](https://github.com/retrio/gb-test-roms),
 displays [mattcurrie's ACID2 test](https://github.com/mattcurrie/dmg-acid2) correctly
 and passes parts of the [Mooneye suite](https://github.com/Gekkio/mooneye-test-suite).
-Almost all games that I tried run flawlessly, including notrious oddballs like
+Almost all games that we tried run flawlessly, including notrious oddballs like
 the Addams Family and Hook (not Road Rash though).
 
 # Building and runnning
