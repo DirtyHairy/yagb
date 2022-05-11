@@ -1,6 +1,6 @@
 [![Run tests](https://github.com/DirtyHairy/yagb/actions/workflows/run-tests.yaml/badge.svg)](https://github.com/DirtyHairy/yagb/actions/workflows/run-tests.yaml)
 
-# YAGB --- **Y**et **A**nother **G**ame**b**oy Emulator
+# YAGB - **Y**et **A**nother **G**ame**b**oy Emulator
 
 YAGB is a gameboy emulator that runs in your browser. It started as a fun project
 at a [company](https://mayflower.de) hackathon and evolved into a full-fledged
