@@ -24,6 +24,7 @@ let scheduler: Scheduler;
 let nvDataKey = '';
 let stateOnStep = false;
 let lastFrame = -1;
+const snapshots = new Map<string, Uint8Array>();
 
 function print(msg: string): void {
     terminal.echo(msg);
@@ -104,6 +105,8 @@ async function loadCartridge(data: Uint8Array, name: string) {
     if (autostart) scheduler.start();
     else print('\ntype "run" to start emulator');
     updatePrompt();
+
+    snapshots.clear();
 }
 
 async function onInit(): Promise<void> {
@@ -224,6 +227,9 @@ run                                     Run the emulator continuosly
 stop                                    Stop the emulator
 speed <speed>                           Set emulator speed
 volume [volume0]                        Get or set volume (range 0 - 100)
+snapshot-save <name>                    Save a snapshot
+snapshot-load <name>                    Restore a snapshot
+snapshot-list                           List snapshots
 
 Keyboard controls (click the canvas to give it focus):
 
@@ -460,6 +466,50 @@ Keyboard controls (click the canvas to give it focus):
         if (parsed !== undefined) audioDriver.setVolume(Math.max(Math.min(parsed, 100), 0) / 100);
 
         print(`volume: ${Math.floor(audioDriver.getVolume() * 100)}`);
+    },
+    'snapshot-save': function (name: string) {
+        assertEmulator();
+
+        if (name === undefined) {
+            print('please supply a name');
+            return;
+        }
+
+        try {
+            snapshots.set(name, emulator.save().getBuffer().slice());
+            print('snapshot saved');
+        } catch (e) {
+            print('snapshot failed');
+            console.error(e);
+        }
+    },
+    'snapshot-load': function (name: string) {
+        assertEmulator();
+
+        if (name === undefined) {
+            print('please supply a name');
+            return;
+        }
+
+        const snapshotData = snapshots.get(name);
+
+        if (!snapshotData) {
+            print('no such snapshot');
+            return;
+        }
+
+        try {
+            emulator.load(snapshotData);
+            print('snapshot restored');
+        } catch (e) {
+            print('restore failed');
+            console.error(e);
+        }
+    },
+    'snapshot-list': function () {
+        for (const name in snapshots.keys()) {
+            print(name);
+        }
     },
 };
 

@@ -90,6 +90,11 @@ export class Apu {
         this.acc = savestate.read16();
         this.accClocks = savestate.read16();
         this.accLengthCtr = savestate.read16();
+
+        this.channel1.load(savestate);
+        this.channel2.load(savestate);
+        this.channel3.load(savestate);
+        this.channel4.load(savestate);
     }
 
     setSampleQueue(sampleQueue: SampleQueue) {

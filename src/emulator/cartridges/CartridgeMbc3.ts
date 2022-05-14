@@ -62,9 +62,9 @@ export class CartridgeMbc3 extends CartridgeBase {
             .write16(this.daysCurrent)
             .write16(this.registerSelect)
             .write16(this.lastLatch)
-            .write16(this.referenceTimestamp & 0xffff)
-            .write16(this.referenceTimestamp >>> 16)
-            .write16(flags);
+            .write32(this.referenceTimestamp)
+            .write16(flags)
+            .write32((Date.now() / 1000) | 0);
     }
 
     load(savestate: Savestate): void {
@@ -83,12 +83,17 @@ export class CartridgeMbc3 extends CartridgeBase {
         this.daysCurrent = savestate.read16();
         this.registerSelect = savestate.read16();
         this.lastLatch = savestate.read16();
-        this.referenceTimestamp = savestate.read16();
-        this.referenceTimestamp |= savestate.read16() << 16;
+        this.referenceTimestamp = savestate.read32();
 
         const flags = savestate.read16();
         this.halt = (flags & 0x01) !== 0;
         this.ramEnable = (flags & 0x02) !== 0;
+
+        const saveTimestamp = savestate.read32();
+        const currentTimestamp = (Date.now() / 1000) | 0;
+        if (!this.halt && currentTimestamp > saveTimestamp) {
+            this.referenceTimestamp += currentTimestamp - saveTimestamp;
+        }
 
         this.romBank1 = this.romBanks[this.romBankIndex];
         if (this.ram.length > 0) this.ramBank = this.ramBanks[this.ramBankIndex];
@@ -200,7 +205,7 @@ export class CartridgeMbc3 extends CartridgeBase {
         time -= this.daysCurrent * 24 * 3600;
 
         this.hoursCurrent = (time / 3600) | 0;
-        time -= this.daysCurrent * 3600;
+        time -= this.hoursCurrent * 3600;
 
         this.minutesCurrent = (time / 60) | 0;
         time -= this.minutesCurrent * 60;

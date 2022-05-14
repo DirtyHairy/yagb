@@ -221,6 +221,8 @@ export class Emulator {
     }
 
     save(): Savestate {
+        this.savestate.reset();
+
         this.timer.save(this.savestate);
         this.serial.save(this.savestate);
         this.ram.save(this.savestate);
@@ -234,16 +236,25 @@ export class Emulator {
     }
 
     load(data: Uint8Array): void {
-        const savestate = new Savestate(data);
+        try {
+            const savestate = new Savestate(data);
 
-        this.timer.load(savestate);
-        this.serial.load(savestate);
-        this.ram.load(savestate);
-        this.ppu.load(savestate);
-        this.interrupt.load(savestate);
-        this.cpu.load(savestate);
-        this.cartridge.load(savestate);
-        this.apu.load(savestate);
+            this.timer.load(savestate);
+            this.serial.load(savestate);
+            this.ram.load(savestate);
+            this.ppu.load(savestate);
+            this.interrupt.load(savestate);
+            this.cpu.load(savestate);
+            this.cartridge.load(savestate);
+            this.apu.load(savestate);
+
+            if (savestate.bytesRemaining() !== 0) {
+                throw new Error('savestate size mismatch');
+            }
+        } catch (e) {
+            this.reset();
+            throw e;
+        }
     }
 
     private disassemblyLineAt(address: number): string {

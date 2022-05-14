@@ -16,11 +16,7 @@ export class Savestate {
     }
 
     getBuffer(): Uint8Array {
-        return this.buffer8;
-    }
-
-    getLength(): number {
-        return this.offset16 * 2;
+        return this.buffer8.subarray(0, 2 * this.offset16);
     }
 
     startChunk(version: number): this {
@@ -33,6 +29,12 @@ export class Savestate {
         this.assertWordsAvailable(1);
 
         this.buffer16[this.offset16++] = value;
+
+        return this;
+    }
+
+    write32(value: number): this {
+        this.write16(value & 0xffff).write16(value >>> 16);
 
         return this;
     }
@@ -56,8 +58,8 @@ export class Savestate {
         const chunkId = chunkWord >>> 8;
         const version = chunkWord & 0xff;
 
-        if (chunkId >>> 8 !== this.chunkId++) {
-            throw new Error(`invalid chunk ID; expected ${chunkId - 1}, got ${chunkId}`);
+        if (chunkId !== this.chunkId++) {
+            throw new Error(`invalid chunk ID; expected ${this.chunkId - 1}, got ${chunkId}`);
         }
 
         if (version > maxVersion) {
@@ -73,6 +75,13 @@ export class Savestate {
         return this.buffer16[this.offset16++];
     }
 
+    read32(): number {
+        let result = this.read16();
+        result |= this.read16() << 16;
+
+        return result;
+    }
+
     readBool(): boolean {
         return this.read16() !== 0;
     }
@@ -81,10 +90,14 @@ export class Savestate {
         const words = wordCount(size);
         this.assertWordsAvailable(words);
 
-        const result = this.buffer8.subarray(this.offset16 * 2, this.offset16 * 2 + length);
+        const result = this.buffer8.subarray(this.offset16 * 2, this.offset16 * 2 + size);
         this.offset16 += words;
 
         return result;
+    }
+
+    bytesRemaining(): number {
+        return (this.capacity16 - this.offset16) * 2;
     }
 
     private assertWordsAvailable(wordCount: number) {
