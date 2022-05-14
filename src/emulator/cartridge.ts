@@ -7,15 +7,22 @@ import { CartridgeMbc2 } from './cartridges/CartridgeMbc2';
 import { CartridgeMbc3 } from './cartridges/CartridgeMbc3';
 import { CartridgeMbc5 } from './cartridges/CartridgeMbc5';
 import { CartridgeRom } from './cartridges/CartridgeRom';
+import { Savestate } from './savestate';
 import { System } from './system';
 
 export interface Cartridge {
+    save(savestate: Savestate): void;
+    load(savestate: Savestate): void;
+
     install(bus: Bus): void;
     reset(savedRam?: Uint8Array | undefined): void;
+
     getNvData(): Uint8Array | undefined;
     clearNvData(): void;
+
     type(): number;
     size(): number;
+
     printInfo(): string;
     printState(): string;
 }

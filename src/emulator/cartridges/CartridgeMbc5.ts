@@ -2,8 +2,11 @@ import { CartridgeBase, CartridgeType } from './CartridgeBase';
 import { ReadHandler, WriteHandler } from '../bus';
 
 import { Bus } from '../bus';
+import { Savestate } from './../savestate';
 import { System } from '../system';
 import { hex8 } from '../../helper/format';
+
+const SAVESTATE_VERSION = 0x00;
 
 export class CartridgeMbc5 extends CartridgeBase {
     constructor(image: Uint8Array, system: System) {
@@ -39,6 +42,22 @@ export class CartridgeMbc5 extends CartridgeBase {
         } else {
             this.ramBank = this.ram;
         }
+    }
+
+    save(savestate: Savestate): void {
+        savestate.startChunk(SAVESTATE_VERSION).write16(this.romBankIndex).write16(this.ramBankIndex).writeBool(this.ramEnable).writeBuffer(this.ram);
+    }
+
+    load(savestate: Savestate): void {
+        savestate.validateChunk(SAVESTATE_VERSION);
+
+        this.romBankIndex = savestate.read16();
+        this.ramBankIndex = savestate.read16();
+        this.ramEnable = savestate.readBool();
+        this.ram.set(savestate.readBuffer(this.ram.length));
+
+        this.romBank1 = this.romBanks[this.romBankIndex];
+        if (this.ram.length > 0) this.ramBank = this.ramBanks[this.ramBankIndex];
     }
 
     install(bus: Bus): void {

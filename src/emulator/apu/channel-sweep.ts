@@ -1,6 +1,9 @@
 import { ChannelTone, reg } from './channel-tone';
 
+import { Savestate } from './../savestate';
 import { WriteHandler } from '../bus';
+
+const SAVESTATE_VERSION = 0x00;
 
 export class ChannelSweep extends ChannelTone {
     reset(): void {
@@ -9,6 +12,22 @@ export class ChannelSweep extends ChannelTone {
         this.sweepCtr = 0;
         this.freqShadow = 0;
         this.sweepOn = false;
+    }
+
+    save(savestate: Savestate): void {
+        super.save(savestate);
+
+        savestate.startChunk(SAVESTATE_VERSION).write16(this.sweepCtr).write16(this.freqShadow).writeBool(this.sweepOn);
+    }
+
+    load(savestate: Savestate): void {
+        super.load(savestate);
+
+        savestate.validateChunk(SAVESTATE_VERSION);
+
+        this.sweepCtr = savestate.read16();
+        this.freqShadow = savestate.read16();
+        this.sweepOn = savestate.readBool();
     }
 
     cycle(cpuClocks: number, lengthCtrClocks: number): void {

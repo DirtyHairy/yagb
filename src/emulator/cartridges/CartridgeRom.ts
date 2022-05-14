@@ -1,13 +1,25 @@
 import { Bus, ReadHandler, WriteHandler } from '../bus';
 import { CartridgeBase, CartridgeType } from './CartridgeBase';
 
+import { Savestate } from '../savestate';
 import { System } from '../system';
+
+const SAVESTATE_VERSION = 0x00;
 
 export class CartridgeRom extends CartridgeBase {
     constructor(image: Uint8Array, system: System) {
         super(image, system);
         this.rom = Uint8Array.from(this.image.slice(0x0000, 0x8000));
         this.ram = new Uint8Array(this.ramSize());
+    }
+
+    save(savestate: Savestate): void {
+        savestate.startChunk(SAVESTATE_VERSION).writeBuffer(this.ram);
+    }
+    load(savestate: Savestate): void {
+        savestate.validateChunk(SAVESTATE_VERSION);
+
+        this.ram.set(savestate.readBuffer(this.ram.length));
     }
 
     install(bus: Bus): void {

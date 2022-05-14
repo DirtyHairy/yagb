@@ -5,6 +5,7 @@ import { ChannelSweep } from './apu/channel-sweep';
 import { ChannelTone } from './apu/channel-tone';
 import { ChannelWave } from './apu/channel-wave';
 import { SampleQueue } from './apu/sample-queue';
+import { Savestate } from './savestate';
 import { cnst } from './apu/definitions';
 
 const REG_INITIAL = new Uint8Array([
@@ -41,6 +42,8 @@ export const enum reg {
     nr52_ctrl = 0x16,
 }
 
+const SAVESTATE_VERSION = 0x00;
+
 /**
  * GENERAL NOTES
  *
@@ -71,6 +74,24 @@ export const enum reg {
  */
 
 export class Apu {
+    save(savestate: Savestate): void {
+        savestate.startChunk(SAVESTATE_VERSION).writeBuffer(this.reg).write16(this.acc).write16(this.accClocks).write16(this.accLengthCtr);
+
+        this.channel1.save(savestate);
+        this.channel2.save(savestate);
+        this.channel3.save(savestate);
+        this.channel4.save(savestate);
+    }
+
+    load(savestate: Savestate): void {
+        savestate.validateChunk(SAVESTATE_VERSION);
+
+        this.reg.set(savestate.readBuffer(this.reg.length));
+        this.acc = savestate.read16();
+        this.accClocks = savestate.read16();
+        this.accLengthCtr = savestate.read16();
+    }
+
     setSampleQueue(sampleQueue: SampleQueue) {
         this.sampleQueue = sampleQueue;
         this.sampleRate = sampleQueue.sampleRate;

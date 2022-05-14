@@ -1,6 +1,7 @@
 import { Bus, ReadHandler, WriteHandler } from './bus';
 import { Interrupt, irq } from './interrupt';
 
+import { Savestate } from './savestate';
 import { hex8 } from '../helper/format';
 
 export const enum reg {
@@ -10,6 +11,8 @@ export const enum reg {
     tma = 0x02,
     tac = 0x03,
 }
+
+const SAVESTATE_VERSION = 0x00;
 
 function divider(tac: number): number {
     // We are clocked with the 1MHz cpu clock, so there is a factor of 4 relative
@@ -33,6 +36,25 @@ function divider(tac: number): number {
 
 export class Timer {
     constructor(private interrupt: Interrupt) {}
+
+    save(savestate: Savestate): void {
+        const flag = (this.irqPending ? 0x01 : 0x00) | (this.overflowCycle ? 0x02 : 0x00);
+
+        savestate.startChunk(SAVESTATE_VERSION).writeBuffer(this.reg).write16(this.divider).write16(this.accDiv).write16(this.accTima).write16(flag);
+    }
+
+    load(savestate: Savestate): void {
+        savestate.validateChunk(SAVESTATE_VERSION);
+
+        this.reg.set(savestate.readBuffer(this.reg.length));
+        this.divider = savestate.read16();
+        this.accDiv = savestate.read16();
+        this.accTima = savestate.read16();
+
+        const flag = savestate.read16();
+        this.irqPending = (flag & 0x01) !== 0;
+        this.overflowCycle = (flag & 0x02) !== 0;
+    }
 
     install(bus: Bus): void {
         for (let i = reg.base; i <= reg.base + 0x03; i++) {

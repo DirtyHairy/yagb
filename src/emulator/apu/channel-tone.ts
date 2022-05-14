@@ -1,6 +1,8 @@
 import { Bus, ReadHandler, WriteHandler } from '../bus';
 import { WAVEFORMS, cnst } from './definitions';
 
+import { Savestate } from './../savestate';
+
 export const enum reg {
     nrx0_sweep = 0x00,
     nrx1_duty_length = 0x01,
@@ -9,9 +11,40 @@ export const enum reg {
     nrx4_ctrl_freq_hi = 0x04,
 }
 
+const SAVESTATE_VERSION = 0x00;
+
 export class ChannelTone {
     constructor(_reg: Uint8Array) {
         this.reg = _reg;
+    }
+
+    save(savestate: Savestate): void {
+        const flag = (this.isActive ? 0x01 : 0x00) | (this.envelopeActive ? 0x02 : 0x00);
+
+        savestate
+            .startChunk(SAVESTATE_VERSION)
+            .write16(this.sample)
+            .write16(this.counter)
+            .write16(this.freqCtr)
+            .write16(this.samplePoint)
+            .write16(this.volume)
+            .write16(this.envelopeCtr)
+            .write16(flag);
+    }
+
+    load(savestate: Savestate): void {
+        savestate.validateChunk(SAVESTATE_VERSION);
+
+        this.sample = savestate.read16();
+        this.counter = savestate.read16();
+        this.freqCtr = savestate.read16();
+        this.samplePoint = savestate.read16();
+        this.volume = savestate.read16();
+        this.envelopeCtr = savestate.read16();
+
+        const flag = savestate.read16();
+        this.isActive = (flag & 0x01) !== 0;
+        this.envelopeActive = (flag & 0x02) !== 0;
     }
 
     install(bus: Bus, base: number) {

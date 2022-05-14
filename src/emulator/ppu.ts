@@ -2,6 +2,7 @@ import { Bus, ReadHandler, WriteHandler } from './bus';
 import { Interrupt, irq } from './interrupt';
 
 import { PALETTE_CLASSIC } from './palette';
+import { Savestate } from './savestate';
 import { SpriteQueue } from './ppu/sprite-queue';
 import { System } from './system';
 import { hex8 } from '../helper/format';
@@ -47,6 +48,8 @@ const enum stat {
     sourceModeHblank = 0x08,
 }
 
+const SAVESTATE_VERSION = 0x00;
+
 function clockPenaltyForSprite(scx: number, x: number): number {
     let tmp = (x + scx + 8) % 8;
     if (tmp > 5) tmp = 5;
@@ -56,6 +59,63 @@ function clockPenaltyForSprite(scx: number, x: number): number {
 
 export class Ppu {
     constructor(private system: System, private interrupt: Interrupt) {}
+
+    save(savestate: Savestate): void {
+        const flag =
+            (this.vblankFired ? 0x01 : 0x00) |
+            (this.stat ? 0x02 : 0x00) |
+            (this.dmaInProgress ? 0x04 : 0x00) |
+            (this.lineRendered ? 0x08 : 0x00) |
+            (this.windowTriggered ? 0x10 : 0x00);
+
+        savestate
+            .startChunk(SAVESTATE_VERSION)
+            .write16(this.clockInMode)
+            .write16(this.scanline)
+            .write16(this.mode)
+            .write16(this.wx)
+            .write16(this.wy)
+            .writeBuffer(this.vram)
+            .writeBuffer(this.oam)
+            .write16(this.dmaCycle)
+            .writeBuffer(this.reg)
+            .write16(this.mode3ExtraClocks)
+            .write16(this.windowLine)
+            .write16(flag);
+    }
+
+    load(savestate: Savestate): void {
+        savestate.validateChunk(SAVESTATE_VERSION);
+
+        this.clockInMode = savestate.read16();
+        this.scanline = savestate.read16();
+        this.mode = savestate.read16();
+        this.wx = savestate.read16();
+        this.wy = savestate.read16();
+        this.vram.set(savestate.readBuffer(this.vram.length));
+        this.oam.set(savestate.readBuffer(this.oam.length));
+        this.dmaCycle = savestate.read16();
+        this.reg.set(savestate.readBuffer(this.reg.length));
+        this.mode3ExtraClocks = savestate.read16();
+        this.windowLine = savestate.read16();
+
+        const flag = savestate.read16();
+        this.vblankFired = (flag & 0x01) !== 0;
+        this.stat = (flag & 0x02) !== 0;
+        this.dmaInProgress = (flag & 0x04) !== 0;
+        this.lineRendered = (flag & 0x08) !== 0;
+        this.windowTriggered = (flag & 0x10) !== 0;
+
+        this.frame = 0;
+        this.skipFrame = this.mode === ppuMode.vblank ? 0 : 1;
+
+        this.frontBuffer.fill(PALETTE_CLASSIC[4]);
+        this.backBuffer.fill(PALETTE_CLASSIC[4]);
+
+        this.updatePalette(this.paletteOB0, this.reg[reg.obp0]);
+        this.updatePalette(this.paletteOB1, this.reg[reg.obp1]);
+        this.updatePalette(this.paletteBG, this.reg[reg.bgp]);
+    }
 
     install(bus: Bus): void {
         for (let i = 0x8000; i < 0xa000; i++) {

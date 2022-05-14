@@ -2,8 +2,11 @@ import { CartridgeBase, CartridgeType } from './CartridgeBase';
 import { ReadHandler, WriteHandler } from '../bus';
 
 import { Bus } from '../bus';
+import { Savestate } from './../savestate';
 import { System } from '../system';
 import { hex8 } from '../../helper/format';
+
+const SAVESTATE_VERSION = 0x00;
 
 export class CartridgeMbc3 extends CartridgeBase {
     constructor(image: Uint8Array, system: System) {
@@ -39,6 +42,56 @@ export class CartridgeMbc3 extends CartridgeBase {
         } else {
             this.ramBank = this.ram;
         }
+    }
+
+    save(savestate: Savestate): void {
+        const flags = (this.halt ? 0x01 : 0x00) | (this.ramEnable ? 0x02 : 0x00);
+
+        savestate
+            .startChunk(SAVESTATE_VERSION)
+            .write16(this.romBankIndex)
+            .write16(this.ramBankIndex)
+            .writeBuffer(this.ram)
+            .write16(this.secondsLatched)
+            .write16(this.minutesLatched)
+            .write16(this.hoursLatched)
+            .write16(this.daysLatched)
+            .write16(this.secondsCurrent)
+            .write16(this.minutesCurrent)
+            .write16(this.hoursCurrent)
+            .write16(this.daysCurrent)
+            .write16(this.registerSelect)
+            .write16(this.lastLatch)
+            .write16(this.referenceTimestamp & 0xffff)
+            .write16(this.referenceTimestamp >>> 16)
+            .write16(flags);
+    }
+
+    load(savestate: Savestate): void {
+        savestate.validateChunk(SAVESTATE_VERSION);
+
+        this.romBankIndex = savestate.read16();
+        this.ramBankIndex = savestate.read16();
+        this.ram.set(savestate.readBuffer(this.ram.length));
+        this.secondsLatched = savestate.read16();
+        this.minutesLatched = savestate.read16();
+        this.hoursLatched = savestate.read16();
+        this.daysLatched = savestate.read16();
+        this.secondsCurrent = savestate.read16();
+        this.minutesCurrent = savestate.read16();
+        this.hoursCurrent = savestate.read16();
+        this.daysCurrent = savestate.read16();
+        this.registerSelect = savestate.read16();
+        this.lastLatch = savestate.read16();
+        this.referenceTimestamp = savestate.read16();
+        this.referenceTimestamp |= savestate.read16() << 16;
+
+        const flags = savestate.read16();
+        this.halt = (flags & 0x01) !== 0;
+        this.ramEnable = (flags & 0x02) !== 0;
+
+        this.romBank1 = this.romBanks[this.romBankIndex];
+        if (this.ram.length > 0) this.ramBank = this.ramBanks[this.ramBankIndex];
     }
 
     install(bus: Bus): void {

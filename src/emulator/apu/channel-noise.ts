@@ -1,4 +1,5 @@
 import { ChannelTone } from './channel-tone';
+import { Savestate } from './../savestate';
 import { WriteHandler } from '../bus';
 import { cnst } from './definitions';
 
@@ -18,7 +19,24 @@ function xorshift(x: number): number {
     return x;
 }
 
+const SAVESTATE_VERSION = 0x00;
+
 export class ChannelNoise extends ChannelTone {
+    save(savestate: Savestate): void {
+        super.save(savestate);
+
+        savestate.startChunk(SAVESTATE_VERSION).write16(this.rng).write16(this.lfsr);
+    }
+
+    load(savestate: Savestate): void {
+        super.load(savestate);
+
+        savestate.validateChunk(SAVESTATE_VERSION);
+
+        this.rng = savestate.read16();
+        this.lfsr = savestate.read16();
+    }
+
     reset(): void {
         super.reset();
 

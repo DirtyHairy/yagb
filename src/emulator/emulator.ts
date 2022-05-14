@@ -11,6 +11,7 @@ import { Interrupt } from './interrupt';
 import { Ppu } from './ppu';
 import { Ram } from './ram';
 import { SampleQueue } from './apu/sample-queue';
+import { Savestate } from './savestate';
 import { Serial } from './serial';
 import { System } from './system';
 import { Timer } from './timer';
@@ -219,6 +220,32 @@ export class Emulator {
         return this.sampleQueue;
     }
 
+    save(): Savestate {
+        this.timer.save(this.savestate);
+        this.serial.save(this.savestate);
+        this.ram.save(this.savestate);
+        this.ppu.save(this.savestate);
+        this.interrupt.save(this.savestate);
+        this.cpu.save(this.savestate);
+        this.cartridge.save(this.savestate);
+        this.apu.save(this.savestate);
+
+        return this.savestate;
+    }
+
+    load(data: Uint8Array): void {
+        const savestate = new Savestate(data);
+
+        this.timer.load(savestate);
+        this.serial.load(savestate);
+        this.ram.load(savestate);
+        this.ppu.load(savestate);
+        this.interrupt.load(savestate);
+        this.cpu.load(savestate);
+        this.cartridge.load(savestate);
+        this.apu.load(savestate);
+    }
+
     private disassemblyLineAt(address: number): string {
         return `${this.breakpoints.has(address) ? ' *' : '  '} ${hex16(address)}: ${disassembleInstruction(this.bus, address)}`;
     }
@@ -281,4 +308,6 @@ export class Emulator {
 
     private breakpoints = new Set<number>();
     private busTraps = new Map<number, BusTrap>();
+
+    private savestate = new Savestate(new Uint8Array(1024 * 1024));
 }

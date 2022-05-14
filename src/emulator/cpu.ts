@@ -5,6 +5,7 @@ import { hex16, hex8 } from '../helper/format';
 import { Bus } from './bus';
 import { Clock } from './clock';
 import { Event } from 'microevent.ts';
+import { Savestate } from './savestate';
 import { System } from './system';
 
 export const enum r8 {
@@ -41,6 +42,8 @@ export interface CpuState {
     pendingEi: boolean;
     halt: boolean;
 }
+
+const SAVESTATE_VERSION = 0x00;
 
 export function extendSign8(x: number): number {
     return (x & 0x7f) - (x & 0x80);
@@ -82,6 +85,24 @@ export class Cpu {
         this.state.interruptsEnabled = false;
         this.state.halt = false;
         this.state.pendingEi = false;
+    }
+
+    save(savestate: Savestate): void {
+        const flags = (this.state.interruptsEnabled ? 0x01 : 0x00) | (this.state.halt ? 0x02 : 0x00) | (this.state.pendingEi ? 0x04 : 0x00);
+
+        savestate.startChunk(SAVESTATE_VERSION).writeBuffer(this.state.r8).write16(this.state.p).write16(flags);
+    }
+
+    load(savestate: Savestate): void {
+        savestate.validateChunk(SAVESTATE_VERSION);
+
+        this.state.r8.set(savestate.readBuffer(this.state.r8.length));
+        this.state.p = savestate.read16();
+
+        const flags = savestate.read16();
+        this.state.interruptsEnabled = (flags & 0x01) !== 0;
+        this.state.halt = (flags & 0x02) !== 0;
+        this.state.pendingEi = (flags & 0x04) !== 0;
     }
 
     step(count: number): number {

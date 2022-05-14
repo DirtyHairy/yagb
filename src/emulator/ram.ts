@@ -1,5 +1,9 @@
 import { Bus, ReadHandler, WriteHandler } from './bus';
 
+import { Savestate } from './savestate';
+
+const SAVESTATE_VERSION = 0x00;
+
 export class Ram {
     install(bus: Bus): void {
         for (let i = 0xc000; i < 0xfe00; i++) {
@@ -14,6 +18,17 @@ export class Ram {
     reset(): void {
         this.wram.fill(0);
         this.hiram.fill(0);
+    }
+
+    save(savestate: Savestate): void {
+        savestate.startChunk(SAVESTATE_VERSION).writeBuffer(this.wram).writeBuffer(this.hiram);
+    }
+
+    load(savestate: Savestate): void {
+        savestate.validateChunk(SAVESTATE_VERSION);
+
+        this.wram.set(savestate.readBuffer(this.wram.length));
+        this.hiram.set(savestate.readBuffer(this.hiram.length));
     }
 
     private wramRead: ReadHandler = (address) => this.wram[address & 0x1fff];

@@ -1,14 +1,31 @@
 import { Bus, ReadHandler, WriteHandler } from './bus';
 import { Interrupt, irq } from './interrupt';
 
+import { Savestate } from './savestate';
+
 const enum reg {
     base = 0xff01,
     sb = 0x00,
     sc = 0x01,
 }
 
+const SAVESTATE_VERSION = 0x00;
+
 export class Serial {
     constructor(private interrupt: Interrupt) {}
+
+    save(savestate: Savestate): void {
+        savestate.startChunk(SAVESTATE_VERSION).writeBuffer(this.reg).write16(this.nextBit).write16(this.transferClock).writeBool(this.transferInProgress);
+    }
+
+    load(savestate: Savestate): void {
+        savestate.validateChunk(SAVESTATE_VERSION);
+
+        this.reg.set(savestate.readBuffer(this.reg.length));
+        this.nextBit = savestate.read16();
+        this.transferClock = savestate.read16();
+        this.transferInProgress = savestate.readBool();
+    }
 
     install(bus: Bus): void {
         bus.map(reg.base + reg.sb, this.read, this.sbWrite);

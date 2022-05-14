@@ -1,5 +1,6 @@
 import { Bus, ReadHandler, WriteHandler } from './bus';
 
+import { Savestate } from './savestate';
 import { hex8 } from '../helper/format';
 
 const enum reg {
@@ -15,7 +16,20 @@ export const enum irq {
     joypad = 0x10,
 }
 
+const SAVESTATE_VERSION = 0x00;
+
 export class Interrupt {
+    save(savestate: Savestate): void {
+        savestate.startChunk(SAVESTATE_VERSION).write16(this.ie).write16(this.if);
+    }
+
+    load(savestate: Savestate): void {
+        savestate.validateChunk(SAVESTATE_VERSION);
+
+        this.ie = savestate.read16();
+        this.if = savestate.read16();
+    }
+
     install(bus: Bus): void {
         bus.map(reg.if, this.readIF, this.writeIF);
         bus.map(reg.ie, this.readIE, this.writeIE);

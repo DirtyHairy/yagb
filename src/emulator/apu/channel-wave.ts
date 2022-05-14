@@ -1,6 +1,7 @@
 import { ReadHandler, WriteHandler } from '../bus';
 
 import { Bus } from './../bus';
+import { Savestate } from './../savestate';
 import { cnst } from './definitions';
 
 export const enum reg {
@@ -11,9 +12,33 @@ export const enum reg {
     nrX4_ctrl_freq_hi = 0x04,
 }
 
+const SAVESTATE_VERSION = 0x00;
+
 export class ChannelWave {
     constructor(_reg: Uint8Array) {
         this.reg = _reg;
+    }
+
+    save(savestate: Savestate): void {
+        savestate
+            .startChunk(SAVESTATE_VERSION)
+            .write16(this.sample)
+            .writeBool(this.isActive)
+            .writeBuffer(this.waveRam)
+            .write16(this.counter)
+            .write16(this.freqCtr)
+            .write16(this.samplePoint);
+    }
+
+    load(savestate: Savestate): void {
+        savestate.validateChunk(SAVESTATE_VERSION);
+
+        this.sample = savestate.read16();
+        this.isActive = savestate.readBool();
+        this.waveRam.set(savestate.readBuffer(this.waveRam.length));
+        this.counter = savestate.read16();
+        this.freqCtr = savestate.read16();
+        this.samplePoint = savestate.read16();
     }
 
     reset(): void {

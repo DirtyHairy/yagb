@@ -1,5 +1,6 @@
 import { Bus } from '../bus';
 import { Cartridge } from '../cartridge';
+import { Savestate } from '../savestate';
 import { System } from '../system';
 import { hex8 } from '../../helper/format';
 
@@ -89,6 +90,10 @@ export abstract class CartridgeBase implements Cartridge {
             throw new Error(`bad cartridge: size mismatch`);
         }
     }
+
+    save(savestate: Savestate): void {}
+
+    load(savestate: Savestate): void {}
 
     getNvData(): Uint8Array | undefined {
         return undefined;
