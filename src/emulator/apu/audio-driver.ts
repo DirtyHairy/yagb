@@ -64,6 +64,8 @@ export class AudioDriver {
             this.contextHasStarted = true;
             console.log('context initialized');
         };
+
+        INTERACTION_EVENTS.forEach((evt) => window.addEventListener(evt, handler, true));
     }
 
     getSampleRate(): number {
