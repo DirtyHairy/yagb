@@ -1,7 +1,6 @@
 import { ChannelTone } from './channel-tone';
 import { Savestate } from './../savestate';
 import { WriteHandler } from '../bus';
-import { cnst } from './definitions';
 
 const enum reg {
     nrx1_length = 0x01,
@@ -10,22 +9,13 @@ const enum reg {
     nrx4_ctrl = 0x04,
 }
 
-// https://en.wikipedia.org/wiki/Xorshift
-function xorshift(x: number): number {
-    x ^= x << 13;
-    x ^= x >>> 17;
-    x ^= x << 5;
-
-    return x;
-}
-
 const SAVESTATE_VERSION = 0x00;
 
 export class ChannelNoise extends ChannelTone {
     save(savestate: Savestate): void {
         super.save(savestate);
 
-        savestate.startChunk(SAVESTATE_VERSION).write16(this.rng).write16(this.lfsr);
+        savestate.startChunk(SAVESTATE_VERSION).write16(this.lfsr);
     }
 
     load(savestate: Savestate): void {
@@ -33,14 +23,12 @@ export class ChannelNoise extends ChannelTone {
 
         savestate.validateChunk(SAVESTATE_VERSION);
 
-        this.rng = savestate.read16();
         this.lfsr = savestate.read16();
     }
 
     reset(): void {
         super.reset();
 
-        this.rng = cnst.RNG_SEED;
         this.lfsr = 0xffff;
     }
 
@@ -59,18 +47,17 @@ export class ChannelNoise extends ChannelTone {
             // Use the original 8bit LFSR for "warm" mode...
             for (let i = 0; i < lfsrCycles; i++) {
                 const xor = ((this.lfsr >>> 1) ^ this.lfsr) & 0x01;
-                this.lfsr = ((this.lfsr >>> 1) & ~0x40) | (xor << 15) | (xor << 6);
+                this.lfsr = ((this.lfsr >>> 1) & ~0x40) | (xor << 14) | (xor << 6);
             }
 
             this.sample -= this.lfsr & 0x01 ? 0 : 2 * this.volume;
         } else {
-            // ... and use XORSHIFT for 16bit mode (see apu.ts for an explanation).
-            // Assuming a truly random distribution, sampling the generator multiple
-            // times will not lead to a different result distribution, so we just
-            // sample once.
-            if (lfsrCycles >= 1) this.rng = xorshift(this.rng);
+            for (let i = 0; i < lfsrCycles; i++) {
+                const xor = ((this.lfsr >>> 1) ^ this.lfsr) & 0x01;
+                this.lfsr = (this.lfsr >>> 1) | (xor << 14);
+            }
 
-            this.sample -= this.rng & 0x01 ? 0 : 2 * this.volume;
+            this.sample -= this.lfsr & 0x01 ? 0 : 2 * this.volume;
         }
     }
 
@@ -80,11 +67,9 @@ export class ChannelNoise extends ChannelTone {
         if (value & 0x80) {
             this.trigger();
 
-            this.rng = cnst.RNG_SEED;
             this.lfsr = 0xffff;
         }
     };
 
-    private rng = 0;
     private lfsr = 0;
 }
