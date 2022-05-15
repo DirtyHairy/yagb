@@ -45,20 +45,25 @@ export class AudioDriver {
         this.scriptProcessor.connect(this.highpassNode);
         this.scriptProcessor.onaudioprocess = this.onAudioprocess;
 
-        const handler = async () => {
+        const handler = async (evt: Event) => {
             INTERACTION_EVENTS.forEach((evt) => window.removeEventListener(evt, handler, true));
 
             if (!this.context) return;
 
-            await this.context.resume();
+            try {
+                await this.context.resume();
+            } catch (e) {
+                INTERACTION_EVENTS.forEach((evt) => window.addEventListener(evt, handler, true));
+
+                return;
+            }
+
             if (!this.isRunning) await this.context.suspend();
             else if (this.sampleQueue) this.sampleQueue.reset();
 
             this.contextHasStarted = true;
             console.log('context initialized');
         };
-
-        INTERACTION_EVENTS.forEach((evt) => window.addEventListener(evt, handler, true));
     }
 
     getSampleRate(): number {
