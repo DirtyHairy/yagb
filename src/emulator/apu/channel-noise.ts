@@ -44,17 +44,16 @@ export class ChannelNoise extends ChannelTone {
         this.freqCtr = this.freqCtr % freq;
 
         if (poly & 0x80) {
-            // Use the original 8bit LFSR for "warm" mode...
             for (let i = 0; i < lfsrCycles; i++) {
                 const xor = ((this.lfsr >>> 1) ^ this.lfsr) & 0x01;
-                this.lfsr = ((this.lfsr >>> 1) & ~0x40) | (xor << 14) | (xor << 6);
+                this.lfsr = ((this.lfsr >>> 1) & 0x3f) | (xor << 6);
             }
 
             this.sample -= this.lfsr & 0x01 ? 0 : 2 * this.volume;
         } else {
             for (let i = 0; i < lfsrCycles; i++) {
                 const xor = ((this.lfsr >>> 1) ^ this.lfsr) & 0x01;
-                this.lfsr = (this.lfsr >>> 1) | (xor << 14);
+                this.lfsr = ((this.lfsr >>> 1) & 0x3fff) | (xor << 14);
             }
 
             this.sample -= this.lfsr & 0x01 ? 0 : 2 * this.volume;
