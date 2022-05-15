@@ -13,7 +13,8 @@
     "forceConsistentCasingInFileNames": true,
     "moduleResolution": "node",
     "sourceMap": true,
-    "removeComments": false
+    "removeComments": false,
+    "experimentalDecorators": true
   },
   "include": ["src/**/*.ts"]
 }

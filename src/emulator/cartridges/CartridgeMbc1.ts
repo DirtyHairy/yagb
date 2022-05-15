@@ -87,7 +87,7 @@ export class CartridgeMbc1 extends CartridgeBase {
     }
 
     getNvData(): Uint8Array | undefined {
-        return this.type() === CartridgeType.mbc1_ram_battery ? this.ram.slice() : undefined;
+        return this.type() === CartridgeType.mbc1_ram_battery ? this.ram : undefined;
     }
 
     private initializeConfigurations(): void {

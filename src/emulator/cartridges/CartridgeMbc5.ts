@@ -98,7 +98,7 @@ export class CartridgeMbc5 extends CartridgeBase {
     }
 
     getNvData(): Uint8Array | undefined {
-        return this.hasBattery() ? this.ram.slice() : undefined;
+        return this.hasBattery() ? this.ram : undefined;
     }
 
     private hasBattery(): boolean {

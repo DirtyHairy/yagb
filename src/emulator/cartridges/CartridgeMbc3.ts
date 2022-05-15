@@ -42,6 +42,8 @@ export class CartridgeMbc3 extends CartridgeBase {
         } else {
             this.ramBank = this.ram;
         }
+
+        this.nvData = new Uint8Array(this.ram.length + 4);
     }
 
     save(savestate: Savestate): void {
@@ -160,15 +162,14 @@ export class CartridgeMbc3 extends CartridgeBase {
 
     getNvData(): Uint8Array | undefined {
         if (this.hasBattery()) {
-            const save = new Uint8Array(this.ram.length + 4);
-            save.set(this.ram);
+            this.nvData.set(this.ram);
 
-            save[this.ram.length] = this.referenceTimestamp;
-            save[this.ram.length + 1] = this.referenceTimestamp >>> 8;
-            save[this.ram.length + 2] = this.referenceTimestamp >>> 16;
-            save[this.ram.length + 3] = this.referenceTimestamp >>> 24;
+            this.nvData[this.ram.length] = this.referenceTimestamp;
+            this.nvData[this.ram.length + 1] = this.referenceTimestamp >>> 8;
+            this.nvData[this.ram.length + 2] = this.referenceTimestamp >>> 16;
+            this.nvData[this.ram.length + 3] = this.referenceTimestamp >>> 24;
 
-            return save;
+            return this.nvData;
         }
 
         return undefined;
@@ -318,6 +319,8 @@ export class CartridgeMbc3 extends CartridgeBase {
     private ramBanks: Array<Uint8Array>;
     private ramBankIndex = 0x00;
     private ramBank!: Uint8Array;
+
+    private nvData: Uint8Array;
 
     private secondsLatched = 0;
     private minutesLatched = 0;

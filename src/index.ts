@@ -1,30 +1,33 @@
 import 'jquery.terminal';
 import 'jquery.terminal/css/jquery.terminal.min.css';
 
-import { decodeBase64, encodeBase64 } from './helper/base64';
+import { Scheduler, Statistics } from './emulator/scheduler';
 import { hex16, hex8 } from './helper/format';
 
 import $ from 'jquery';
 import { AudioDriver } from './emulator/apu/audio-driver';
 import { Emulator } from './emulator/emulator';
 import { FileHandler } from './helper/fileHandler';
-import { Scheduler } from './emulator/scheduler';
+import { Repository } from './repository';
 import { key } from './emulator/joypad';
 import md5 from 'md5';
 
 const CARTRIDGE_FILE_SIZE_LIMIT = 512 * 1024 * 1024;
-const STORAGE_KEY_YAGB_CARTERIDGE_DATA = 'yagb-cartridge-data';
-const STORAGE_KEY_YAGB_CARTERIDGE_NAME = 'yagb-cartridge-name';
 
 const fileHandler = new FileHandler();
 const audioDriver = new AudioDriver();
 
-let emulator: Emulator;
+const repository = new Repository();
+const snapshots = new Map<string, Uint8Array>();
+
+const savestateBuffer = new ArrayBuffer(1024 * 1024);
+const nvsDataBuffer = new ArrayBuffer(1024 * 1024);
+
+let emulator: Emulator | undefined;
 let scheduler: Scheduler;
-let nvDataKey = '';
 let stateOnStep = false;
 let lastFrame = -1;
-const snapshots = new Map<string, Uint8Array>();
+let romHash = '';
 
 function print(msg: string): void {
     terminal.echo(msg);
@@ -53,42 +56,34 @@ function floatval<T>(value: T, defaultValue?: number | undefined): number | unde
 }
 
 async function loadCartridge(data: Uint8Array, name: string) {
-    const newNvDataKey = `ram_${md5(data)}`;
-
-    let savedRam: Uint8Array | undefined;
-    try {
-        savedRam = await decodeBase64(localStorage.getItem(newNvDataKey) || '');
-        // eslint-disable-next-line no-empty
-    } catch (e) {}
-
-    let newEmulator: Emulator;
-    try {
-        newEmulator = new Emulator(data, print, savedRam);
-    } catch (e) {
-        print((e as Error).message);
-        print('failed to initialize emulator');
-
-        return;
-    }
-
-    emulator = newEmulator;
-    nvDataKey = newNvDataKey;
-
     const autostart = !!scheduler?.isRunning();
 
     audioDriver.stop();
     scheduler?.stop();
+
+    if (romHash) {
+        await repository.removeSavestate(romHash);
+    }
+
+    romHash = md5(data);
+    const savedRam = await repository.getNvsData(romHash);
+    const savestate = await repository.getSavestate(romHash);
+
+    try {
+        emulator = new Emulator(data, print, savedRam);
+    } catch (e) {
+        print((e as Error).message);
+        print('failed to initialize emulator');
+        emulator = undefined;
+
+        return;
+    }
+
+    if (savestate) emulator.load(savestate);
+
     scheduler = new Scheduler(emulator);
-
     scheduler.onTimesliceComplete.addHandler(() => updateCanvas());
-
-    scheduler.onEmitStatistics.addHandler(async ({ hostSpeed, speed }) => {
-        updatePrompt(speed, hostSpeed);
-
-        const ram = emulator.getCartridgeRam();
-        if (ram) localStorage.setItem(nvDataKey, await encodeBase64(ram));
-    });
-
+    scheduler.onEmitStatistics.addHandler(onStatistics(romHash));
     scheduler.onStart.addHandler(() => audioDriver.continue());
     scheduler.onStop.addHandler(() => audioDriver.pause());
 
@@ -98,39 +93,57 @@ async function loadCartridge(data: Uint8Array, name: string) {
     });
 
     updateCanvas();
-    print(`running cartridge image: ${name}`);
+    print(`loaded cartridge image: ${name}`);
     print(emulator.printCartridgeInfo());
 
     audioDriver.start(emulator.startAudio(audioDriver.getSampleRate()));
     if (autostart) scheduler.start();
-    else print('\ntype "run" to start emulator');
-    updatePrompt();
+    else print('\nPress shift-enter or type "run" to start emulator.');
 
+    updatePrompt();
     snapshots.clear();
+
+    terminal.disable();
+    setTimeout(() => document.getElementById('canvas')?.focus(), 10);
 }
+
+const onStatistics =
+    (romHash: string) =>
+    ({ hostSpeed, speed }: Statistics) => {
+        if (!emulator) return;
+
+        updatePrompt(speed, hostSpeed);
+
+        if (repository.saveStateMutex.isLocked()) return;
+
+        const ram = emulator.getNvData();
+        const savestate = emulator.save();
+
+        repository.saveState(romHash, savestate.getBuffer(), ram);
+    };
 
 async function onInit(): Promise<void> {
     await Promise.resolve();
+    repository.onError.addHandler((msg) => print(`[[;red;]ERROR: ${msg}]`));
 
-    print("Type 'help' in order to show all commands\n");
+    print("Type 'help' in order to show all commands.\n");
 
-    const cartridgeData = localStorage.getItem(STORAGE_KEY_YAGB_CARTERIDGE_DATA);
-    const cartridgeName = localStorage.getItem(STORAGE_KEY_YAGB_CARTERIDGE_NAME);
+    const lastRom = await repository.getLastRom();
 
-    if (cartridgeData === null || cartridgeName === null) {
+    if (!lastRom) {
         print('Type "load" in order to load a cartridge image.');
         return;
     }
 
     try {
-        loadCartridge(await decodeBase64(cartridgeData), cartridgeName);
+        loadCartridge(lastRom.data, lastRom.name);
     } catch (e) {
         print('failed to load cartridge data');
         console.error(e);
     }
 }
 
-function assertEmulator(): boolean {
+function assertEmulator(emulator: Emulator | undefined): emulator is Emulator {
     if (!emulator) {
         print('emulator not initialized');
         return false;
@@ -140,7 +153,7 @@ function assertEmulator(): boolean {
 }
 
 function updateCanvas(): void {
-    if (!assertEmulator()) return;
+    if (!assertEmulator(emulator)) return;
     if (emulator.getFrameIndex() === lastFrame) return;
 
     const canvas: HTMLCanvasElement | null = document.getElementById('canvas') as HTMLCanvasElement;
@@ -247,19 +260,18 @@ Keyboard controls (click the canvas to give it focus):
                 print(`${name} is not a cartridge image`);
             }
 
-            localStorage.setItem(STORAGE_KEY_YAGB_CARTERIDGE_DATA, await encodeBase64(data));
-            localStorage.setItem(STORAGE_KEY_YAGB_CARTERIDGE_NAME, name);
+            await repository.setLastRom({ name, data });
 
             loadCartridge(data, name);
         }, '.gb');
     },
     disassemble(count?: string, address?: string): void {
-        if (!assertEmulator()) return;
+        if (!assertEmulator(emulator)) return;
 
         print(emulator.disassemble(uintval(count, 10), uintval(address)).join('\n'));
     },
     step(count?: string): void {
-        if (!assertEmulator()) return;
+        if (!assertEmulator(emulator)) return;
 
         const cycles = emulator.step(uintval(count, 1));
         updateCanvas();
@@ -275,12 +287,12 @@ Keyboard controls (click the canvas to give it focus):
         print(' > ' + emulator.disassemble(1).join('\n').replace(/^\s+/, ''));
     },
     state(): void {
-        if (!assertEmulator()) return;
+        if (!assertEmulator(emulator)) return;
 
         print(emulator.printState());
     },
     reset(): void {
-        if (!assertEmulator()) return;
+        if (!assertEmulator(emulator)) return;
 
         emulator.reset();
         lastFrame = -1;
@@ -288,7 +300,7 @@ Keyboard controls (click the canvas to give it focus):
         print('system reset');
     },
     wipe(): void {
-        if (!assertEmulator()) return;
+        if (!assertEmulator(emulator)) return;
 
         emulator.reset();
         emulator.clearCartridgeRam();
@@ -297,13 +309,15 @@ Keyboard controls (click the canvas to give it focus):
         print('system reset, nonvolatile data wiped');
     },
     'breakpoint-add': function (...args: Array<string | number | undefined>) {
-        if (!assertEmulator()) return;
+        if (!assertEmulator(emulator)) return;
 
         if (args.length === 0) {
             args = [emulator.getCpu().state.p];
         }
 
         args.forEach((address) => {
+            if (!emulator) return;
+
             const addressInt = uintval(address);
             if (addressInt === undefined) {
                 print(`invalid address ${address}`);
@@ -314,7 +328,7 @@ Keyboard controls (click the canvas to give it focus):
         });
     },
     'breakpoint-clear': function (address?: string) {
-        if (!assertEmulator()) return;
+        if (!assertEmulator(emulator)) return;
 
         const addressInt = uintval(address);
         if (addressInt === undefined) {
@@ -325,25 +339,27 @@ Keyboard controls (click the canvas to give it focus):
         emulator.clearBreakpoint(addressInt);
     },
     'breakpoint-clear-all': function () {
-        if (!assertEmulator()) return;
+        if (!assertEmulator(emulator)) return;
 
         emulator.clearBreakpoints();
     },
     'breakpoint-list': function () {
-        if (!assertEmulator()) return;
+        if (!assertEmulator(emulator)) return;
 
         const breakpoints = emulator.getBreakpoints();
 
         print(breakpoints.length === 0 ? 'no breakpoints' : breakpoints.map((x) => `* ${hex16(x)}`).join('\n'));
     },
     'trap-read-add': function (...args: Array<string | number | undefined>) {
-        if (!assertEmulator()) return;
+        if (!assertEmulator(emulator)) return;
         if (args.length === 0) {
             print('no trap address given');
             return;
         }
 
         args.forEach((address) => {
+            if (!emulator) return;
+
             const addressInt = uintval(address);
             if (addressInt === undefined) {
                 print(`invalid address ${address}`);
@@ -354,13 +370,16 @@ Keyboard controls (click the canvas to give it focus):
         });
     },
     'trap-write-add': function (...args: Array<string | number | undefined>) {
-        if (!assertEmulator()) return;
+        if (!assertEmulator(emulator)) return;
+
         if (args.length === 0) {
             print('no trap address given');
             return;
         }
 
         args.forEach((address) => {
+            if (!emulator) return;
+
             const addressInt = uintval(address);
             if (addressInt === undefined) {
                 print(`invalid address ${address}`);
@@ -371,7 +390,7 @@ Keyboard controls (click the canvas to give it focus):
         });
     },
     'trap-clear': function (address?: string) {
-        if (!assertEmulator()) return;
+        if (!assertEmulator(emulator)) return;
 
         const addressInt = uintval(address);
         if (addressInt === undefined) {
@@ -382,13 +401,13 @@ Keyboard controls (click the canvas to give it focus):
         emulator.clearRWTrap(addressInt);
     },
     'trap-clear-all': function () {
-        if (!assertEmulator()) return;
+        if (!assertEmulator(emulator)) return;
 
         emulator.clearRWTraps();
     },
 
     'trap-list': function () {
-        if (!assertEmulator()) return;
+        if (!assertEmulator(emulator)) return;
 
         print(
             emulator
@@ -398,11 +417,13 @@ Keyboard controls (click the canvas to give it focus):
         );
     },
     trace(count?: string): void {
-        if (!assertEmulator()) return;
+        if (!assertEmulator(emulator)) return;
 
         print(emulator.getTrace(uintval(count, 10)));
     },
     dump(address?: string, count?: string): void {
+        if (!assertEmulator(emulator)) return;
+
         const addr = uintval(address);
         if (addr === undefined) {
             print('invalid address');
@@ -468,7 +489,7 @@ Keyboard controls (click the canvas to give it focus):
         print(`volume: ${Math.floor(audioDriver.getVolume() * 100)}`);
     },
     'snapshot-save': function (name: string) {
-        assertEmulator();
+        if (!assertEmulator(emulator)) return;
 
         if (name === undefined) {
             print('please supply a name');
@@ -484,7 +505,7 @@ Keyboard controls (click the canvas to give it focus):
         }
     },
     'snapshot-load': function (name: string) {
-        assertEmulator();
+        if (!assertEmulator(emulator)) return;
 
         if (name === undefined) {
             print('please supply a name');
@@ -594,4 +615,4 @@ canvas.addEventListener('keyup', (e) => {
     }
 });
 
-canvas.addEventListener('blur', () => emulator.clearKeys());
+canvas.addEventListener('blur', () => emulator?.clearKeys());

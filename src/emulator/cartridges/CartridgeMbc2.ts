@@ -70,7 +70,7 @@ export class CartridgeMbc2 extends CartridgeBase {
     }
 
     getNvData(): Uint8Array | undefined {
-        return this.type() === CartridgeType.mbc2_battery ? this.ram.slice() : undefined;
+        return this.type() === CartridgeType.mbc2_battery ? this.ram : undefined;
     }
 
     private readBank0: ReadHandler = (address) => this.image[address];

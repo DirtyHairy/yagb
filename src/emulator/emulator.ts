@@ -64,7 +64,7 @@ export class Emulator {
         this.reset(savedRam);
     }
 
-    getCartridgeRam(): Uint8Array | undefined {
+    getNvData(): Uint8Array | undefined {
         return this.cartridge.getNvData();
     }
 
