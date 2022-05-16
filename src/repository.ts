@@ -40,6 +40,16 @@ export class Repository {
     }
 
     @guard()
+    async getVolume(): Promise<number | undefined> {
+        return (await this.db.kvs.get('volume'))?.data as number;
+    }
+
+    @guard()
+    async setVolume(volume: number): Promise<void> {
+        await this.db.kvs.put({ key: 'volume', data: volume });
+    }
+
+    @guard()
     saveState(romHash: string, savestate: Uint8Array, nvData: Uint8Array | undefined): Promise<void> {
         let _savestate: Uint8Array;
         let _nvData: Uint8Array | undefined;
@@ -62,16 +72,16 @@ export class Repository {
 
         this.nvDataTemporary = undefined;
 
-        return this.saveStateMutex.runExclusive(async () => {
-            await this.db.transaction('rw', this.db.snapshot, this.db.nvs, async () => {
+        return this.saveStateMutex.runExclusive(() =>
+            this.db.transaction('rw', this.db.snapshot, this.db.nvs, async () => {
                 await this.db.snapshot.put({ name: SNAPSHOT_AUTO, rom: romHash, data: _savestate });
 
                 if (_nvData) await this.db.nvs.put({ rom: romHash, data: _nvData });
 
                 this.savestateTemporary = _savestate;
                 this.nvDataTemporary = _nvData;
-            });
-        });
+            })
+        );
     }
 
     @guard()

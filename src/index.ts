@@ -12,6 +12,7 @@ import { Repository } from './repository';
 import { key } from './emulator/joypad';
 import md5 from 'md5';
 
+const DEFAULT_VOLUME = 0.6;
 const CARTRIDGE_FILE_SIZE_LIMIT = 512 * 1024 * 1024;
 
 const fileHandler = new FileHandler();
@@ -484,7 +485,12 @@ Keyboard controls (click the canvas to give it focus):
     },
     volume(volume: string) {
         const parsed = uintval(volume);
-        if (parsed !== undefined) audioDriver.setVolume(Math.max(Math.min(parsed, 100), 0) / 100);
+        if (parsed !== undefined) {
+            const value = Math.max(Math.min(parsed, 100), 0) / 100;
+
+            audioDriver.setVolume(value);
+            repository.setVolume(value);
+        }
 
         print(`volume: ${Math.floor(audioDriver.getVolume() * 100)}`);
     },
@@ -556,13 +562,13 @@ function keyboardAction(e: KeyboardEvent): boolean {
 
         case '+': {
             const volume = audioDriver.getVolume();
-            interpreter.volume('' + Math.min((Math.floor(volume * 5) + 1) * 20, 100));
+            interpreter.volume('' + Math.min((Math.floor(volume * 10) + 1) * 10, 100));
 
             return true;
         }
         case '-': {
             const volume = audioDriver.getVolume();
-            interpreter.volume('' + Math.max((Math.floor(volume * 5) - 1) * 20, 0));
+            interpreter.volume('' + Math.max((Math.floor(volume * 10) - 1) * 10, 0));
 
             return true;
         }
@@ -616,3 +622,5 @@ canvas.addEventListener('keyup', (e) => {
 });
 
 canvas.addEventListener('blur', () => emulator?.clearKeys());
+
+repository.getVolume().then((volume) => audioDriver.setVolume(volume ?? DEFAULT_VOLUME));

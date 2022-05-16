@@ -1,3 +1,4 @@
+import { Mutex } from 'async-mutex';
 import { SampleQueue } from './sample-queue';
 
 type AudioContextType = typeof AudioContext;
@@ -45,25 +46,33 @@ export class AudioDriver {
         this.scriptProcessor.connect(this.highpassNode);
         this.scriptProcessor.onaudioprocess = this.onAudioprocess;
 
-        const handler = async (evt: Event) => {
-            INTERACTION_EVENTS.forEach((evt) => window.removeEventListener(evt, handler, true));
+        const mutex = new Mutex();
 
-            if (!this.context) return;
+        const handler = (evt: Event) =>
+            mutex.runExclusive(async () => {
+                if (!this.context || this.contextHasStarted) return;
 
-            try {
-                await this.context.resume();
-            } catch (e) {
-                INTERACTION_EVENTS.forEach((evt) => window.addEventListener(evt, handler, true));
+                try {
+                    await new Promise((resolve, reject) => {
+                        this.context?.resume().then(resolve);
+                        setTimeout(reject, 100);
+                    });
 
-                return;
-            }
+                    if (this.context.state !== 'running') {
+                        throw new Error();
+                    }
+                } catch (e) {
+                    return;
+                }
 
-            if (!this.isRunning) await this.context.suspend();
-            else if (this.sampleQueue) this.sampleQueue.reset();
+                if (!this.isRunning) await this.context.suspend();
+                else if (this.sampleQueue) this.sampleQueue.reset();
 
-            this.contextHasStarted = true;
-            console.log('context initialized');
-        };
+                this.contextHasStarted = true;
+                INTERACTION_EVENTS.forEach((evt) => window.removeEventListener(evt, handler, true));
+
+                console.log('context initialized');
+            });
 
         INTERACTION_EVENTS.forEach((evt) => window.addEventListener(evt, handler, true));
     }
