@@ -90,6 +90,26 @@ export class Repository {
     }
 
     @guard()
+    async listSnapshots(romHash: string): Promise<Array<string>> {
+        return (await this.db.snapshot.where('rom').equals(romHash).toArray()).map((x) => x.name);
+    }
+
+    @guard()
+    async deleteSnapshot(romHash: string, name: string): Promise<void> {
+        await this.db.snapshot.delete([romHash, name]);
+    }
+
+    @guard()
+    async saveSnapshot(romHash: string, name: string, data: Uint8Array): Promise<void> {
+        await this.db.snapshot.put({ rom: romHash, name, data });
+    }
+
+    @guard()
+    async getSnapshot(romHash: string, name: string): Promise<Uint8Array | undefined> {
+        return (await this.db.snapshot.get([romHash, name]))?.data;
+    }
+
+    @guard()
     async getSavestate(romHash: string): Promise<Uint8Array | undefined> {
         return (await this.db.snapshot.get([romHash, SNAPSHOT_AUTO]))?.data as Uint8Array;
     }

@@ -19,10 +19,6 @@ const fileHandler = new FileHandler();
 const audioDriver = new AudioDriver();
 
 const repository = new Repository();
-const snapshots = new Map<string, Uint8Array>();
-
-const savestateBuffer = new ArrayBuffer(1024 * 1024);
-const nvsDataBuffer = new ArrayBuffer(1024 * 1024);
 
 let emulator: Emulator | undefined;
 let scheduler: Scheduler;
@@ -102,7 +98,6 @@ async function loadCartridge(data: Uint8Array, name: string) {
     else print('\nPress shift-enter or type "run" to start emulator.');
 
     updatePrompt();
-    snapshots.clear();
 
     terminal.disable();
     setTimeout(() => document.getElementById('canvas')?.focus(), 10);
@@ -212,6 +207,19 @@ function updatePrompt(speed?: number, hostSpeed?: number, isRunning = !!schedule
     );
 }
 
+async function completion(this: JQueryTerminal): Promise<Array<string>> {
+    switch (terminal.get_command().split(' ')[0]) {
+        case 'snapshot-save':
+        case 'snapshot-load':
+        case 'snapshot-delete':
+            return (await repository.listSnapshots(romHash)) || [];
+            break;
+
+        default:
+            return Object.keys(interpreter);
+    }
+}
+
 const interpreter = {
     help(): void {
         print(`Available commands:
@@ -243,6 +251,7 @@ speed <speed>                           Set emulator speed
 volume [volume0]                        Get or set volume (range 0 - 100)
 snapshot-save <name>                    Save a snapshot
 snapshot-load <name>                    Restore a snapshot
+snapshot-delete <name>                  Delete a snapshot
 snapshot-list                           List snapshots
 
 Keyboard controls (click the canvas to give it focus):
@@ -494,55 +503,62 @@ Keyboard controls (click the canvas to give it focus):
 
         print(`volume: ${Math.floor(audioDriver.getVolume() * 100)}`);
     },
-    'snapshot-save': function (name: string) {
-        if (!assertEmulator(emulator)) return;
+    'snapshot-save': async function (name: string): Promise<string> {
+        if (!assertEmulator(emulator)) return '';
 
         if (name === undefined) {
-            print('please supply a name');
-            return;
+            return 'please supply a name';
         }
 
         try {
-            snapshots.set(name, emulator.save().getBuffer().slice());
-            print('snapshot saved');
+            await repository.saveSnapshot(romHash, name, emulator.save().getBuffer().slice());
+            return 'snapshot saved';
         } catch (e) {
-            print('snapshot failed');
             console.error(e);
+
+            return 'snapshot failed';
         }
     },
-    'snapshot-load': function (name: string) {
-        if (!assertEmulator(emulator)) return;
+    'snapshot-load': async function (name: string): Promise<string> {
+        if (!assertEmulator(emulator)) return '';
 
         if (name === undefined) {
-            print('please supply a name');
-            return;
+            return 'please supply a name';
         }
 
-        const snapshotData = snapshots.get(name);
+        const snapshotData = await repository.getSnapshot(romHash, name);
 
         if (!snapshotData) {
-            print('no such snapshot');
-            return;
+            return 'no such snapshot';
         }
 
         try {
             emulator.load(snapshotData);
-            print('snapshot restored');
+            return 'snapshot restored';
         } catch (e) {
-            print('restore failed');
             console.error(e);
+
+            return 'restore failed';
         }
     },
     'snapshot-list': function () {
-        for (const name in snapshots.keys()) {
-            print(name);
+        repository.listSnapshots(romHash).then((snapshots) => snapshots.forEach(print));
+    },
+    'snapshot-delete': function (name: string): void {
+        if (!assertEmulator(emulator)) return;
+
+        if (!name) {
+            print('please supply a name');
+            return;
         }
+
+        repository.deleteSnapshot(romHash, name);
     },
 };
 
 const terminal = $('#terminal').terminal(interpreter as JQueryTerminal.Interpreter, {
     greetings: " ___\n|[_]|\n|+ ;|\n`---'\n",
-    completion: true,
+    completion,
     exit: false,
     onInit: () => void onInit(),
     checkArity: false,
