@@ -33,10 +33,13 @@ The emulator is controlled with the following key bindings:
 **IMPORTANT**: You need to click the canvas (screen image) to give it focus in order
 for the key bindings to work!
 
-The emulator stores the last ROM in local storage and loads it automatically on load.
-Games with battery buffered RAM have their RAM persisted in local storage as well, so
-you can load up save games and continue playing the next time you start the corresponding
-ROM.
+The emulator stores the last ROM in IndexedDB and loads it automatically on load. In
+addition, the current state is saved automatically every second and restored when the
+page loads, so you can continue the current ROM where you left off. Additional
+snapshots can be saved and loaded at any later point, check `help` for details.
+
+Games with battery buffered RAM have their RAM persisted, so you can load up save games
+and continue playing the next time you start the corresponding ROM.
 
 The interface is not yet suitable to run the emulator on mobile phones (as there
 is no way to control it), but we plan to add a more full-fleged web app with touch support
