@@ -231,6 +231,8 @@ export class Emulator {
         this.cpu.save(this.savestate);
         this.cartridge.save(this.savestate);
         this.apu.save(this.savestate);
+        this.joypad.save(this.savestate);
+        this.bus.save(this.savestate);
 
         return this.savestate;
     }
@@ -247,6 +249,8 @@ export class Emulator {
             this.cpu.load(savestate);
             this.cartridge.load(savestate);
             this.apu.load(savestate);
+            this.joypad.load(savestate);
+            this.bus.load(savestate);
 
             if (savestate.bytesRemaining() !== 0) {
                 throw new Error('savestate size mismatch');

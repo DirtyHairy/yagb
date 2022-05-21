@@ -1,6 +1,8 @@
 import { Bus, ReadHandler, WriteHandler } from './bus';
 import { Interrupt, irq } from './interrupt';
 
+import { Savestate } from './savestate';
+
 export const enum key {
     a,
     b,
@@ -12,8 +14,24 @@ export const enum key {
     right,
 }
 
+const SAVESTATE_VERSION = 1;
+
 export class Joypad {
     constructor(private interrupt: Interrupt) {}
+
+    save(savestate: Savestate): void {
+        savestate.startChunk(SAVESTATE_VERSION).write16(this.joypad);
+    }
+
+    load(savestate: Savestate): void {
+        if (savestate.bytesRemaining() === 0) {
+            this.joypad = 0x00;
+            return;
+        }
+
+        savestate.validateChunk(SAVESTATE_VERSION);
+        this.joypad = savestate.read16();
+    }
 
     install(bus: Bus): void {
         bus.map(0xff00, this.joypadRead, this.joypadWrite);

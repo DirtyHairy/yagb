@@ -1,10 +1,13 @@
 import { hex16, hex8 } from '../helper/format';
 
 import { Event } from 'microevent.ts';
+import { Savestate } from './savestate';
 import { System } from './system';
 
 export type ReadHandler = (address: number) => number;
 export type WriteHandler = (address: number, value: number) => void;
+
+const SAVESTATE_VERSION = 1;
 
 export class Bus {
     constructor(private system: System) {
@@ -12,6 +15,20 @@ export class Bus {
             this.readMap[i] = this.invalidRead;
             this.writeMap[i] = this.invalidWrite;
         }
+    }
+
+    save(savestate: Savestate) {
+        savestate.startChunk(SAVESTATE_VERSION).writeBool(this.locked);
+    }
+
+    load(savestate: Savestate) {
+        if (savestate.bytesRemaining() === 0) {
+            this.locked = false;
+            return;
+        }
+
+        savestate.validateChunk(SAVESTATE_VERSION);
+        this.locked = savestate.readBool();
     }
 
     read(address: number): number {
