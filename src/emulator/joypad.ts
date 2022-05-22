@@ -14,7 +14,7 @@ export const enum key {
     right,
 }
 
-const SAVESTATE_VERSION = 1;
+const SAVESTATE_VERSION = 0x01;
 
 export class Joypad {
     constructor(private interrupt: Interrupt) {}

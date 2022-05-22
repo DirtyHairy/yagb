@@ -12,7 +12,7 @@ export const enum reg {
     nrX4_ctrl_freq_hi = 0x04,
 }
 
-const SAVESTATE_VERSION = 0x00;
+const SAVESTATE_VERSION = 0x01;
 
 export class ChannelWave {
     constructor(_reg: Uint8Array) {
@@ -31,11 +31,11 @@ export class ChannelWave {
     }
 
     load(savestate: Savestate): void {
-        savestate.validateChunk(SAVESTATE_VERSION);
+        const version = savestate.validateChunk(SAVESTATE_VERSION);
 
         this.sample = savestate.read16();
         this.isActive = savestate.readBool();
-        this.waveRam.set(savestate.readBuffer(this.waveRam.length));
+        this.waveRam.set(savestate.readBuffer(version === 0 ? 15 : this.waveRam.length));
         this.counter = savestate.read16();
         this.freqCtr = savestate.read16();
         this.samplePoint = savestate.read16();
@@ -71,7 +71,7 @@ export class ChannelWave {
         }
 
         this.sample = 0x0f;
-        if (!(this.reg[reg.nrX0_onoff] & 0x80 && this.isActive)) return;
+        if (!this.isActive) return;
 
         if (this.reg[reg.nrX4_ctrl_freq_hi] & 0x40) {
             this.counter += lengthCtrClocks;
@@ -89,12 +89,12 @@ export class ChannelWave {
         this.freqCtr += cpuClocks;
 
         this.samplePoint += (this.freqCtr / freq) | 0;
-        this.samplePoint %= 32;
+        this.samplePoint &= 0x1f;
 
         this.freqCtr = this.freqCtr % freq;
 
         let sample = this.waveRam[this.samplePoint >>> 1];
-        if (this.samplePoint % 2 === 0) sample >>>= 4;
+        if ((this.samplePoint & 0x01) === 0) sample >>>= 4;
         else sample &= 0x0f;
 
         // It would be more correct to replace this with an average like for the wave
@@ -129,7 +129,7 @@ export class ChannelWave {
     isActive = false;
 
     private reg: Uint8Array;
-    private waveRam = new Uint8Array(0x0f);
+    private waveRam = new Uint8Array(0x10);
 
     private counter = 0;
     private freqCtr = 0;

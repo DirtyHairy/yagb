@@ -7,7 +7,7 @@ import { System } from './system';
 export type ReadHandler = (address: number) => number;
 export type WriteHandler = (address: number, value: number) => void;
 
-const SAVESTATE_VERSION = 1;
+const SAVESTATE_VERSION = 0x01;
 
 export class Bus {
     constructor(private system: System) {
