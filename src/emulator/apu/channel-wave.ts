@@ -39,6 +39,8 @@ export class ChannelWave {
         this.counter = savestate.read16();
         this.freqCtr = savestate.read16();
         this.samplePoint = savestate.read16();
+
+        if (version === 0) this.waveRam[0x0f] = 0;
     }
 
     reset(): void {
