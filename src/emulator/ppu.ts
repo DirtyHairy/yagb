@@ -613,6 +613,7 @@ export class Ppu {
         if (oldValue & ~this.reg[reg.lcdc] & lcdc.enable) {
             this.backBuffer.fill(PALETTE_CLASSIC[4]);
             this.swapBuffers();
+            this.startFrame();
         }
     };
 
