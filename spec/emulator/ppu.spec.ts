@@ -235,6 +235,7 @@ describe('PPU', () => {
                 const { bus, ppu } = setup();
 
                 enterMode(mode, ppu);
+                ppu.cycle(1);
                 expect(ppu.getMode()).toBe(mode);
 
                 bus.write(0x8000, 0x42);
@@ -523,7 +524,7 @@ describe('PPU', () => {
 
             bus.write(0xff40, 0x00);
             ppu.cycle(1);
-            expect(ppu.getMode()).toBe(ppuMode.draw);
+            expect(ppu.getMode()).toBe(ppuMode.oamScan);
 
             bus.write(0xff40, 0x80);
             ppu.cycle(1);

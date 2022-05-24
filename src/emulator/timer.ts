@@ -130,7 +130,10 @@ export class Timer {
 
     private tacWrite: WriteHandler = (_, value) => {
         this.reg[reg.tac] = value;
+
         this.divider = divider(this.reg[reg.tac]);
+
+        this.accTima %= this.divider;
     };
 
     private divWrite: WriteHandler = () => {
