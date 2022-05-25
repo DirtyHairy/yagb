@@ -625,7 +625,8 @@ export class Cpu {
     }
 
     private opLd(instruction: Instruction): number {
-        const cyclesSplit = (instruction.mode1 & (AddressingMode.reg8io | AddressingMode.imm16ind8 | AddressingMode.reg16ind8)) !== 0 ? 1 : 0;
+        const cyclesSplit =
+            ((instruction.mode1 | instruction.mode2) & (AddressingMode.reg8io | AddressingMode.imm16ind8 | AddressingMode.reg16ind8)) !== 0 ? 1 : 0;
         this.tick(instruction.cycles - cyclesSplit);
 
         this.setArg1(instruction, this.getArg2(instruction));
@@ -652,26 +653,24 @@ export class Cpu {
     }
 
     private opLdd(instruction: Instruction): number {
-        const cyclesSplit = (instruction.mode1 & (AddressingMode.reg8io | AddressingMode.imm16ind8 | AddressingMode.reg16ind8)) !== 0 ? 1 : 0;
-        this.tick(instruction.cycles - cyclesSplit);
+        this.tick(instruction.cycles - 1);
 
         this.setArg1(instruction, this.getArg2(instruction));
         this.state.r16[r16.hl] -= 0x01;
 
-        if (cyclesSplit) this.tick(1);
+        this.tick(1);
 
         this.state.p = (this.state.p + instruction.len) & 0xffff;
         return instruction.cycles;
     }
 
     private opLdi(instruction: Instruction): number {
-        const cyclesSplit = (instruction.mode1 & (AddressingMode.reg8io | AddressingMode.imm16ind8 | AddressingMode.reg16ind8)) !== 0 ? 1 : 0;
-        this.tick(instruction.cycles - cyclesSplit);
+        this.tick(instruction.cycles - 1);
 
         this.setArg1(instruction, this.getArg2(instruction));
         this.state.r16[r16.hl] += 0x01;
 
-        if (cyclesSplit) this.tick(1);
+        this.tick(1);
 
         this.state.p = (this.state.p + instruction.len) & 0xffff;
         return instruction.cycles;
