@@ -626,7 +626,11 @@ export class Cpu {
 
     private opLd(instruction: Instruction): number {
         const cyclesSplit =
-            ((instruction.mode1 | instruction.mode2) & (AddressingMode.reg8io | AddressingMode.imm16ind8 | AddressingMode.reg16ind8)) !== 0 ? 1 : 0;
+            ((instruction.mode1 | instruction.mode2) &
+                (AddressingMode.reg8io | AddressingMode.imm16ind8 | AddressingMode.reg16ind8 | AddressingMode.imm8io)) !==
+            0
+                ? 1
+                : 0;
         this.tick(instruction.cycles - cyclesSplit);
 
         this.setArg1(instruction, this.getArg2(instruction));

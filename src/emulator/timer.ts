@@ -56,7 +56,7 @@ export class Timer {
     }
 
     save(savestate: Savestate): void {
-        const flag = (this.irqPending ? 0x01 : 0x00) | (this.overflowCycle ? 0x02 : 0x00);
+        const flag = (this.irqPending ? 0x01 : 0x00) | (this.overflowCycle ? 0x02 : 0x00) | (this.latchCycle ? 0x04 : 0x00);
 
         savestate.startChunk(SAVESTATE_VERSION).writeBuffer(this.reg).write16(this.accDiv).write16(this.accTima).write16(flag);
     }
@@ -75,6 +75,7 @@ export class Timer {
         const flag = savestate.read16();
         this.irqPending = (flag & 0x01) !== 0;
         this.overflowCycle = (flag & 0x02) !== 0;
+        this.latchCycle = (flag & 0x04) !== 0;
     }
 
     install(bus: Bus): void {
@@ -82,7 +83,8 @@ export class Timer {
             bus.map(i, this.regRead, this.regWrite);
         }
 
-        bus.map(reg.base + reg.tima, this.timaRead, this.regWrite);
+        bus.map(reg.base + reg.tima, this.timaRead, this.timaWrite);
+        bus.map(reg.base + reg.tma, this.regRead, this.tmaWrite);
         bus.map(reg.base + reg.div, this.regRead, this.divWrite);
         bus.map(reg.base + reg.tac, this.regRead, this.tacWrite);
     }
@@ -96,13 +98,16 @@ export class Timer {
         this.accDiv = this.accTima = 0;
         this.irqPending = false;
         this.overflowCycle = false;
+        this.latchCycle = false;
     }
 
     cycle(cpuClocks: number): void {
         if (cpuClocks === 0) return;
 
         if (this.irqPending) this.interrupt.raise(irq.timer);
+
         this.irqPending = false;
+        this.latchCycle = cpuClocks === 1 && this.overflowCycle;
         this.overflowCycle = false;
 
         this.accDiv += cpuClocks;
@@ -132,6 +137,7 @@ export class Timer {
             tima = tma + ((tima - 0x100) % (0x100 - tma));
 
             if (accMasked === 0 && tima === tma) this.overflowCycle = true;
+            if (accMasked === 1 && tima === tma) this.latchCycle = true;
         }
 
         this.reg[reg.tima] = tima;
@@ -162,6 +168,23 @@ export class Timer {
     private regWrite: WriteHandler = (address, value) => (this.reg[address - reg.base] = value);
 
     private timaRead: ReadHandler = () => (this.overflowCycle ? 0x00 : this.reg[reg.tima]);
+    private timaWrite: WriteHandler = (_, value) => {
+        if (this.overflowCycle) {
+            this.irqPending = false;
+        }
+
+        if (!this.latchCycle) {
+            this.reg[reg.tima] = value;
+        }
+    };
+
+    private tmaWrite: WriteHandler = (_, value) => {
+        const oldValue = this.reg[reg.tma];
+        this.reg[reg.tma] = value;
+
+        if (this.overflowCycle) this.reg[reg.tima] = value;
+        if (this.latchCycle) this.reg[reg.tima] = value;
+    };
 
     private tacWrite: WriteHandler = (_, value) => {
         const multiplexerOld = this.multiplexerOut();
@@ -190,4 +213,5 @@ export class Timer {
     private accTima = 0;
     private irqPending = false;
     private overflowCycle = false;
+    private latchCycle = false;
 }
