@@ -553,10 +553,9 @@ export class Ppu {
     private stubWrite: WriteHandler = () => undefined;
 
     // It seems that VRAM access is only blocked after the first cycle of mode 3. This fixes the Stunt Racer tech prototype.
-    private vramRead: ReadHandler = (address) =>
-        (this.reg[reg.lcdc] & lcdc.enable) === 0 || this.mode !== ppuMode.draw || this.clockInMode === 0 ? this.vram[address & 0x1fff] : 0xff;
+    private vramRead: ReadHandler = (address) => ((this.reg[reg.lcdc] & lcdc.enable) === 0 || this.mode !== ppuMode.draw ? this.vram[address & 0x1fff] : 0xff);
     private vramWrite: WriteHandler = (address, value) =>
-        ((this.reg[reg.lcdc] & lcdc.enable) === 0 || this.mode !== ppuMode.draw || this.clockInMode === 0) && (this.vram[address & 0x1fff] = value);
+        ((this.reg[reg.lcdc] & lcdc.enable) === 0 || this.mode !== ppuMode.draw) && (this.vram[address & 0x1fff] = value);
 
     private oamRead: ReadHandler = (address) =>
         (this.reg[reg.lcdc] & lcdc.enable) === 0 || (this.mode !== ppuMode.draw && this.mode !== ppuMode.oamScan) ? this.oam[address & 0xff] : 0xff;
