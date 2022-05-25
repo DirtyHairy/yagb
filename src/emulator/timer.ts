@@ -82,7 +82,7 @@ export class Timer {
             bus.map(i, this.regRead, this.regWrite);
         }
 
-        bus.map(reg.base + reg.tima, this.timeRead, this.regWrite);
+        bus.map(reg.base + reg.tima, this.timaRead, this.regWrite);
         bus.map(reg.base + reg.div, this.regRead, this.divWrite);
         bus.map(reg.base + reg.tac, this.regRead, this.tacWrite);
     }
@@ -141,7 +141,19 @@ export class Timer {
         return `div=${hex8(this.reg[reg.div])} tima=${hex8(this.reg[reg.tima])} tma=${hex8(this.reg[reg.tma])} tac=${hex8(this.reg[reg.tac])}`;
     }
 
-    private updateDivider() {
+    private multiplexerOut(): number {
+        return (this.reg[reg.tac] >>> 2) & (this.accTima >>> (this.accShift - 1)) & 0x01;
+    }
+
+    private incrementOnce(): void {
+        if (++this.reg[reg.tima] > 0xff) {
+            this.reg[reg.tima] = this.reg[reg.tma];
+            this.irqPending = true;
+            this.overflowCycle = true;
+        }
+    }
+
+    private updateDivider(): void {
         this.accShift = shift(this.reg[reg.tac]);
         this.accMask = mask(this.reg[reg.tac]);
     }
@@ -149,18 +161,25 @@ export class Timer {
     private regRead: ReadHandler = (address) => this.reg[address - reg.base];
     private regWrite: WriteHandler = (address, value) => (this.reg[address - reg.base] = value);
 
-    private timeRead: ReadHandler = () => (this.overflowCycle ? 0x00 : this.reg[reg.tima]);
+    private timaRead: ReadHandler = () => (this.overflowCycle ? 0x00 : this.reg[reg.tima]);
 
     private tacWrite: WriteHandler = (_, value) => {
+        const multiplexerOld = this.multiplexerOut();
         this.reg[reg.tac] = value;
 
         this.updateDivider();
+
+        if (multiplexerOld & ~this.multiplexerOut()) this.incrementOnce();
     };
 
     private divWrite: WriteHandler = () => {
+        const multiplexerOld = this.multiplexerOut();
         this.reg[reg.div] = 0;
+
         this.accDiv = 0;
         this.accTima = 0;
+
+        if (multiplexerOld & ~this.multiplexerOut()) this.incrementOnce();
     };
 
     private reg = new Uint8Array(0x04);
