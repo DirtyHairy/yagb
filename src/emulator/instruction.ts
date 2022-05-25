@@ -63,23 +63,23 @@ export const enum Operation {
 }
 
 export const enum AddressingMode {
-    none,
-    implicit,
+    none = 1,
+    implicit = 1 << 1,
 
-    cb,
-    bit,
+    cb = 1 << 2,
+    bit = 1 << 3,
 
-    imm8,
-    imm8io,
-    imm8sign,
-    reg8,
-    reg8io,
+    imm8 = 1 << 4,
+    imm8io = 1 << 5,
+    imm8sign = 1 << 6,
+    reg8 = 1 << 7,
+    reg8io = 1 << 8,
 
-    imm16,
-    imm16ind8,
-    imm16ind16,
-    reg16,
-    reg16ind8,
+    imm16 = 1 << 9,
+    imm16ind8 = 1 << 10,
+    imm16ind16 = 1 << 11,
+    reg16 = 1 << 12,
+    reg16ind8 = 1 << 13,
 }
 
 export const enum Condition {

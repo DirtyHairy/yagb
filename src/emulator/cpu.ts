@@ -625,11 +625,12 @@ export class Cpu {
     }
 
     private opLd(instruction: Instruction): number {
-        this.tick(instruction.cycles - 1);
+        const cyclesSplit = (instruction.mode1 & (AddressingMode.reg8io | AddressingMode.imm16ind8 | AddressingMode.reg16ind8)) !== 0 ? 1 : 0;
+        this.tick(instruction.cycles - cyclesSplit);
 
         this.setArg1(instruction, this.getArg2(instruction));
 
-        this.tick(1);
+        if (cyclesSplit) this.tick(1);
 
         this.state.p = (this.state.p + instruction.len) & 0xffff;
         return instruction.cycles;
@@ -651,31 +652,33 @@ export class Cpu {
     }
 
     private opLdd(instruction: Instruction): number {
-        this.tick(instruction.cycles - 1);
+        const cyclesSplit = (instruction.mode1 & (AddressingMode.reg8io | AddressingMode.imm16ind8 | AddressingMode.reg16ind8)) !== 0 ? 1 : 0;
+        this.tick(instruction.cycles - cyclesSplit);
 
         this.setArg1(instruction, this.getArg2(instruction));
         this.state.r16[r16.hl] -= 0x01;
 
-        this.tick(1);
+        if (cyclesSplit) this.tick(1);
 
         this.state.p = (this.state.p + instruction.len) & 0xffff;
         return instruction.cycles;
     }
 
     private opLdi(instruction: Instruction): number {
-        this.tick(instruction.cycles - 1);
+        const cyclesSplit = (instruction.mode1 & (AddressingMode.reg8io | AddressingMode.imm16ind8 | AddressingMode.reg16ind8)) !== 0 ? 1 : 0;
+        this.tick(instruction.cycles - cyclesSplit);
 
         this.setArg1(instruction, this.getArg2(instruction));
         this.state.r16[r16.hl] += 0x01;
 
-        this.tick(1);
+        if (cyclesSplit) this.tick(1);
 
         this.state.p = (this.state.p + instruction.len) & 0xffff;
         return instruction.cycles;
     }
 
     private opLds(instruction: Instruction): number {
-        this.tick(instruction.cycles - 1);
+        this.tick(instruction.cycles);
 
         const operand = this.getArg1(instruction);
         const stackPointer = this.state.r16[r16.sp];
@@ -686,8 +689,6 @@ export class Cpu {
         this.state.r8[r8.f] =
             ((((stackPointer & 0xf) + (operand & 0xf)) > 0xf) ? flag.h : 0x00) |
             ((((stackPointer & 0xff) + (operand & 0xff)) > 0xff) ? flag.c : 0x00);
-
-        this.tick(1);
 
         this.state.p = (this.state.p + instruction.len) & 0xffff;
         return instruction.cycles;
