@@ -108,7 +108,7 @@ export class CartridgeMbc1 extends CartridgeBase {
             const reg0 = i & 0x1f;
 
             const bankIndex0 = (mode === 1 && romSize >= 1024 ? reg1 << 5 : 0) % romBanks;
-            const bankIndex1 = ((reg0 === 0 ? 1 : reg0) | (mode === 1 && ramSize <= 8 ? reg1 << 5 : 0)) % romBanks;
+            const bankIndex1 = ((reg0 === 0 ? 1 : reg0) | (ramSize <= 8 ? reg1 << 5 : 0)) % romBanks;
             const bankIndexRam = (mode === 1 && ramSize > 8 ? reg1 : 0) % ramBanks;
 
             this.configurations[i] = {
