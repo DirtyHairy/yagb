@@ -32,11 +32,11 @@ export class CartridgeMbc2 extends CartridgeBase {
     load(savestate: Savestate): void {
         savestate.validateChunk(SAVESTATE_VERSION);
 
-        this.bankIndex = savestate.read16();
+        this.bankIndex = savestate.read16() % this.romBanks.length;
         this.ramEnable = savestate.readBool();
         this.ram.set(savestate.readBuffer(this.ram.length));
 
-        this.romBank1 = this.romBanks[this.bankIndex];
+        this.romBank1 = this.romBanks[this.bankIndex > 0 ? this.bankIndex % this.romBanks.length : 1];
     }
 
     install(bus: Bus): void {
@@ -83,9 +83,9 @@ export class CartridgeMbc2 extends CartridgeBase {
     private writeReg: WriteHandler = (address, value) => {
         if (address & 0x0100) {
             this.bankIndex = value & 0x0f;
-            this.romBank1 = this.romBanks[this.bankIndex];
+            this.romBank1 = this.romBanks[this.bankIndex > 0 ? this.bankIndex % this.romBanks.length : 1];
         } else {
-            this.ramEnable = value === 0x0a;
+            this.ramEnable = (value & 0x0f) === 0x0a;
         }
     };
 
