@@ -76,7 +76,12 @@ async function loadCartridge(data: Uint8Array, name: string) {
         return;
     }
 
-    if (savestate) emulator.load(savestate);
+    try {
+        if (savestate) emulator.load(savestate);
+    } catch (e) {
+        console.error(e);
+        print('failed to load savestate');
+    }
 
     scheduler = new Scheduler(emulator);
     scheduler.onTimesliceComplete.addHandler(() => updateCanvas());
