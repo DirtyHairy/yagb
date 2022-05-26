@@ -76,6 +76,8 @@ export class Timer {
         this.irqPending = (flag & 0x01) !== 0;
         this.overflowCycle = (flag & 0x02) !== 0;
         this.latchCycle = (flag & 0x04) !== 0;
+
+        this.updateDivider();
     }
 
     install(bus: Bus): void {
