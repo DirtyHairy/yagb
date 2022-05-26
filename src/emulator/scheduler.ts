@@ -66,6 +66,8 @@ export class Scheduler {
         const cyclesGoal = Math.round(durationSeconds * SYSTEM_CLOCK * this.speed);
         if (cyclesGoal <= 0) return false;
 
+        this.onBeforeTimeslice.dispatch();
+
         const timestampBeforeDispatch = performance.now();
         const timeslice = this.emulator.run(cyclesGoal) / SYSTEM_CLOCK / this.speed;
         const timestampAfterDispatch = performance.now();
@@ -90,6 +92,7 @@ export class Scheduler {
         }
     };
 
+    readonly onBeforeTimeslice = new Event<void>();
     readonly onTimesliceComplete = new Event<void>();
     readonly onEmitStatistics = new Event<Statistics>();
     readonly onStart = new Event<void>();

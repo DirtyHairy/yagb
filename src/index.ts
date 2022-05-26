@@ -8,6 +8,7 @@ import $ from 'jquery';
 import { AudioDriver } from './emulator/apu/audio-driver';
 import { Emulator } from './emulator/emulator';
 import { FileHandler } from './helper/fileHandler';
+import { GamepadDriver } from './gamepad-driver';
 import { Repository } from './repository';
 import { key } from './emulator/joypad';
 import md5 from 'md5';
@@ -17,6 +18,7 @@ const CARTRIDGE_FILE_SIZE_LIMIT = 512 * 1024 * 1024;
 
 const fileHandler = new FileHandler();
 const audioDriver = new AudioDriver();
+const gamepadDriver = new GamepadDriver();
 
 const repository = new Repository();
 
@@ -84,6 +86,7 @@ async function loadCartridge(data: Uint8Array, name: string) {
     }
 
     scheduler = new Scheduler(emulator);
+    scheduler.onBeforeTimeslice.addHandler(() => emulator && gamepadDriver.update());
     scheduler.onTimesliceComplete.addHandler(() => updateCanvas());
     scheduler.onEmitStatistics.addHandler(onStatistics(romHash));
     scheduler.onStart.addHandler(() => audioDriver.continue());
@@ -142,6 +145,9 @@ async function onInit(): Promise<void> {
         print('failed to load cartridge data');
         console.error(e);
     }
+
+    window.addEventListener('gamepadconnected', () => print('gamepad connected'));
+    window.addEventListener('gamepaddisconnected', () => print('gamepad disconnected'));
 }
 
 function assertEmulator(emulator: Emulator | undefined): emulator is Emulator {
@@ -645,3 +651,6 @@ canvas.addEventListener('keyup', (e) => {
 canvas.addEventListener('blur', () => emulator?.clearKeys());
 
 repository.getVolume().then((volume) => audioDriver.setVolume(volume ?? DEFAULT_VOLUME));
+
+gamepadDriver.onKeyDown.addHandler((key) => emulator && emulator.keyDown(key));
+gamepadDriver.onKeyUp.addHandler((key) => emulator && emulator.keyUp(key));

@@ -42,6 +42,8 @@ export class Joypad {
     }
 
     down(k: key): void {
+        if (this.keys[k]) return;
+
         const before = this.joypadRead(0xff00) & 0x0f;
         this.keys[k] = 1;
         const after = this.joypadRead(0xff00) & 0x0f;
@@ -50,6 +52,8 @@ export class Joypad {
     }
 
     up(k: key): void {
+        if (!this.keys[k]) return;
+
         this.keys[k] = 0;
     }
 
