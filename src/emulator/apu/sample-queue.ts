@@ -1,6 +1,8 @@
+import { Event } from 'microevent.ts';
+
 export class SampleQueue {
     constructor(public readonly sampleRate: number) {
-        this.capacity = sampleRate / 10;
+        this.capacity = sampleRate / 5;
 
         this.channelLeftData = new Float32Array(this.capacity);
         this.channelRightData = new Float32Array(this.capacity);
@@ -19,6 +21,8 @@ export class SampleQueue {
         }
 
         this.nextSample = (this.nextSample + 1) % this.capacity;
+
+        this.onNewSample.dispatch();
     }
 
     getLength(): number {
@@ -39,6 +43,8 @@ export class SampleQueue {
             this.length--;
         }
     }
+
+    onNewSample = new Event<void>();
 
     private channelLeftData: Float32Array;
     private channelRightData: Float32Array;

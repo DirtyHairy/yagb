@@ -15,9 +15,10 @@ import md5 from 'md5';
 
 const DEFAULT_VOLUME = 0.6;
 const CARTRIDGE_FILE_SIZE_LIMIT = 512 * 1024 * 1024;
+const KEY_LEGACY_AUDIO = 'legacy-audio';
 
 const fileHandler = new FileHandler();
-const audioDriver = new AudioDriver();
+const audioDriver = new AudioDriver(localStorage.getItem(KEY_LEGACY_AUDIO) !== '1');
 const gamepadDriver = new GamepadDriver();
 
 const repository = new Repository();
@@ -264,6 +265,8 @@ snapshot-save <name>                    Save a snapshot
 snapshot-load <name>                    Restore a snapshot
 snapshot-delete <name>                  Delete a snapshot
 snapshot-list                           List snapshots
+legacy-audio [1|0]                      Use scriptprocessor even if audio worklet is available.
+                                        May reduce jitter for high sample rates.
 
 Keyboard controls (click the canvas to give it focus):
 
@@ -564,6 +567,25 @@ Keyboard controls (click the canvas to give it focus):
         }
 
         repository.deleteSnapshot(romHash, name);
+    },
+    'legacy-audio': function (toggle: string | number) {
+        switch (toggle) {
+            case '1':
+            case '0':
+            case 1:
+            case 0:
+                localStorage.setItem(KEY_LEGACY_AUDIO, toggle + '');
+                print('Changed legacy audio setting. Please reload.');
+                break;
+
+            case undefined:
+                break;
+
+            default:
+                print('invalid setting');
+        }
+
+        print(`legacy audio ${localStorage.getItem(KEY_LEGACY_AUDIO) === '1' ? 'enabled' : 'disabled'}`);
     },
 };
 
