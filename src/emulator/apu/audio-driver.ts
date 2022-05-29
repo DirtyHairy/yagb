@@ -202,11 +202,7 @@ export class AudioDriver {
     }
 
     private onAudioprocess = (evt: AudioProcessingEvent) => {
-        if (!this.sampleQueue) return;
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        if (this.sampleQueue.getLength() < evt.outputBuffer.length + this.prebuffer) {
-            return;
-        }
+        if (!this.sampleQueue || this.sampleQueue.getLength() < evt.outputBuffer.length + this.prebuffer) return;
 
         this.sampleQueue.fill(evt.outputBuffer.getChannelData(0), evt.outputBuffer.getChannelData(1));
     };
@@ -215,7 +211,6 @@ export class AudioDriver {
         if (!this.audioWorklet || !this.sampleQueue) return;
         if (this.workletFragmentLength > this.sampleQueue.getLength()) return;
 
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const transferBuffer = this.transferBufferPoolSize > 0 ? this.transferBufferPool[--this.transferBufferPoolSize] : this.createTransferBuffer();
 
         this.sampleQueue.fill(transferBuffer.left, transferBuffer.right);
