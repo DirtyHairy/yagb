@@ -19,6 +19,7 @@ interface TransferBuffer {
 const audioContextCtor = window.AudioContext || window.webkitAudioContext;
 
 const INTERACTION_EVENTS = ['click', 'touchstart', 'keydown'];
+const TRANSFER_BUFFER_POOL_CAPACITY = 10;
 
 export class AudioDriver {
     constructor(useWorklet = true) {
@@ -90,6 +91,8 @@ export class AudioDriver {
             return;
         }
 
+        this.prebuffer = (this.context.sampleRate / 30) | 0;
+
         this.gainNode = this.context.createGain();
         this.gainNode.gain.value = this.volume;
 
@@ -107,36 +110,58 @@ export class AudioDriver {
         this.highpassNode.Q.value = 0.1;
         this.highpassNode.connect(this.lowpassNode);
 
-        try {
-            if (!useWorklet) {
-                throw new Error('worklet audio disabled');
+        if (useWorklet) {
+            try {
+                this.audioWorklet = await this.setupWorklet(this.context);
+                this.audioWorklet.connect(this.highpassNode);
+            } catch (e) {
+                console.warn(e);
+                console.log('audio worklet not available, falling back to script processor');
+
+                this.setupScriptProcessor(this.context).connect(this.highpassNode);
             }
-
-            await this.context.audioWorklet.addModule('source-processor.js');
-
-            this.audioWorklet = new AudioWorkletNode(this.context, 'source-processor', { channelCount: 2, outputChannelCount: [2] });
-            const length = this.context.sampleRate / 30;
-            this.audioWorklet.port.onmessage = (e) => (this.transferBuffer = e.data);
-
-            this.transferBuffer = {
-                length,
-                left: new Float32Array(length),
-                right: new Float32Array(length),
-            };
-
-            this.audioWorklet.connect(this.highpassNode);
-            if (this.sampleQueue) this.sampleQueue.onNewSample.addHandler(this.onNewSample);
-
-            console.log('audio worklet initialized');
-        } catch (e) {
-            console.error(e);
-            console.log('audio worklet not available, falling back to script processor');
-
-            this.scriptProcessor = this.context.createScriptProcessor(1024, 2, 2);
+        } else {
+            this.scriptProcessor = this.setupScriptProcessor(this.context);
             this.scriptProcessor.connect(this.highpassNode);
-            this.scriptProcessor.onaudioprocess = this.onAudioprocess;
         }
 
+        this.waitForContext();
+    }
+
+    private async setupWorklet(context: AudioContext): Promise<AudioWorkletNode> {
+        await context.audioWorklet.addModule('source-processor.js');
+
+        const audioWorklet = new AudioWorkletNode(context, 'source-processor', {
+            channelCount: 2,
+            outputChannelCount: [2],
+            processorOptions: {
+                sampleRate: context.sampleRate,
+                prebuffer: this.prebuffer,
+            },
+        });
+
+        this.workletFragmentLength = (context.sampleRate / 100) | 0;
+
+        audioWorklet.port.onmessage = (e) =>
+            this.transferBufferPoolSize < TRANSFER_BUFFER_POOL_CAPACITY && (this.transferBufferPool[this.transferBufferPoolSize++] = e.data);
+
+        if (this.sampleQueue) this.sampleQueue.onNewSample.addHandler(this.onNewSample);
+
+        console.log('using audio worklet');
+
+        return audioWorklet;
+    }
+
+    private setupScriptProcessor(context: AudioContext): ScriptProcessorNode {
+        const scriptProcessor = context.createScriptProcessor(1024, 2, 2);
+        scriptProcessor.onaudioprocess = this.onAudioprocess;
+
+        console.log('using script processor');
+
+        return scriptProcessor;
+    }
+
+    private waitForContext(): void {
         const mutex = new Mutex();
 
         const handler = (evt: Event) =>
@@ -168,10 +193,18 @@ export class AudioDriver {
         INTERACTION_EVENTS.forEach((evt) => window.addEventListener(evt, handler, true));
     }
 
+    private createTransferBuffer(): TransferBuffer {
+        return {
+            length: this.workletFragmentLength,
+            left: new Float32Array(this.workletFragmentLength),
+            right: new Float32Array(this.workletFragmentLength),
+        };
+    }
+
     private onAudioprocess = (evt: AudioProcessingEvent) => {
         if (!this.sampleQueue) return;
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        if (this.sampleQueue.getLength() < evt.outputBuffer.length + this.context!.sampleRate / 30) {
+        if (this.sampleQueue.getLength() < evt.outputBuffer.length + this.prebuffer) {
             return;
         }
 
@@ -179,12 +212,14 @@ export class AudioDriver {
     };
 
     private onNewSample = () => {
-        if (!(this.audioWorklet && this.transferBuffer && this.sampleQueue && this.transferBuffer.length <= this.sampleQueue.getLength())) return;
+        if (!this.audioWorklet || !this.sampleQueue) return;
+        if (this.workletFragmentLength > this.sampleQueue.getLength()) return;
 
-        this.sampleQueue.fill(this.transferBuffer.left, this.transferBuffer.right);
-        this.audioWorklet.port.postMessage(this.transferBuffer, [this.transferBuffer.left.buffer, this.transferBuffer.right.buffer]);
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        const transferBuffer = this.transferBufferPoolSize > 0 ? this.transferBufferPool[--this.transferBufferPoolSize] : this.createTransferBuffer();
 
-        this.transferBuffer = undefined;
+        this.sampleQueue.fill(transferBuffer.left, transferBuffer.right);
+        this.audioWorklet.port.postMessage(transferBuffer, [transferBuffer.left.buffer, transferBuffer.right.buffer]);
     };
 
     private volume = 0.6;
@@ -192,14 +227,16 @@ export class AudioDriver {
     private gainNode: GainNode | undefined = undefined;
     private lowpassNode: BiquadFilterNode | undefined = undefined;
     private highpassNode: BiquadFilterNode | undefined = undefined;
-
     private scriptProcessor: ScriptProcessorNode | undefined = undefined;
-
     private audioWorklet: AudioWorkletNode | undefined = undefined;
-    private transferBuffer: TransferBuffer | undefined = undefined;
+
+    private transferBufferPool = new Array<TransferBuffer>(TRANSFER_BUFFER_POOL_CAPACITY);
+    private transferBufferPoolSize = 0;
 
     private isRunning = false;
     private contextHasStarted = false;
 
     private sampleQueue: SampleQueue | undefined = undefined;
+    private prebuffer = 0;
+    private workletFragmentLength = 0;
 }

@@ -2,7 +2,7 @@ import { Event } from 'microevent.ts';
 
 export class SampleQueue {
     constructor(public readonly sampleRate: number) {
-        this.capacity = sampleRate / 5;
+        this.capacity = sampleRate / 10;
 
         this.channelLeftData = new Float32Array(this.capacity);
         this.channelRightData = new Float32Array(this.capacity);

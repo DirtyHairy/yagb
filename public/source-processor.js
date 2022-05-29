@@ -39,10 +39,14 @@ export class SampleQueue {
 }
 
 class SourceProcessor extends AudioWorkletProcessor {
-    constructor() {
+    constructor(options) {
         super();
 
-        this.queue = new SampleQueue(96000);
+        this.sampleRate = options.processorOptions.sampleRate;
+        this.prebuffer = options.processorOptions.prebuffer;
+        this.queue = new SampleQueue(this.sampleRate);
+
+        this.lastSampleLeft = this.lastSampleRight = 0;
 
         this.port.onmessage = (e) => {
             const payload = e.data;
@@ -56,7 +60,17 @@ class SourceProcessor extends AudioWorkletProcessor {
     process(_, outputs) {
         if (outputs.length !== 1 || outputs[0].length !== 2) return true;
 
+        if (this.queue.length < this.prebuffer + outputs[0][0].length) {
+            outputs[0][0].fill(this.lastSampleLeft);
+            outputs[0][1].fill(this.lastSampleRight);
+
+            return true;
+        }
+
         this.queue.fill(outputs[0][0], outputs[0][1]);
+
+        this.lastSampleLeft = outputs[0][1][outputs[0][1].length - 1];
+        this.lastSampleRight = outputs[0][1][outputs[0][1].length - 1];
 
         return true;
     }
