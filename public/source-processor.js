@@ -44,7 +44,7 @@ class SourceProcessor extends AudioWorkletProcessor {
 
         this.sampleRate = options.processorOptions.sampleRate;
         this.prebuffer = options.processorOptions.prebuffer;
-        this.queue = new SampleQueue(this.sampleRate);
+        this.queue = new SampleQueue(2 * this.prebuffer + 256);
 
         this.lastSampleLeft = this.lastSampleRight = 0;
 
