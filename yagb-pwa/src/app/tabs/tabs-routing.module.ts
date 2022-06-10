@@ -1,9 +1,10 @@
 import { RouterModule, Routes } from '@angular/router';
 
+import { AboutPage } from './../page/about/about.page';
+import { GamesPage } from '../page/games/games.page';
 import { NgModule } from '@angular/core';
-import { Tab1Page } from './../tab1/tab1.page';
-import { Tab2Page } from './../tab2/tab2.page';
-import { Tab3Page } from './../tab3/tab3.page';
+import { PlayPage } from '../page/play/play.page';
+import { SettingsPage } from '../page/settings/settings.page';
 import { TabsPage } from './tabs.page';
 
 const routes: Routes = [
@@ -12,27 +13,31 @@ const routes: Routes = [
         component: TabsPage,
         children: [
             {
-                path: 'tab1',
-                component: Tab1Page,
+                path: 'play',
+                component: PlayPage,
             },
             {
-                path: 'tab2',
-                component: Tab2Page,
+                path: 'games',
+                component: GamesPage,
             },
             {
-                path: 'tab3',
-                component: Tab3Page,
+                path: 'settings',
+                component: SettingsPage,
+            },
+            {
+                path: 'about',
+                component: AboutPage,
             },
             {
                 path: '',
-                redirectTo: '/tab/tab1',
+                redirectTo: '/tab/games',
                 pathMatch: 'full',
             },
         ],
     },
     {
         path: '',
-        redirectTo: '/tab/tab1',
+        redirectTo: '/tab/games',
         pathMatch: 'full',
     },
 ];
