@@ -10,6 +10,8 @@
     "src/polyfills.ts"
   ],
   "include": [
-    "src/**/*.d.ts"
+    "src/**/*.d.ts",
+    // This is a nasty hack to get the builder to play well with the monorepo
+    "../yagb-core/src/**/*.ts"
   ]
 }

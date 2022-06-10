@@ -22,7 +22,7 @@ const GAMES_MOCK: Array<Game> = [
 @Injectable({ providedIn: 'root' })
 export class GameService {
     getGames(): Array<Game> {
-        return GAMES_MOCK;
+        return [];
     }
 
     isLoading(): boolean {

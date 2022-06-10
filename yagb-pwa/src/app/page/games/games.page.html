@@ -3,6 +3,13 @@
     <ion-title>
       Games
     </ion-title>
+
+    <ion-buttons slot="primary">
+      <ion-button (click)="importGame()">
+        <ion-icon name="add-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+
   </ion-toolbar>
 </ion-header>
 
@@ -20,7 +27,7 @@
 
   <div *ngIf="!loading && games.length === 0" class="placeholder">
     No games. Select the &bdquo;+&ldquo; icon in the upper right corner in order to import
-    a game ROM dump.
+    a game.
   </div>
 
   <ion-list *ngIf="!loading && games.length > 0">

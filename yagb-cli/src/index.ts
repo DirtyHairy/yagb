@@ -7,7 +7,7 @@ import { hex16, hex8 } from 'yagb-core/src//helper/format';
 import $ from 'jquery';
 import { AudioDriver } from 'yagb-core/src/emulator/apu/audio-driver';
 import { Emulator } from 'yagb-core/src/emulator/emulator';
-import { FileHandler } from './helper/fileHandler';
+import { FileHandler } from 'yagb-core/src/helper/fileHandler';
 import { GamepadDriver } from './gamepad-driver';
 import { Repository } from './repository';
 import { key } from 'yagb-core/src/emulator/joypad';

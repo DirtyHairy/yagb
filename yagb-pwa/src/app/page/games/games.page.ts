@@ -1,4 +1,5 @@
 import { Component } from '@angular/core';
+import { FileService } from './../../service/file.service';
 import { Game } from './../../model/game';
 import { GameService } from './../../service/game.service';
 
@@ -8,7 +9,7 @@ import { GameService } from './../../service/game.service';
     styleUrls: ['games.page.scss'],
 })
 export class GamesPage {
-    constructor(private gameService: GameService) {}
+    constructor(private gameService: GameService, private fileService: FileService) {}
 
     get games(): Array<Game> {
         return this.gameService.getGames();
@@ -33,6 +34,10 @@ export class GamesPage {
     deleteGame(game: Game): void {}
 
     resetGame(game: Game): void {}
+
+    importGame(): void {
+        this.fileService.openFile(() => undefined, '.gb');
+    }
 
     lastGameTouchedRomHash = '';
 }
