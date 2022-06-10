@@ -27,7 +27,7 @@ jobs:
       - name: 'Upload test results (html)'
         uses: actions/upload-artifact@v3
         with:
-          name: yagb-core/test_results
+          name: yagb-core-test_results
           path: yagb-core/test_results/
           retention-days: 30
           if-no-files-found: error
