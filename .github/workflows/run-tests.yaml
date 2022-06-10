@@ -23,18 +23,18 @@ jobs:
       - name: 'Install modules'
         run: yarn
       - name: 'Run all tests'
-        run: yarn test --coverage
+        run: cd yagb-core && yarn test --coverage
       - name: 'Upload test results (html)'
         uses: actions/upload-artifact@v3
         with:
-          name: test_results
-          path: test_results/
+          name: yagb-core/test_results
+          path: yagb-core/test_results/
           retention-days: 30
           if-no-files-found: error
       - name: 'Upload coverage report (html)'
         uses: actions/upload-artifact@v3
         with:
-          name: coverage_report
-          path: coverage/lcov-report/
+          name: yagb-core/coverage_report
+          path: yagb-core/coverage/lcov-report/
           retention-days: 30
           if-no-files-found: error

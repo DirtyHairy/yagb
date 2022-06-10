@@ -6,7 +6,6 @@ import { Clock } from '../../src/emulator/clock';
 import { Interrupt } from '../../src/emulator/interrupt';
 import { Ppu } from '../../src/emulator/ppu';
 import { Ram } from '../../src/emulator/ram';
-import { SampleQueue } from './../../src/emulator/apu/sample-queue';
 import { Serial } from './../../src/emulator/serial';
 import { System } from '../../src/emulator/system';
 import { Timer } from '../../src/emulator/timer';

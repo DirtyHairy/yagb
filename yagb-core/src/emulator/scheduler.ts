@@ -25,7 +25,11 @@ export class Scheduler {
 
         this.animationFrameHandle = requestAnimationFrame(this.onAnimationFrame);
         this.emitStatisticsIntervalHandle = window.setInterval(
-            () => this.onEmitStatistics.dispatch({ hostSpeed: this.hostSpeedAverage.calculateAverage(), speed: this.speed }),
+            () =>
+                this.onEmitStatistics.dispatch({
+                    hostSpeed: this.hostSpeedAverage.calculateAverage(),
+                    speed: this.speed,
+                }),
             EMIT_STATISTICS_INTERVAL
         );
 

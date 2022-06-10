@@ -5,7 +5,12 @@ import { Serial } from './../../src/emulator/serial';
 import { System } from './../../src/emulator/system';
 
 describe('serial out', () => {
-    function setup(): { bus: Bus; serial: Serial; system: System; raiseSpy: jest.SpyInstance<void, [irq]> } {
+    function setup(): {
+        bus: Bus;
+        serial: Serial;
+        system: System;
+        raiseSpy: jest.SpyInstance<void, [irq]>;
+    } {
         const system = new System((msg) => console.log(msg));
         const bus = new Bus(system);
         const interrupt = new Interrupt();

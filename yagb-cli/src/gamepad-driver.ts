@@ -1,5 +1,5 @@
 import { Event } from 'microevent.ts';
-import { key } from './emulator/joypad';
+import { key } from 'yagb-core/src/emulator/joypad';
 
 const AXIS_THRESHOLD = 0.5;
 
@@ -91,7 +91,10 @@ export class GamepadDriver {
     }
 
     private getMapping(gamepad: Gamepad): Mapping {
-        return { buttons: gamepad.buttons.map((_, i) => buttonMapping(i)), axes: gamepad.axes.map((_, i) => axisMapping(i)) };
+        return {
+            buttons: gamepad.buttons.map((_, i) => buttonMapping(i)),
+            axes: gamepad.axes.map((_, i) => axisMapping(i)),
+        };
     }
 
     readonly onKeyDown = new Event<key>();

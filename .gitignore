@@ -1,11 +1,10 @@
-/node_modules
-/dist
-/yarn-error.log
+node_modules
+yarn-error.log
+dist
 *.gb
-/.idea
-/test_results/
-/coverage/
+.idea
+test_results
+coverage
 *.txt
 .DS_Store
 *.log
-/tmp/

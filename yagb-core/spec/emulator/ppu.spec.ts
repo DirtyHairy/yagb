@@ -6,7 +6,11 @@ import { Ram } from './../../src/emulator/ram';
 import { System } from '../../src/emulator/system';
 
 describe('PPU', () => {
-    function setup(): { ppu: Ppu; bus: Bus; raiseSpy: jest.SpyInstance<void, [irq]> } {
+    function setup(): {
+        ppu: Ppu;
+        bus: Bus;
+        raiseSpy: jest.SpyInstance<void, [irq]>;
+    } {
         const system = new System((msg) => console.log(msg));
         const bus = new Bus(system);
         const interrupt = new Interrupt();

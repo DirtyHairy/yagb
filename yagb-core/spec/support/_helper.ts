@@ -21,7 +21,15 @@ export interface Environment {
 export function newEnvironment(code: ArrayLike<number>, address = 0x100): Environment {
     const env = new TestEnvironment(code, address);
 
-    return { bus: env.bus, cpu: env.cpu, system: env.system, clock: env.clock, interrupt: env.interrupt, cartridge: env.cartridge, env: env };
+    return {
+        bus: env.bus,
+        cpu: env.cpu,
+        system: env.system,
+        clock: env.clock,
+        interrupt: env.interrupt,
+        cartridge: env.cartridge,
+        env: env,
+    };
 }
 
 export const lengthFromMode = function (mode: AddressingMode): number {

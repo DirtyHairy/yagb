@@ -1,0 +1,31 @@
+{
+    "name": "yagb-core",
+    "version": "0.0.1",
+    "author": "Christian Speckner <cnspeckn@googlemail.com>",
+    "license": "MIT",
+    "devDependencies": {
+        "@types/jest": "^27.4.1",
+        "async-mutex": "^0.3.2",
+        "jest": "^27.5.1",
+        "jest-html-reporter": "^3.4.2",
+        "microevent.ts": "^0.2.1",
+        "ts-jest": "^27.1.4",
+        "ts-loader": "^9.2.8",
+        "tslib": "^2.3.1",
+        "eslint": "^8.12.0",
+        "eslint-plugin-unused-imports": "^2.0.0",
+        "import-sort-style-eslint": "^6.0.0",
+        "@typescript-eslint/eslint-plugin": "^5.17.0",
+        "@typescript-eslint/parser": "^5.17.0",
+        "typescript": "^4.6.3",
+        "@types/audioworklet": "^0.0.28",
+        "ts-node": "^10.7.0"
+    },
+    "scripts": {
+        "test": "jest",
+        "test-full": "jest --testMatch='**/*+(-full).+(spec|test).[jt]s(x)?'",
+        "matrix": "ts-node -P ./tsconfig.node.json ./bin/matrix.ts",
+        "lint": "eslint -c ../package.json '{bin,spec,src}/**/*.ts'",
+        "prettier": "npx prettier --config ../package.json -w '{bin,spec,src}/**/*.ts'"
+    }
+}

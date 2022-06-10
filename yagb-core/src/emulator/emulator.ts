@@ -92,12 +92,26 @@ export class Emulator {
     }
 
     addTrapWrite(address: number): void {
-        this.busTraps.set(address, { ...(this.busTraps.get(address) || { address, trapRead: false, trapWrite: false }), trapWrite: true });
+        this.busTraps.set(address, {
+            ...(this.busTraps.get(address) || {
+                address,
+                trapRead: false,
+                trapWrite: false,
+            }),
+            trapWrite: true,
+        });
         this.updateHooks();
     }
 
     addTrapRead(address: number): void {
-        this.busTraps.set(address, { ...(this.busTraps.get(address) || { address, trapRead: false, trapWrite: false }), trapRead: true });
+        this.busTraps.set(address, {
+            ...(this.busTraps.get(address) || {
+                address,
+                trapRead: false,
+                trapWrite: false,
+            }),
+            trapRead: true,
+        });
         this.updateHooks();
     }
 

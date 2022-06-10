@@ -5,7 +5,11 @@ import { System } from '../../src/emulator/system';
 import { Timer } from '../../src/emulator/timer';
 
 describe('Timer', () => {
-    function setup(): { bus: Bus; timer: Timer; raiseSpy: jest.SpyInstance<void, [irq]> } {
+    function setup(): {
+        bus: Bus;
+        timer: Timer;
+        raiseSpy: jest.SpyInstance<void, [irq]>;
+    } {
         const system = new System((msg) => console.log(msg));
         const bus = new Bus(system);
         const interrupt = new Interrupt();

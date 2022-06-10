@@ -1,16 +1,16 @@
 import 'jquery.terminal';
 import 'jquery.terminal/css/jquery.terminal.min.css';
 
-import { Scheduler, Statistics } from './emulator/scheduler';
-import { hex16, hex8 } from './helper/format';
+import { Scheduler, Statistics } from 'yagb-core/src/emulator/scheduler';
+import { hex16, hex8 } from 'yagb-core/src//helper/format';
 
 import $ from 'jquery';
-import { AudioDriver } from './emulator/apu/audio-driver';
-import { Emulator } from './emulator/emulator';
+import { AudioDriver } from 'yagb-core/src/emulator/apu/audio-driver';
+import { Emulator } from 'yagb-core/src/emulator/emulator';
 import { FileHandler } from './helper/fileHandler';
 import { GamepadDriver } from './gamepad-driver';
 import { Repository } from './repository';
-import { key } from './emulator/joypad';
+import { key } from 'yagb-core/src/emulator/joypad';
 import md5 from 'md5';
 
 const DEFAULT_VOLUME = 0.6;

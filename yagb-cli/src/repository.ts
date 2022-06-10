@@ -74,7 +74,11 @@ export class Repository {
 
         return this.saveStateMutex.runExclusive(() =>
             this.db.transaction('rw', this.db.snapshot, this.db.nvs, async () => {
-                await this.db.snapshot.put({ name: SNAPSHOT_AUTO, rom: romHash, data: _savestate });
+                await this.db.snapshot.put({
+                    name: SNAPSHOT_AUTO,
+                    rom: romHash,
+                    data: _savestate,
+                });
 
                 if (_nvData) await this.db.nvs.put({ rom: romHash, data: _nvData });
 
