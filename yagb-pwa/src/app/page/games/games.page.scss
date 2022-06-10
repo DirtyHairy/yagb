@@ -1,0 +1,26 @@
+.placeholder {
+    max-width: 30em;
+    padding: 0 2em;
+    text-align: center;
+    margin: auto;
+    margin-top: calc(50vh - 7em);
+}
+
+.md .placeholder {
+    margin-top: calc(50vh - 5em);
+}
+
+.loader {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    margin-top: calc(50vh - 5em);
+}
+
+.md .loader {
+    margin-top: calc(50vh - 4em);
+}
+
+ion-list {
+    background: none;
+}

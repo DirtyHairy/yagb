@@ -12,4 +12,22 @@
       <ion-title size="large">Games</ion-title>
     </ion-toolbar>
   </ion-header>
+
+
+  <div class="loader" *ngIf="loading">
+    <ion-spinner></ion-spinner>
+  </div>
+
+  <div *ngIf="!loading && games.length === 0" class="placeholder">
+    No games. Select the &bdquo;+&ldquo; icon in the upper right corner in order to import
+    a game ROM dump.
+  </div>
+
+  <ion-list *ngIf="!loading && games.length > 0">
+    <app-game-item *ngFor="let game of games;trackBy:trackGameBy" [game]="game" (delete)="deleteGame(game)"
+      (selectItem)="launchGame(game)" (edit)="editGame(game)" (reset)="resetGame(game)"
+      (interaction)="lastGameTouchedRomHash = game.romHash" [selected]="currentGameRomHash === game.romHash"
+      [touched]="game.romHash === lastGameTouchedRomHash">
+    </app-game-item>
+  </ion-list>
 </ion-content>
