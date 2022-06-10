@@ -4,13 +4,14 @@
     "author": "Christian Speckner <cnspeckn@googlemail.com>",
     "license": "MIT",
     "private": true,
-    "workspaces": ["yagb-core", "yagb-cli"],
+    "workspaces": ["yagb-core", "yagb-cli", "yagb-pwa"],
     "scripts": {
         "test": "yarn workspaces run test",
         "lint": "yarn workspaces run lint",
         "prettier": "yarn workspaces run prettier",
         "start:cli": "yarn --cwd yagb-cli start",
-        "build:cli": "yarn --cwd yagb-cli build"
+        "build:cli": "yarn --cwd yagb-cli build",
+        "start:pwa": "yarn --cwd yagb-pwa start"
     },
     "eslintConfig": {
         "ignorePatterns": [

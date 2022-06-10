@@ -32,7 +32,7 @@
     "scripts": {
         "build": "webpack --mode production -c webpack.config.js",
         "start": "webpack serve --mode development -c webpack.config.js",
-        "lint": "eslint -c ../package.json '{bin,spec,src}/**/*.ts'",
+        "lint": "eslint '{bin,spec,src}/**/*.ts'",
         "prettier": "npx prettier --config ../package.json -w '{bin,spec,src}/**/*.ts'",
         "test": "true"
     }
