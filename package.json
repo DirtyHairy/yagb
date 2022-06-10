@@ -6,7 +6,7 @@
     "private": true,
     "workspaces": {
         "packages": ["yagb-core", "yagb-cli", "yagb-pwa"],
-        "nohoist": ["**/ionicons"]
+        "nohoist": ["**/ionicons", "**/jasmine*"]
     },
     "scripts": {
         "test": "yarn workspaces run test",
