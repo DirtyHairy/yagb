@@ -4,7 +4,10 @@
     "author": "Christian Speckner <cnspeckn@googlemail.com>",
     "license": "MIT",
     "private": true,
-    "workspaces": ["yagb-core", "yagb-cli", "yagb-pwa"],
+    "workspaces": {
+        "packages": ["yagb-core", "yagb-cli", "yagb-pwa"],
+        "nohoist": ["**/ionicons"]
+    },
     "scripts": {
         "test": "yarn workspaces run test",
         "lint": "yarn workspaces run lint",
