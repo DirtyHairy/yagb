@@ -81,17 +81,17 @@ Simple. Make sure that you have [yarn](https://yarnpkg.com) installed, then do
 to install the dependencies and
 
 ```
-    $ yarn start
+    $ yarn start:cli
 ```
 
 or
 
 ```
-    $ yarn build
+    $ yarn build:cli
 ```
 
 to start the development server (on port 9000) or do a release build. The build
-will end up in `dist`.
+will end up in `yagb-cli/dist`.
 
 # Resources
 
