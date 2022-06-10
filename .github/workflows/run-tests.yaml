@@ -34,7 +34,7 @@ jobs:
       - name: 'Upload coverage report (html)'
         uses: actions/upload-artifact@v3
         with:
-          name: yagb-core/coverage_report
+          name: yagb-core-coverage_report
           path: yagb-core/coverage/lcov-report/
           retention-days: 30
           if-no-files-found: error
