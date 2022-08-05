@@ -5,7 +5,7 @@
     {
       "files": ["*.ts"],
       "parserOptions": {
-        "project": ["tsconfig.json", "e2e/tsconfig.json"],
+        "project": ["tsconfig.json"],
         "createDefaultProgram": true
       },
       "extends": [
@@ -20,6 +20,7 @@
             "suffixes": ["Page", "Component"]
           }
         ],
+        "@typescript-eslint/member-ordering": "off",
         "@angular-eslint/component-selector": [
           "error",
           {

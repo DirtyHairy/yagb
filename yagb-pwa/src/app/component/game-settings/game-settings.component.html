@@ -1,0 +1,24 @@
+<ion-header translucent>
+  <ion-toolbar>
+    <ion-title>Session settings</ion-title>
+
+    <ion-buttons slot="primary">
+      <ion-button (click)="save()" [disabled]="formGroup.invalid">Save</ion-button>
+    </ion-buttons>
+
+    <ion-buttons slot="secondary">
+      <ion-button (click)="cancel()">Cancel</ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content fullscreen>
+  <form [formGroup]="formGroup" (keydown.enter)="onEnter()">
+    <h1>Game settings</h1>
+
+    <ion-item lines="none">
+      <ion-label position="stacked">Session name</ion-label>
+      <ion-input placeholder="Enter game name" formControlName="name"></ion-input>
+    </ion-item>
+  </form>
+</ion-content>

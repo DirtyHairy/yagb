@@ -27,21 +27,21 @@ export interface Cartridge {
     printState(): string;
 }
 
-export function createCartridge(image: Uint8Array, system: System): Cartridge | undefined {
+export function identifyCartridge(image: Uint8Array, system: System): CartridgeType | undefined {
     if (image.length === 0) {
         system.error(`ROM file is empty!`);
-        throw new Error('Bad ROM file size');
+        return undefined;
     }
 
     if (image.length % CartridgeROMBankSize !== 0) {
         system.error(`Unexpected ROM file length`);
-        throw new Error('Bad ROM file size');
+        return undefined;
     }
 
     const lengthReference = 0x8000 << image[CartridgeAddress.size];
     if (image.length !== lengthReference) {
         system.error(`ROM size mismatch: expected ${hex16(lengthReference)}, got ${hex16(image.length)}`);
-        throw new Error('Bad ROM file size');
+        return undefined;
     }
 
     let headerChecksum = 0;
@@ -65,8 +65,40 @@ export function createCartridge(image: Uint8Array, system: System): Cartridge | 
         system.warning(`ROM checksum mismatch: expected ${hex16(checksumReference)}, got ${hex16(checksum)}`);
     }
 
-    const mapper = image[CartridgeAddress.type];
-    switch (mapper) {
+    const cartridgeType = image[CartridgeAddress.type];
+    switch (cartridgeType) {
+        case CartridgeType.rom:
+        case CartridgeType.rom_ram:
+        case CartridgeType.rom_ram_battery:
+        case CartridgeType.mbc1:
+        case CartridgeType.mbc1_ram:
+        case CartridgeType.mbc1_ram_battery:
+        case CartridgeType.mbc2:
+        case CartridgeType.mbc2_battery:
+        case CartridgeType.mbc3:
+        case CartridgeType.mbc3_ram:
+        case CartridgeType.mbc3_ram_battery:
+        case CartridgeType.mbc3_timer_battery:
+        case CartridgeType.mbc3_timer_ram_battery:
+        case CartridgeType.mbc5:
+        case CartridgeType.mbc5_ram:
+        case CartridgeType.mbc5_ram_battery:
+        case CartridgeType.mbc5_rumble:
+        case CartridgeType.mbc5_rumble_ram:
+        case CartridgeType.mbc5_rumble_ram_battery:
+            return cartridgeType;
+
+        default:
+            system.warning(`unsupported mapper type ${hex8(cartridgeType)}`);
+            return undefined;
+    }
+}
+
+export function createCartridge(image: Uint8Array, system: System): Cartridge | undefined {
+    const cartridgeType = identifyCartridge(image, system);
+    if (cartridgeType === undefined) return undefined;
+
+    switch (cartridgeType) {
         case CartridgeType.rom:
         case CartridgeType.rom_ram:
         case CartridgeType.rom_ram_battery:
@@ -97,7 +129,7 @@ export function createCartridge(image: Uint8Array, system: System): Cartridge | 
             return new CartridgeMbc5(image, system);
 
         default:
-            system.warning(`unsupported mapper type ${hex8(mapper)}`);
+            system.warning(`unsupported mapper type ${hex8(cartridgeType as number)}`);
             return undefined;
     }
 }

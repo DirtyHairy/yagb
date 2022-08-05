@@ -13,8 +13,13 @@ export class GameItemComponent {
     constructor(private popoverController: PopoverController) {}
 
     get color(): string | undefined {
-        if (this.selected) return 'primary';
-        if (this.touched) return 'light';
+        if (this.selected) {
+            return 'primary';
+        }
+
+        if (this.touched) {
+            return 'light';
+        }
 
         return undefined;
     }
@@ -41,7 +46,7 @@ export class GameItemComponent {
                 },
                 onReset: () => {
                     popover.dismiss();
-                    this.reset.emit();
+                    this.resetGame.emit();
                 },
             },
         });
@@ -65,7 +70,7 @@ export class GameItemComponent {
     edit = new EventEmitter<Game>();
 
     @Output()
-    reset = new EventEmitter<Game>();
+    resetGame = new EventEmitter<Game>();
 
     @Output()
     selectItem = new EventEmitter<Game>();
