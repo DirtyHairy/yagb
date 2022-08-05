@@ -45,7 +45,7 @@ export class GameSettingsComponent implements OnInit {
     }
 
     private validateNameUnique = (control: AbstractControl): ValidationErrors | null =>
-        control.value.trimRight() !== this.settings.name && !!this.gameService.getAllGames().some((g) => g.name === control.value.trimRight())
+        control.value.trimRight() !== this.settings.name && this.gameService.getAllGames().some((g) => g.name === control.value.trimRight())
             ? { name: 'already taken' }
             : null;
 

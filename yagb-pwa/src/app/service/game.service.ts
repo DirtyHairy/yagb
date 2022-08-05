@@ -8,7 +8,6 @@ import md5 from 'md5';
 @Injectable({ providedIn: 'root' })
 export class GameService {
     private games: Array<Game> = [];
-    private nextId = 0;
 
     getAllGames(): Array<Game> {
         return JSON.parse(JSON.stringify(this.games));
@@ -18,6 +17,12 @@ export class GameService {
         return false;
     }
 
+    async getByRom(rom: Uint8Array): Promise<Game | undefined> {
+        const hash = md5(rom);
+
+        return this.games.find((game) => game.romHash === hash);
+    }
+
     async addGameFromRom(settings: GameSettings, rom: Uint8Array): Promise<Game> {
         const cartridge = createCartridge(rom, new System(() => undefined));
         if (cartridge === undefined) {
@@ -25,7 +30,6 @@ export class GameService {
         }
 
         const game: Game = {
-            id: this.nextId++,
             name: settings.name,
             romHash: md5(rom),
             romInfo: cartridge.describe(),
@@ -37,10 +41,10 @@ export class GameService {
     }
 
     async deleteGame(game: Game): Promise<void> {
-        this.games = this.games.filter((g) => g.id !== game.id);
+        this.games = this.games.filter((g) => g.romHash !== game.romHash);
     }
 
     async updateGame(game: Game): Promise<void> {
-        this.games = this.games.map((g) => (g.id === game.id ? game : g));
+        this.games = this.games.map((g) => (g.romHash === game.romHash ? game : g));
     }
 }

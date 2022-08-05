@@ -26,7 +26,7 @@ export class GamesPage {
     ) {}
 
     get games(): Array<Game> {
-        return this.gameService.getAllGames();
+        return this.gameService.getAllGames().sort((g1, g2) => g1.name.localeCompare(g2.name));
     }
 
     get loading(): boolean {
@@ -45,7 +45,9 @@ export class GamesPage {
 
     editGame(game: Game): void {}
 
-    deleteGame(game: Game): void {}
+    deleteGame(game: Game): void {
+        this.gameService.deleteGame(game);
+    }
 
     resetGame(game: Game): void {}
 
@@ -56,6 +58,13 @@ export class GamesPage {
     private async handleFile(data: Uint8Array, name: string): Promise<void> {
         if (identifyCartridge(data, new System(() => undefined)) === undefined) {
             this.alertService.errorMessage('This file is not a supported cartridge.');
+            return;
+        }
+
+        const game = await this.gameService.getByRom(data);
+        if (game) {
+            this.alertService.errorMessage(`Cartridge already imported as "${game.name}".`);
+            return;
         }
 
         const settings: GameSettings = {
