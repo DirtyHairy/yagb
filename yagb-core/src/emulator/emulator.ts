@@ -171,7 +171,7 @@ export class Emulator {
     }
 
     printCartridgeInfo(): string {
-        return `Cartridge: ${this.cartridge.printInfo()}`;
+        return `Cartridge: ${this.cartridge.describe()}`;
     }
 
     printState(): string {

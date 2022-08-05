@@ -1,9 +1,8 @@
-import { AbstractControl, FormControl, FormGroup, Validators } from '@angular/forms';
+import { AbstractControl, FormControl, FormGroup, ValidationErrors, Validators } from '@angular/forms';
 import { Component, Input, OnInit } from '@angular/core';
 
-export interface GameSettings {
-    name: string;
-}
+import { GameService } from './../../service/game.service';
+import { GameSettings } from 'src/app/model/game-settings';
 
 @Component({
     selector: 'app-game-settings',
@@ -11,7 +10,7 @@ export interface GameSettings {
     styleUrls: ['./game-settings.component.scss'],
 })
 export class GameSettingsComponent implements OnInit {
-    constructor() {}
+    constructor(private gameService: GameService) {}
 
     get formControlName(): AbstractControl {
         return this.formGroup.get('name');
@@ -26,7 +25,7 @@ export class GameSettingsComponent implements OnInit {
             return;
         }
 
-        this.settings.name = this.formControlName.value;
+        this.settings.name = this.formControlName.value.trimRight();
 
         this.onSave();
     }
@@ -41,9 +40,14 @@ export class GameSettingsComponent implements OnInit {
 
     private createFormGroup(): void {
         this.formGroup = new FormGroup({
-            name: new FormControl(this.settings.name, { validators: [Validators.required] }),
+            name: new FormControl(this.settings.name, { validators: [Validators.required, this.validateNameUnique] }),
         });
     }
+
+    private validateNameUnique = (control: AbstractControl): ValidationErrors | null =>
+        control.value.trimRight() !== this.settings.name && !!this.gameService.getAllGames().some((g) => g.name === control.value.trimRight())
+            ? { name: 'already taken' }
+            : null;
 
     @Input()
     public settings!: GameSettings;

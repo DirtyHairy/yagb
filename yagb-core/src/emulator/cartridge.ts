@@ -23,7 +23,7 @@ export interface Cartridge {
     type(): number;
     size(): number;
 
-    printInfo(): string;
+    describe(): string;
     printState(): string;
 }
 
