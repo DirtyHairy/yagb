@@ -9,9 +9,22 @@ import md5 from 'md5';
 @Injectable({ providedIn: 'root' })
 export class GameService {
     private games: Array<Game> = [];
+    private currentGame: Game | undefined;
 
     constructor(private database: Database) {
         this.updateGames();
+    }
+
+    getCurrentGame(): Game | undefined {
+        return this.currentGame;
+    }
+
+    setCurrentGame(game: Game): void {
+        this.currentGame = game;
+    }
+
+    clearCurrentGame(): void {
+        this.currentGame = undefined;
     }
 
     getAllGames(): Array<Game> {
@@ -56,5 +69,6 @@ export class GameService {
 
     private async updateGames(): Promise<void> {
         this.games = await this.database.getAllGames();
+        this.currentGame = await this.database.getGameByRomHash(this.currentGame.romHash);
     }
 }

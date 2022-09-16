@@ -1,5 +1,4 @@
 import { AlertController, ModalController } from '@ionic/angular';
-import { createCartridge, identifyCartridge } from 'yagb-core/src/emulator/cartridge';
 
 import { AlertService } from './../../service/alert.service';
 import { Component } from '@angular/core';
@@ -8,7 +7,9 @@ import { Game } from './../../model/game';
 import { GameService } from './../../service/game.service';
 import { GameSettings } from './../../model/game-settings';
 import { GameSettingsComponent } from './../../component/game-settings/game-settings.component';
+import { Router } from '@angular/router';
 import { System } from 'yagb-core/src/emulator/system';
+import { identifyCartridge } from 'yagb-core/src/emulator/cartridge';
 
 @Component({
     selector: 'app-page-games',
@@ -23,7 +24,8 @@ export class GamesPage {
         private fileService: FileService,
         private alertService: AlertService,
         private modalController: ModalController,
-        private alertController: AlertController
+        private alertController: AlertController,
+        private router: Router
     ) {}
 
     get games(): Array<Game> {
@@ -35,14 +37,17 @@ export class GamesPage {
     }
 
     get currentGameRomHash(): string {
-        return '';
+        return this.gameService.getCurrentGame()?.romHash || '';
     }
 
     trackGameBy(index: number, game: Game) {
         return game.romHash;
     }
 
-    launchGame(game: Game): void {}
+    launchGame(game: Game): void {
+        this.gameService.setCurrentGame(game);
+        this.router.navigateByUrl('/tab/play');
+    }
 
     async editGame(game: Game): Promise<void> {
         const settings: GameSettings = {

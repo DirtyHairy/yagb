@@ -1,4 +1,6 @@
 import { Component } from '@angular/core';
+import { Game } from './../../model/game';
+import { GameService } from './../../service/game.service';
 
 @Component({
     selector: 'app-page-play',
@@ -6,5 +8,9 @@ import { Component } from '@angular/core';
     styleUrls: ['play.page.scss'],
 })
 export class PlayPage {
-    constructor() {}
+    constructor(private gameService: GameService) {}
+
+    get currentGameName(): string {
+        return this.gameService.getCurrentGame()?.name || '';
+    }
 }
