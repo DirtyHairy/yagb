@@ -31,7 +31,18 @@ export class Database extends Dexie {
         return this.game.get(romHash);
     }
 
-    async putGame(game: Game): Promise<Game> {
+    async putGame(game: Game, rom: Uint8Array): Promise<Game> {
+        await this.transaction('rw', this.game, this.rom, () => {
+            this.game.put(game);
+            this.rom.put({ data: rom, hash: game.romHash });
+        });
+
+        await this.game.put(game);
+
+        return game;
+    }
+
+    async updateGame(game: Game): Promise<Game> {
         await this.game.put(game);
 
         return game;
@@ -39,6 +50,10 @@ export class Database extends Dexie {
 
     async deleteGameByRomHash(romHash: string): Promise<void> {
         await this.game.delete(romHash);
+    }
+
+    async getRomData(hash: string): Promise<Uint8Array | undefined> {
+        return (await this.rom.get(hash))?.data;
     }
 
     private async requestPersistentStorage() {

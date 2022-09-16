@@ -51,7 +51,7 @@ export class GameService {
             romInfo: cartridge.describe(),
         };
 
-        await this.database.putGame(game);
+        await this.database.putGame(game, rom);
         await this.updateGames();
 
         return game;
@@ -63,7 +63,7 @@ export class GameService {
     }
 
     async updateGame(game: Game): Promise<void> {
-        await this.database.putGame(game);
+        await this.database.updateGame(game);
         await this.updateGames();
     }
 

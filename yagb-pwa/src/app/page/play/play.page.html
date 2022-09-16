@@ -8,9 +8,11 @@
 
 <ion-content [fullscreen]="true">
 
-  <div *ngIf="!isGameSelected" class="placeholder">
-    No game selected!
+  <div class="container">
+    <div *ngIf="!isGameSelected" class="placeholder">
+      No game selected!
+    </div>
+    <canvas #canvas width="640" height="576" *ngIf="isGameSelected"></canvas>
   </div>
-  <canvas *ngIf="isGameSelected"></canvas>
 
 </ion-content>
