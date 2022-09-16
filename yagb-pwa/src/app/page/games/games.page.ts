@@ -1,3 +1,4 @@
+import { AlertController, ModalController } from '@ionic/angular';
 import { createCartridge, identifyCartridge } from 'yagb-core/src/emulator/cartridge';
 
 import { AlertService } from './../../service/alert.service';
@@ -7,7 +8,6 @@ import { Game } from './../../model/game';
 import { GameService } from './../../service/game.service';
 import { GameSettings } from './../../model/game-settings';
 import { GameSettingsComponent } from './../../component/game-settings/game-settings.component';
-import { ModalController } from '@ionic/angular';
 import { System } from 'yagb-core/src/emulator/system';
 
 @Component({
@@ -22,7 +22,8 @@ export class GamesPage {
         private gameService: GameService,
         private fileService: FileService,
         private alertService: AlertService,
-        private modalController: ModalController
+        private modalController: ModalController,
+        private alertController: AlertController
     ) {}
 
     get games(): Array<Game> {
@@ -45,8 +46,17 @@ export class GamesPage {
 
     editGame(game: Game): void {}
 
-    deleteGame(game: Game): void {
-        this.gameService.deleteGame(game);
+    async deleteGame(game: Game): Promise<void> {
+        const alert = await this.alertController.create({
+            header: 'Warning',
+            message: `Deleting the game '${game.name}' will remove it and all associated save states. This cannot be undone. Are you sure you want to continue?`,
+            buttons: [
+                { text: 'Cancel', role: 'cancel' },
+                { text: 'Delete', handler: () => this.gameService.deleteGame(game) },
+            ],
+        });
+
+        await alert.present();
     }
 
     resetGame(game: Game): void {}
