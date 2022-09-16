@@ -44,7 +44,25 @@ export class GamesPage {
 
     launchGame(game: Game): void {}
 
-    editGame(game: Game): void {}
+    async editGame(game: Game): Promise<void> {
+        const settings: GameSettings = {
+            name: game.name,
+        };
+
+        const modal = await this.modalController.create({
+            component: GameSettingsComponent,
+            componentProps: {
+                settings,
+                onSave: () => {
+                    modal.dismiss();
+                    this.gameService.updateGame({ ...game, name: settings.name });
+                },
+                onCancel: () => modal.dismiss(),
+            },
+        });
+
+        await modal.present();
+    }
 
     async deleteGame(game: Game): Promise<void> {
         const alert = await this.alertController.create({
