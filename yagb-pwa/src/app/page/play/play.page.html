@@ -1,15 +1,16 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
     <ion-title>
-      {{ currentGameName }}
+      {{ currentGameName || 'No game' }}
     </ion-title>
   </ion-toolbar>
 </ion-header>
 
 <ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">{{ currentGameName }}</ion-title>
-    </ion-toolbar>
-  </ion-header>
+
+  <div *ngIf="!isGameSelected" class="placeholder">
+    No game selected!
+  </div>
+  <canvas *ngIf="isGameSelected"></canvas>
+
 </ion-content>

@@ -69,6 +69,9 @@ export class GameService {
 
     private async updateGames(): Promise<void> {
         this.games = await this.database.getAllGames();
-        this.currentGame = await this.database.getGameByRomHash(this.currentGame.romHash);
+
+        if (this.currentGame) {
+            this.currentGame = await this.database.getGameByRomHash(this.currentGame.romHash);
+        }
     }
 }

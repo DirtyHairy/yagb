@@ -10,7 +10,11 @@ import { GameService } from './../../service/game.service';
 export class PlayPage {
     constructor(private gameService: GameService) {}
 
-    get currentGameName(): string {
-        return this.gameService.getCurrentGame()?.name || '';
+    get currentGameName(): string | undefined {
+        return this.gameService.getCurrentGame()?.name;
+    }
+
+    get isGameSelected(): boolean {
+        return this.gameService.getCurrentGame() !== undefined;
     }
 }
