@@ -1,3 +1,4 @@
+import { Database } from './database.service';
 import { Game } from '../model/game';
 import { GameSettings } from '../model/game-settings';
 import { Injectable } from '@angular/core';
@@ -9,6 +10,10 @@ import md5 from 'md5';
 export class GameService {
     private games: Array<Game> = [];
 
+    constructor(private database: Database) {
+        this.updateGames();
+    }
+
     getAllGames(): Array<Game> {
         return JSON.parse(JSON.stringify(this.games));
     }
@@ -18,9 +23,7 @@ export class GameService {
     }
 
     async getByRom(rom: Uint8Array): Promise<Game | undefined> {
-        const hash = md5(rom);
-
-        return this.games.find((game) => game.romHash === hash);
+        return this.database.getGameByRomHash(md5(rom));
     }
 
     async addGameFromRom(settings: GameSettings, rom: Uint8Array): Promise<Game> {
@@ -35,16 +38,23 @@ export class GameService {
             romInfo: cartridge.describe(),
         };
 
-        this.games.push(game);
+        await this.database.putGame(game);
+        await this.updateGames();
 
         return game;
     }
 
     async deleteGame(game: Game): Promise<void> {
-        this.games = this.games.filter((g) => g.romHash !== game.romHash);
+        await this.database.deleteGameByRomHash(game.romHash);
+        await this.updateGames();
     }
 
     async updateGame(game: Game): Promise<void> {
-        this.games = this.games.map((g) => (g.romHash === game.romHash ? game : g));
+        await this.database.putGame(game);
+        await this.updateGames();
+    }
+
+    private async updateGames(): Promise<void> {
+        this.games = await this.database.getAllGames();
     }
 }
