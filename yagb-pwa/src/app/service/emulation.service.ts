@@ -7,10 +7,13 @@ import { Injectable } from '@angular/core';
 import { Mutex } from 'async-mutex';
 import { Scheduler } from 'yagb-core/src/emulator/scheduler';
 
+const AUTOSAVE_INTERVAL_SECONDS = 1;
+
 @Injectable({ providedIn: 'root' })
 export class EmulationService {
     private emulator: Emulator | undefined;
     private lastFrameIndex = 0;
+    private lastAutosaveAt = 0;
     private frameCanvasCtx: CanvasRenderingContext2D;
     private mutex = new Mutex();
     private currentlyRunning = '';
@@ -66,6 +69,13 @@ export class EmulationService {
                 this.scheduler.onTimesliceComplete.addHandler(this.onTimeslice);
                 this.audioDriver.start(this.emulator.startAudio(this.audioDriver.getSampleRate()));
 
+                const savestate = await this.database.getAutosave(currentGame.romHash);
+                if (savestate) {
+                    this.emulator.load(new Uint8Array(savestate));
+                }
+
+                this.lastAutosaveAt = 0;
+
                 this.currentlyRunning = currentGame.romHash;
             } else {
                 this.audioDriver.continue();
@@ -83,6 +93,8 @@ export class EmulationService {
         });
 
     private onTimeslice = () => {
+        this.autosave();
+
         if (!this.emulator || this.emulator.getFrameIndex() === this.lastFrameIndex) {
             return;
         }
@@ -94,4 +106,14 @@ export class EmulationService {
 
         this.lastFrameIndex = this.emulator.getFrameIndex();
     };
+
+    private autosave() {
+        const virtualClock = this.scheduler.getVirtualClockSeconds();
+        if (virtualClock - this.lastAutosaveAt < AUTOSAVE_INTERVAL_SECONDS) {
+            return;
+        }
+
+        this.database.putAutosave(this.currentlyRunning, this.emulator.save().getBuffer());
+        this.lastAutosaveAt = virtualClock;
+    }
 }

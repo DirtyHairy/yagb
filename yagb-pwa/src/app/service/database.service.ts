@@ -10,6 +10,7 @@ export class Database extends Dexie {
     private game!: Dexie.Table<Game, string>;
     private rom!: Dexie.Table<Rom, string>;
     private savestate!: Dexie.Table<SavestateContainer, [string, string]>;
+    private autosave!: Dexie.Table<ArrayBuffer, string>;
 
     constructor() {
         super(environment.databaseName);
@@ -19,7 +20,8 @@ export class Database extends Dexie {
         this.version(1).stores({
             game: 'romHash',
             rom: 'hash',
-            snapshot: '[romHash+name], romHash',
+            savestate: '[romHash+name], romHash',
+            autosave: '',
         });
     }
 
@@ -54,6 +56,14 @@ export class Database extends Dexie {
 
     async getRomData(hash: string): Promise<Uint8Array | undefined> {
         return (await this.rom.get(hash))?.data;
+    }
+
+    getAutosave(romHash: string): Promise<ArrayBuffer | undefined> {
+        return this.autosave.get(romHash);
+    }
+
+    async putAutosave(romHash: string, data: ArrayBuffer): Promise<void> {
+        await this.autosave.put(data, romHash);
     }
 
     private async requestPersistentStorage() {

@@ -61,6 +61,10 @@ export class Scheduler {
         return this.speed;
     }
 
+    getVirtualClockSeconds(): number {
+        return this.virtualClockSeconds;
+    }
+
     private executeTimeslice(durationSeconds: number, timestamp: number): boolean {
         if (durationSeconds > CLOCK_DRIFT_LIMIT_SEC) {
             durationSeconds = CLOCK_DRIFT_RESET_HEADROOM_SEC;
