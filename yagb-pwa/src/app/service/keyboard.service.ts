@@ -1,9 +1,12 @@
 import { Emulator } from 'yagb-core/src/emulator/emulator';
+import { Event } from 'microevent.ts';
 import { Injectable } from '@angular/core';
 import { key } from 'yagb-core/src/emulator/joypad';
 
 @Injectable({ providedIn: 'root' })
 export class KeyboardService {
+    onUnhandledKey = new Event<string>();
+
     private emulator: Emulator | undefined;
 
     bind(emulator: Emulator): void {
@@ -61,6 +64,9 @@ export class KeyboardService {
 
     private onKeydown = (e: KeyboardEvent) => {
         const mappedKey = this.getKey(e.key);
+        if (mappedKey === undefined) {
+            this.onUnhandledKey.dispatch(e.key);
+        }
 
         if (mappedKey !== undefined && this.emulator !== undefined) {
             this.emulator.keyDown(mappedKey);

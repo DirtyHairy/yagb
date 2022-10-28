@@ -24,6 +24,7 @@ export class PlayPage {
         private database: Database
     ) {
         this.bootstrapComplete = this.bootstrap();
+        this.keyboarsService.onUnhandledKey.addHandler(this.onUnhandledKey);
     }
 
     get currentGameName(): string | undefined {
@@ -56,9 +57,12 @@ export class PlayPage {
         if (this.isGameSelected && !this.firstView) {
             await this.startEmulation();
         }
+
+        this.keyboarsService.bind(this.emulationService.getEmulator());
     }
 
     async ionViewDidLeave(): Promise<void> {
+        this.keyboarsService.unbind();
         await this.stopEmulation();
 
         this.firstView = false;
@@ -95,14 +99,18 @@ export class PlayPage {
         if (!this.emulationService.onNewFrame.isHandlerAttached(this.onNewFrame)) {
             this.emulationService.onNewFrame.addHandler(this.onNewFrame);
         }
-
-        this.keyboarsService.bind(this.emulationService.getEmulator());
     }
 
     private async stopEmulation(): Promise<void> {
-        this.keyboarsService.unbind();
         this.emulationService.onNewFrame.removeHandler(this.onNewFrame);
 
         await this.emulationService.stop();
     }
+
+    private onUnhandledKey = (key) => {
+        switch (key) {
+            case 'p':
+                this.togglePlayPause();
+        }
+    };
 }
