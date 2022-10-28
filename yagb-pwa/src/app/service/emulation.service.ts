@@ -1,3 +1,5 @@
+import { compressFrame, decompressFrame } from '../helper/frame';
+
 import { AudioDriver } from 'yagb-core/src/emulator/apu/audio-driver';
 import { Database } from './database.service';
 import { Emulator } from 'yagb-core/src/emulator/emulator';
@@ -33,11 +35,15 @@ export class EmulationService {
     }
 
     start(): Promise<void> {
-        return this.doStart();
+        return this.mutex.runExclusive(() => this.doStart());
     }
 
     stop(): Promise<void> {
-        return this.doStop();
+        return this.mutex.runExclusive(() => this.doStop());
+    }
+
+    prepare(): Promise<void> {
+        return this.mutex.runExclusive(() => this.doPrepare());
     }
 
     getEmulator(): Emulator | undefined {
@@ -48,55 +54,69 @@ export class EmulationService {
         return !!this.scheduler?.isRunning();
     }
 
-    private doStart = () =>
-        this.mutex.runExclusive(async () => {
-            const currentGame = this.gameService.getCurrentGame();
-            if (!currentGame) {
-                return;
-            }
+    lastFrameData(): ArrayBuffer | undefined {
+        return this.emulator.getFrameData();
+    }
 
-            if (currentGame.romHash !== this.currentlyRunning) {
-                this.audioDriver.stop();
+    private async doPrepare(): Promise<void> {
+        const currentGame = this.gameService.getCurrentGame();
+        if (!currentGame) {
+            return;
+        }
 
-                if (this.scheduler) {
-                    this.scheduler.stop();
-                    this.scheduler.onTimesliceComplete.removeHandler(this.onTimeslice);
-                }
+        if (currentGame.romHash !== this.currentlyRunning) {
+            this.audioDriver.stop();
 
-                const romData = await this.database.getRomData(currentGame.romHash);
-                if (!romData) {
-                    throw new Error(`cannot happend: no ROM found for ${currentGame.romHash}`);
-                }
-
-                this.emulator = new Emulator(romData, (x) => console.log(x));
-                this.scheduler = new Scheduler(this.emulator);
-                this.lastFrameIndex = -1;
-
-                this.scheduler.onTimesliceComplete.addHandler(this.onTimeslice);
-                this.audioDriver.start(this.emulator.startAudio(this.audioDriver.getSampleRate()));
-
-                const savestate = await this.database.getAutosave(currentGame.romHash);
-                if (savestate) {
-                    this.emulator.load(new Uint8Array(savestate));
-                }
-
-                this.lastAutosaveAt = 0;
-
-                this.currentlyRunning = currentGame.romHash;
-            } else {
-                this.audioDriver.continue();
-            }
-
-            this.scheduler.start();
-        });
-
-    private doStop = () =>
-        this.mutex.runExclusive(() => {
             if (this.scheduler) {
                 this.scheduler.stop();
-                this.audioDriver.pause();
+                this.scheduler.onTimesliceComplete.removeHandler(this.onTimeslice);
             }
-        });
+
+            const romData = await this.database.getRomData(currentGame.romHash);
+            if (!romData) {
+                throw new Error(`cannot happend: no ROM found for ${currentGame.romHash}`);
+            }
+
+            this.emulator = new Emulator(romData, (x) => console.log(x));
+            this.scheduler = new Scheduler(this.emulator);
+            this.lastFrameIndex = this.emulator.getFrameIndex();
+
+            this.scheduler.onTimesliceComplete.addHandler(this.onTimeslice);
+            this.audioDriver.start(this.emulator.startAudio(this.audioDriver.getSampleRate()));
+            this.audioDriver.pause();
+
+            const savestate = await this.database.getAutosave(currentGame.romHash);
+            if (savestate) {
+                this.emulator.load(new Uint8Array(savestate.data));
+
+                if (savestate.lastFrame) {
+                    this.dispatchFrame(decompressFrame(savestate.lastFrame));
+                }
+            }
+
+            this.lastAutosaveAt = 0;
+
+            this.currentlyRunning = currentGame.romHash;
+        }
+    }
+
+    private async doStart(): Promise<void> {
+        if (!this.gameService.getCurrentGame()) {
+            return;
+        }
+
+        await this.doPrepare();
+
+        this.scheduler.start();
+        this.audioDriver.continue();
+    }
+
+    private async doStop(): Promise<void> {
+        if (this.scheduler) {
+            this.scheduler.stop();
+            this.audioDriver.pause();
+        }
+    }
 
     private onTimeslice = () => {
         this.autosave();
@@ -105,21 +125,29 @@ export class EmulationService {
             return;
         }
 
-        const imageData = new ImageData(new Uint8ClampedArray(this.emulator.getFrameData()), 160, 144);
-        this.frameCanvasCtx.putImageData(imageData, 0, 0);
-
-        this.onNewFrame.dispatch(this.frameCanvasCtx.canvas);
-
+        this.dispatchFrame();
         this.lastFrameIndex = this.emulator.getFrameIndex();
     };
 
     private autosave() {
         const virtualClock = this.scheduler.getVirtualClockSeconds();
-        if (virtualClock - this.lastAutosaveAt < AUTOSAVE_INTERVAL_SECONDS) {
+        if (virtualClock - this.lastAutosaveAt < AUTOSAVE_INTERVAL_SECONDS || this.currentlyRunning === undefined) {
             return;
         }
 
-        this.database.putAutosave(this.currentlyRunning, this.emulator.save().getBuffer());
+        this.database.putAutosave({
+            romHash: this.currentlyRunning,
+            data: this.emulator.save().getBuffer(),
+            lastFrame: compressFrame(this.emulator.getFrameData()),
+        });
+
         this.lastAutosaveAt = virtualClock;
+    }
+
+    private dispatchFrame(data = this.emulator.getFrameData()): void {
+        const imageData = new ImageData(new Uint8ClampedArray(data), 160, 144);
+        this.frameCanvasCtx.putImageData(imageData, 0, 0);
+
+        this.onNewFrame.dispatch(this.frameCanvasCtx.canvas);
     }
 }

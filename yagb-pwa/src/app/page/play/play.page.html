@@ -18,7 +18,7 @@
     <div *ngIf="!isGameSelected" class="placeholder">
       No game selected!
     </div>
-    <canvas #canvas width="640" height="576" *ngIf="isGameSelected"></canvas>
+    <canvas #canvas width="640" height="576" [style.display]="isGameSelected ? 'block' : 'none'"></canvas>
   </div>
 
 </ion-content>

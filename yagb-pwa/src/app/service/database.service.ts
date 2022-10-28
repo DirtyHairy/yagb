@@ -1,3 +1,4 @@
+import { AutosaveContainer } from './../model/autosave-container';
 import { Dexie } from 'dexie';
 import { Game } from './../model/game';
 import { Injectable } from '@angular/core';
@@ -10,7 +11,7 @@ export class Database extends Dexie {
     private game!: Dexie.Table<Game, string>;
     private rom!: Dexie.Table<Rom, string>;
     private savestate!: Dexie.Table<SavestateContainer, [string, string]>;
-    private autosave!: Dexie.Table<ArrayBuffer, string>;
+    private autosave!: Dexie.Table<AutosaveContainer, string>;
 
     constructor() {
         super(environment.databaseName);
@@ -21,7 +22,7 @@ export class Database extends Dexie {
             game: 'romHash',
             rom: 'hash',
             savestate: '[romHash+name], romHash',
-            autosave: '',
+            autosave: 'romHash',
         });
     }
 
@@ -58,12 +59,12 @@ export class Database extends Dexie {
         return (await this.rom.get(hash))?.data;
     }
 
-    getAutosave(romHash: string): Promise<ArrayBuffer | undefined> {
+    getAutosave(romHash: string): Promise<AutosaveContainer | undefined> {
         return this.autosave.get(romHash);
     }
 
-    async putAutosave(romHash: string, data: ArrayBuffer): Promise<void> {
-        await this.autosave.put(data, romHash);
+    async putAutosave(autosave: AutosaveContainer): Promise<void> {
+        await this.autosave.put(autosave);
     }
 
     private async requestPersistentStorage() {

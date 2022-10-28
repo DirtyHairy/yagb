@@ -15,6 +15,7 @@ export class PlayPage {
     @ViewChild('canvas') private canvasRef!: ElementRef<HTMLCanvasElement>;
 
     private bootstrapComplete: Promise<void>;
+    private firstView = true;
 
     constructor(
         private gameService: GameService,
@@ -43,26 +44,24 @@ export class PlayPage {
         }
 
         if (this.emulationService.isRunning()) {
-            this.emulationService.stop();
+            this.stopEmulation();
         } else {
-            this.emulationService.start();
+            this.startEmulation();
         }
     }
 
     async ionViewDidEnter(): Promise<void> {
         await this.bootstrapComplete;
 
-        if (this.isGameSelected) {
-            this.emulationService.onNewFrame.addHandler(this.onNewFrame);
-            this.keyboarsService.bind(this.emulationService.getEmulator());
+        if (this.isGameSelected && !this.firstView) {
+            await this.startEmulation();
         }
     }
 
     async ionViewDidLeave(): Promise<void> {
-        await this.emulationService.stop();
+        await this.stopEmulation();
 
-        this.emulationService.onNewFrame.removeHandler(this.onNewFrame);
-        this.keyboarsService.unbind();
+        this.firstView = false;
     }
 
     private onNewFrame = (sourceCanvas: HTMLCanvasElement) => {
@@ -85,5 +84,25 @@ export class PlayPage {
         }
 
         this.gameService.setCurrentGame(currentGame);
+
+        this.emulationService.onNewFrame.addHandler(this.onNewFrame);
+        await this.emulationService.prepare();
+    }
+
+    private async startEmulation(): Promise<void> {
+        await this.emulationService.start();
+
+        if (!this.emulationService.onNewFrame.isHandlerAttached(this.onNewFrame)) {
+            this.emulationService.onNewFrame.addHandler(this.onNewFrame);
+        }
+
+        this.keyboarsService.bind(this.emulationService.getEmulator());
+    }
+
+    private async stopEmulation(): Promise<void> {
+        this.keyboarsService.unbind();
+        this.emulationService.onNewFrame.removeHandler(this.onNewFrame);
+
+        await this.emulationService.stop();
     }
 }

@@ -49,7 +49,6 @@ export class GamesPage {
     launchGame(game: Game): void {
         this.gameService.setCurrentGame(game);
         this.router.navigateByUrl('/tab/play');
-        this.emulationService.start();
     }
 
     async editGame(game: Game): Promise<void> {

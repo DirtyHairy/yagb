@@ -38,7 +38,8 @@
           }
         ],
         "prefer-arrow/prefer-arrow-functions": "off",
-        "max-len": "off"
+        "max-len": "off",
+        "no-bitwise": "off"
       }
     },
     {
