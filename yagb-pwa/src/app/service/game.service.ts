@@ -1,4 +1,7 @@
+import { clearCurrentGame, setCurrentGame } from '../helper/currentGame';
+
 import { Database } from './database.service';
+import { Event } from 'microevent.ts';
 import { Game } from '../model/game';
 import { GameSettings } from '../model/game-settings';
 import { Injectable } from '@angular/core';
@@ -11,6 +14,8 @@ export class GameService {
     private games: Array<Game> = [];
     private currentGame: Game | undefined;
 
+    onClearCurrentGame = new Event<void>();
+
     constructor(private database: Database) {
         this.updateGames();
     }
@@ -21,10 +26,14 @@ export class GameService {
 
     setCurrentGame(game: Game): void {
         this.currentGame = game;
+        setCurrentGame(game.romHash);
     }
 
     clearCurrentGame(): void {
         this.currentGame = undefined;
+        clearCurrentGame();
+
+        this.onClearCurrentGame.dispatch();
     }
 
     getAllGames(): Array<Game> {
@@ -58,6 +67,10 @@ export class GameService {
     }
 
     async deleteGame(game: Game): Promise<void> {
+        if (game.romHash === this.currentGame.romHash) {
+            this.clearCurrentGame();
+        }
+
         await this.database.deleteGameByRomHash(game.romHash);
         await this.updateGames();
     }

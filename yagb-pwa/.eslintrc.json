@@ -37,6 +37,7 @@
             "style": "camelCase"
           }
         ],
+        "prefer-arrow/prefer-arrow-functions": "off",
         "max-len": "off"
       }
     },

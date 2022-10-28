@@ -28,6 +28,8 @@ export class EmulationService {
         canvas.height = 144;
 
         this.frameCanvasCtx = canvas.getContext('2d');
+
+        this.gameService.onClearCurrentGame.addHandler(() => this.stop());
     }
 
     start(): Promise<void> {
