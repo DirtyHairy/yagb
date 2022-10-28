@@ -3,6 +3,12 @@
     <ion-title>
       {{ currentGameName || 'No game' }}
     </ion-title>
+
+    <ion-buttons slot="end">
+      <ion-button [disabled]="!isGameSelected" (click)="togglePlayPause()">
+        <ion-icon [name]="isRunning ? 'pause-outline' : 'play-outline'"></ion-icon>
+      </ion-button>
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 

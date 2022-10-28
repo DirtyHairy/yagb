@@ -44,6 +44,10 @@ export class EmulationService {
         return this.emulator;
     }
 
+    isRunning(): boolean {
+        return !!this.scheduler?.isRunning();
+    }
+
     private doStart = () =>
         this.mutex.runExclusive(async () => {
             const currentGame = this.gameService.getCurrentGame();

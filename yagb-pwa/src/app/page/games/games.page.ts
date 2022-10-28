@@ -2,6 +2,7 @@ import { AlertController, ModalController } from '@ionic/angular';
 
 import { AlertService } from './../../service/alert.service';
 import { Component } from '@angular/core';
+import { EmulationService } from './../../service/emulation.service';
 import { FileService } from './../../service/file.service';
 import { Game } from './../../model/game';
 import { GameService } from './../../service/game.service';
@@ -25,6 +26,7 @@ export class GamesPage {
         private alertService: AlertService,
         private modalController: ModalController,
         private alertController: AlertController,
+        private emulationService: EmulationService,
         private router: Router
     ) {}
 
@@ -47,6 +49,7 @@ export class GamesPage {
     launchGame(game: Game): void {
         this.gameService.setCurrentGame(game);
         this.router.navigateByUrl('/tab/play');
+        this.emulationService.start();
     }
 
     async editGame(game: Game): Promise<void> {

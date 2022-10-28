@@ -33,12 +33,26 @@ export class PlayPage {
         return this.gameService.getCurrentGame() !== undefined;
     }
 
+    get isRunning(): boolean {
+        return this.emulationService.isRunning();
+    }
+
+    togglePlayPause(): boolean {
+        if (!this.isGameSelected) {
+            return;
+        }
+
+        if (this.emulationService.isRunning()) {
+            this.emulationService.stop();
+        } else {
+            this.emulationService.start();
+        }
+    }
+
     async ionViewDidEnter(): Promise<void> {
         await this.bootstrapComplete;
 
         if (this.isGameSelected) {
-            await this.emulationService.start();
-
             this.emulationService.onNewFrame.addHandler(this.onNewFrame);
             this.keyboarsService.bind(this.emulationService.getEmulator());
         }
