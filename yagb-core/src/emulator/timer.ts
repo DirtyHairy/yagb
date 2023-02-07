@@ -114,8 +114,8 @@ export class Timer {
 
         this.accDiv += cpuClocks;
         // 1MHz / 64 = 16kHz
-        this.reg[reg.div] = (this.reg[reg.div] + ((this.accDiv / 64) | 0)) & 0xff;
-        this.accDiv %= 64;
+        this.reg[reg.div] = (this.reg[reg.div] + (this.accDiv >>> 6)) & 0xff;
+        this.accDiv &= 0x3f;
 
         let tima = this.reg[reg.tima];
         const tma = this.reg[reg.tma];

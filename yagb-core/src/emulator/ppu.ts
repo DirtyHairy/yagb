@@ -48,7 +48,7 @@ const enum stat {
     sourceModeHblank = 0x08,
 }
 
-const SAVESTATE_VERSION = 0x00;
+const SAVESTATE_VERSION = 0x01;
 
 function clockPenaltyForSprite(scx: number, x: number): number {
     let tmp = (x + scx + 8) % 8;
@@ -81,11 +81,12 @@ export class Ppu {
             .writeBuffer(this.reg)
             .write16(this.mode3ExtraClocks)
             .write16(this.windowLine)
-            .write16(flag);
+            .write16(flag)
+            .write16(this.vblankLines);
     }
 
     load(savestate: Savestate): void {
-        savestate.validateChunk(SAVESTATE_VERSION);
+        const version = savestate.validateChunk(SAVESTATE_VERSION);
 
         this.clockInMode = savestate.read16();
         this.scanline = savestate.read16();
@@ -105,6 +106,9 @@ export class Ppu {
         this.dmaInProgress = (flag & 0x04) !== 0;
         this.lineRendered = (flag & 0x08) !== 0;
         this.windowTriggered = (flag & 0x10) !== 0;
+
+        this.vblankLines = (this.clockInMode / 456) | 0;
+        if (version >= 0x01) this.vblankLines = savestate.read16();
 
         this.frame = 0;
         this.skipFrame = this.mode === ppuMode.vblank ? 0 : 1;
@@ -150,6 +154,7 @@ export class Ppu {
         this.dmaInProgress = false;
         this.dmaCycle = 0;
         this.skipFrame = 0;
+        this.vblankLines = 0;
 
         this.vram.fill(0);
         this.oam.fill(0);
@@ -273,6 +278,7 @@ export class Ppu {
                     if (this.scanline === 144) {
                         this.mode = ppuMode.vblank;
                         this.vblankFired = false;
+                        this.vblankLines = 0;
                     } else {
                         this.mode = ppuMode.oamScan;
                     }
@@ -309,7 +315,9 @@ export class Ppu {
                         this.vblankFired = true;
                     }
 
-                    let scanline = 144 + ((this.clockInMode / 456) | 0);
+                    if (this.clockInMode - this.vblankLines * 456 >= 456) this.vblankLines++;
+                    let scanline = 144 + this.vblankLines;
+
                     // Emulate short line 153. It is unclear how long this should be.
                     // The no$gb docs say ~56 cycles, the cycle-exact docs say 4, the SameBoy source
                     // says 12. 4 Kills Prehistorik Man, 12 makes it flicker, so we go with 56 until
@@ -383,15 +391,15 @@ export class Ppu {
 
         if (bgEnable) {
             if (windowActive) {
-                bgTileNY = (this.windowLine / 8) | 0;
-                bgTileY = this.windowLine % 8;
+                bgTileNY = this.windowLine >>> 3;
+                bgTileY = this.windowLine & 0x07;
                 bgTileX = -windowX;
                 bgTileData = this.backgroundTileData(true, bgTileNX, bgTileNY, bgTileY) << bgTileX;
             } else {
-                bgTileNY = (backgroundY / 8) | 0;
-                bgTileY = backgroundY % 8;
-                bgTileX = backgroundX % 8;
-                bgTileNX = (backgroundX / 8) | 0;
+                bgTileNY = backgroundY >>> 3;
+                bgTileY = backgroundY & 0x07;
+                bgTileX = backgroundX & 0x07;
+                bgTileNX = backgroundX >>> 3;
                 bgTileData = this.backgroundTileData(false, bgTileNX, bgTileNY, bgTileY) << bgTileX;
             }
         }
@@ -446,8 +454,8 @@ export class Ppu {
             if (!windowActive && windowEnable && this.windowTriggered && windowX === x) {
                 windowActive = true;
 
-                bgTileNY = (this.windowLine / 8) | 0;
-                bgTileY = this.windowLine % 8;
+                bgTileNY = this.windowLine >>> 3;
+                bgTileY = this.windowLine & 0x07;
                 bgTileX = 0;
                 bgTileNX = 0;
                 bgTileData = this.backgroundTileData(true, bgTileNX, bgTileNY, bgTileY);
@@ -623,6 +631,7 @@ export class Ppu {
     private mode: ppuMode = ppuMode.oamScan;
     private skipFrame = 0;
     private vblankFired = false;
+    private vblankLines = 0;
 
     private wx = 0;
     private wy = 0;

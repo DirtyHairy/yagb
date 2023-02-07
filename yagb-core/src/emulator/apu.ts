@@ -142,9 +142,12 @@ export class Apu {
         // enough clocks to generate the next sample?
         if (this.acc + clocks * this.sampleRate >= cnst.CLOCK) {
             // calculate the clocks required for the next sample
-            let consumed = ((cnst.CLOCK - this.acc) / this.sampleRate) | 0;
-            // accout for ceil
-            if ((cnst.CLOCK - this.acc) % this.sampleRate !== 0) consumed++;
+            let consumed = 0;
+            let divAcc = 0;
+            while (cnst.CLOCK - this.acc > divAcc) {
+                divAcc += this.sampleRate;
+                consumed++;
+            }
 
             // keep track of any excess time that we are accumulating (usually,
             // the consumed clocks will place us a bit after the next sample
@@ -197,8 +200,8 @@ export class Apu {
         this.accLengthCtr += clocks;
 
         // 1MHz / 4096 = 256Hz
-        const lengthCtrClocks = (this.accLengthCtr / 4096) | 0;
-        this.accLengthCtr %= 4096;
+        const lengthCtrClocks = this.accLengthCtr >>> 12;
+        this.accLengthCtr &= 0x0fff;
 
         this.channel1.cycle(clocks, lengthCtrClocks);
         this.channel2.cycle(clocks, lengthCtrClocks);

@@ -47,8 +47,8 @@ export class Serial {
         this.transferClock += cpuClocks;
 
         // 1MHz / 128 = 8kHZ
-        let bits = (this.transferClock / 128) | 0;
-        this.transferClock %= 128;
+        let bits = this.transferClock >>> 7;
+        this.transferClock &= 0x7f;
 
         while (bits > 0 && this.nextBit < 8) {
             this.reg[reg.sb] <<= 1;
