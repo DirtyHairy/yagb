@@ -141,7 +141,12 @@ describe('PPU', () => {
         }
 
         describe('with full increments', () => {
-            suite((ppu, cycles) => ppu.cycle(cycles));
+            suite((ppu, cycles) => {
+                while (cycles > 0) {
+                    ppu.cycle(Math.min(cycles, 32));
+                    cycles -= 32;
+                }
+            });
         });
 
         describe('incrementing by system cycle', () => {
