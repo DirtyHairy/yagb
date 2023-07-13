@@ -80,7 +80,8 @@ async function loadCartridge(data: Uint8Array, name: string) {
     }
 
     try {
-        if (savestate) emulator.load(savestate);
+        // CGBTODO
+        // if (savestate) emulator.load(savestate);
     } catch (e) {
         console.error(e);
         print('failed to load savestate');
