@@ -1,5 +1,6 @@
 import { Cartridge, CgbSupportLevel, createCartridge } from './cartridge';
 import { Joypad, key } from './joypad';
+import { Ppu, createPpu } from './ppu';
 import { decodeInstruction, disassembleInstruction } from './instruction';
 
 import { Apu } from './apu';
@@ -9,7 +10,6 @@ import { Cpu } from './cpu';
 import { Event } from 'microevent.ts';
 import { Interrupt } from './interrupt';
 import { Mode } from './mode';
-import { Ppu } from './ppu';
 import { Ram } from './ram';
 import { SampleQueue } from './apu/sample-queue';
 import { Savestate } from './savestate';
@@ -39,7 +39,7 @@ export class Emulator {
 
         this.bus = new Bus(this.system);
         this.interrupt = new Interrupt();
-        this.ppu = new Ppu(this.system, this.interrupt);
+        this.ppu = createPpu(mode, this.system, this.interrupt);
         this.apu = new Apu();
         this.timer = new Timer(this.interrupt);
         this.serial = new Serial(this.interrupt);
