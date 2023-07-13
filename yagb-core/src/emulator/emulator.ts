@@ -16,7 +16,7 @@ import { Serial } from './serial';
 import { System } from './system';
 import { Timer } from './timer';
 import { Trace } from './trace';
-import { Unmapped } from './unmapped';
+// import { Unmapped } from './unmapped';
 import { hex16 } from '../helper/format';
 
 export interface BusTrap {
@@ -38,12 +38,7 @@ export class Emulator {
         this.cpu = new Cpu(this.bus, this.clock, this.interrupt, this.system);
         this.ram = new Ram();
         this.joypad = new Joypad(this.interrupt);
-        const unmapped = new Unmapped();
-
-        const cartridge = createCartridge(cartridgeImage, this.system);
-        if (!cartridge) {
-            throw new Error('bad cartridge image');
-        }
+        // const unmapped = new Unmapped();
 
         this.cartridge = cartridge;
 
@@ -56,7 +51,8 @@ export class Emulator {
         this.timer.install(this.bus);
         this.joypad.install(this.bus);
         this.sampleQueue?.reset();
-        unmapped.install(this.bus);
+        // CGBTODO
+        // unmapped.install(this.bus);
 
         this.cpu.onExecute.addHandler(this.onExecuteHandler);
         this.onTrap = this.system.onTrap;
