@@ -45,7 +45,7 @@ export class Emulator {
         this.serial = new Serial(this.interrupt);
         this.clock = new Clock(this.ppu, this.timer, this.serial, this.apu);
         this.cpu = new Cpu(mode, this.bus, this.clock, this.interrupt, this.system);
-        this.ram = new Ram();
+        this.ram = new Ram(mode);
         this.joypad = new Joypad(this.interrupt);
         // const unmapped = new Unmapped(mode, this.bus);
 

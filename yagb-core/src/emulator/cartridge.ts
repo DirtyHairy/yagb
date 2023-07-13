@@ -193,7 +193,7 @@ export function identifyCartridge(image: Uint8Array, system: System): [Cartridge
         system.warning(`ROM checksum mismatch: expected ${hex16(checksumReference)}, got ${hex16(checksum)}`);
     }
 
-    const cgbFlag = image[0x0143];
+    const cgbFlag = image[CartridgeAddress.cgbFlag];
     const cgbSupportLevel = getCgbSupportLevel(cgbFlag);
     validateCgbSupportLevel(cgbSupportLevel, cgbFlag);
 
