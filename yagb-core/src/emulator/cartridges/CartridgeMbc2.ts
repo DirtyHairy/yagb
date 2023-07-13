@@ -1,7 +1,8 @@
-import { CartridgeBase, CartridgeType } from './CartridgeBase';
+import { CartridgeType, CgbSupportLevel } from '../cartridge';
 import { ReadHandler, WriteHandler } from '../bus';
 
 import { Bus } from '../bus';
+import { CartridgeBase } from './CartridgeBase';
 import { Savestate } from './../savestate';
 import { System } from '../system';
 import { hex8 } from '../../helper/format';
@@ -9,8 +10,8 @@ import { hex8 } from '../../helper/format';
 const SAVESTATE_VERSION = 0x00;
 
 export class CartridgeMbc2 extends CartridgeBase {
-    constructor(image: Uint8Array, system: System) {
-        super(image, system);
+    constructor(image: Uint8Array, system: System, cgbSupportLevel: CgbSupportLevel) {
+        super(image, system, cgbSupportLevel);
 
         const romSize = this.size();
         if (romSize % 0x4000 !== 0 || romSize > 16 * 0x4000 || romSize < 2 * 0x4000) {

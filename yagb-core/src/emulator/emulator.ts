@@ -1,4 +1,4 @@
-import { Cartridge, createCartridge } from './cartridge';
+import { Cartridge, CgbSupportLevel, createCartridge } from './cartridge';
 import { Joypad, key } from './joypad';
 import { decodeInstruction, disassembleInstruction } from './instruction';
 
@@ -8,6 +8,7 @@ import { Clock } from './clock';
 import { Cpu } from './cpu';
 import { Event } from 'microevent.ts';
 import { Interrupt } from './interrupt';
+import { Mode } from './mode';
 import { Ppu } from './ppu';
 import { Ram } from './ram';
 import { SampleQueue } from './apu/sample-queue';
@@ -28,6 +29,14 @@ export interface BusTrap {
 export class Emulator {
     constructor(cartridgeImage: Uint8Array, printCb: (message: string) => void, savedRam?: Uint8Array) {
         this.system = new System(printCb);
+
+        const cartridge = createCartridge(cartridgeImage, this.system);
+        if (!cartridge) {
+            throw new Error('bad cartridge image');
+        }
+
+        const mode = cartridge.cgbSupportLevel === CgbSupportLevel.none ? Mode.dmg : Mode.cgb;
+
         this.bus = new Bus(this.system);
         this.interrupt = new Interrupt();
         this.ppu = new Ppu(this.system, this.interrupt);
@@ -35,7 +44,7 @@ export class Emulator {
         this.timer = new Timer(this.interrupt);
         this.serial = new Serial(this.interrupt);
         this.clock = new Clock(this.ppu, this.timer, this.serial, this.apu);
-        this.cpu = new Cpu(this.bus, this.clock, this.interrupt, this.system);
+        this.cpu = new Cpu(mode, this.bus, this.clock, this.interrupt, this.system);
         this.ram = new Ram();
         this.joypad = new Joypad(this.interrupt);
         // const unmapped = new Unmapped();

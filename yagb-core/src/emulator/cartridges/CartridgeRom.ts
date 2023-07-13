@@ -1,14 +1,15 @@
 import { Bus, ReadHandler, WriteHandler } from '../bus';
-import { CartridgeBase, CartridgeType } from './CartridgeBase';
+import { CartridgeType, CgbSupportLevel } from '../cartridge';
 
+import { CartridgeBase } from './CartridgeBase';
 import { Savestate } from '../savestate';
 import { System } from '../system';
 
 const SAVESTATE_VERSION = 0x00;
 
 export class CartridgeRom extends CartridgeBase {
-    constructor(image: Uint8Array, system: System) {
-        super(image, system);
+    constructor(image: Uint8Array, system: System, cgbSupportLevel: CgbSupportLevel) {
+        super(image, system, cgbSupportLevel);
         this.rom = Uint8Array.from(this.image.slice(0x0000, 0x8000));
         this.ram = new Uint8Array(this.ramSize());
     }

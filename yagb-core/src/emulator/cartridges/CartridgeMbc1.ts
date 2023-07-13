@@ -1,7 +1,8 @@
-import { CartridgeBase, CartridgeRAMBankSize, CartridgeROMBankSize, CartridgeType } from './CartridgeBase';
+import { CartridgeRAMBankSize, CartridgeROMBankSize, CartridgeType, CgbSupportLevel } from '../cartridge';
 import { ReadHandler, WriteHandler } from './../bus';
 
 import { Bus } from '../bus';
+import { CartridgeBase } from './CartridgeBase';
 import { Savestate } from './../savestate';
 import { System } from '../system';
 import { hex8 } from '../../helper/format';
@@ -19,8 +20,8 @@ interface Mapping {
 const SAVESTATE_VERSION = 0x00;
 
 export class CartridgeMbc1 extends CartridgeBase {
-    constructor(image: Uint8Array, system: System) {
-        super(image, system);
+    constructor(image: Uint8Array, system: System, cgbSupportLevel: CgbSupportLevel) {
+        super(image, system, cgbSupportLevel);
 
         if (this.ramSize() > 8 * 1024 && this.size() >= 1024 * 1024) {
             throw new Error('unsupported memory configuration.');

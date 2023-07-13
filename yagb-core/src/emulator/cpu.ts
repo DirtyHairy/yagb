@@ -5,6 +5,7 @@ import { hex16, hex8 } from '../helper/format';
 import { Bus } from './bus';
 import { Clock } from './clock';
 import { Event } from 'microevent.ts';
+import { Mode } from './mode';
 import { Savestate } from './savestate';
 import { System } from './system';
 
@@ -61,7 +62,7 @@ function getIrqVector(interrupt: irq): number {
 }
 
 export class Cpu {
-    constructor(private bus: Bus, private clock: Clock, private interrupt: Interrupt, private system: System) {
+    constructor(private mode: Mode, private bus: Bus, private clock: Clock, private interrupt: Interrupt, private system: System) {
         const r16 = new Uint16Array(5);
         const r8 = new Uint8Array(r16.buffer);
 
@@ -76,7 +77,7 @@ export class Cpu {
     }
 
     reset() {
-        this.state.r16[r16.af] = 0x01b0;
+        this.state.r16[r16.af] = this.mode === Mode.dmg ? 0x01b0 : 0x11b0;
         this.state.r16[r16.bc] = 0x0013;
         this.state.r16[r16.de] = 0x00d8;
         this.state.r16[r16.hl] = 0x014d;
