@@ -39,7 +39,7 @@ export class Ram {
 
         if (this.mode === Mode.cgb) {
             for (let i = 0xd000; i < 0xe000; i++) {
-                bus.map(i, this.wramBank0Read, this.wramBank0Write);
+                bus.map(i, this.wramBank1Read, this.wramBank1Write);
             }
 
             bus.map(reg.svbk, this.svbkRead, this.svbkWrite);
