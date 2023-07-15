@@ -17,7 +17,7 @@ interface Mapping {
     wramBank1Index: number;
 }
 
-const SAVESTATE_VERSION = 0x00;
+const SAVESTATE_VERSION = 0x01;
 
 export class Ram {
     constructor(private mode: Mode) {
@@ -56,12 +56,17 @@ export class Ram {
     }
 
     reset(): void {
+        this.svbk = 0;
         this.wram.fill(0);
         this.hiram.fill(0);
     }
 
     save(savestate: Savestate): void {
-        savestate.startChunk(SAVESTATE_VERSION).writeBuffer(this.wram).writeBuffer(this.hiram);
+        savestate
+          .startChunk(SAVESTATE_VERSION)
+          .writeBuffer(this.wram)
+          .writeBuffer(this.hiram)
+          .write16(this.svbk);
     }
 
     load(savestate: Savestate): void {
@@ -69,6 +74,9 @@ export class Ram {
 
         this.wram.set(savestate.readBuffer(this.wram.length));
         this.hiram.set(savestate.readBuffer(this.hiram.length));
+        this.svbk = savestate.read16();
+
+        this.updateBanks()
     }
 
     private initializeConfigurations() {
