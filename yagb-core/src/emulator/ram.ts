@@ -37,11 +37,15 @@ export class Ram {
             bus.map(i, this.wramBank0Read, this.wramBank0Write);
         }
 
-        if (this.mode === Mode.cgb) {
-            for (let i = 0xd000; i < 0xe000; i++) {
-                bus.map(i, this.wramBank1Read, this.wramBank1Write);
-            }
+        for (let i = 0xd000; i < 0xe000; i++) {
+            bus.map(i, this.wramBank1Read, this.wramBank1Write);
+        }
 
+        for (let i = 0xe000; i < 0xfe00; i++) {
+            bus.map(i, this.echoRamRead, this.echoRamWrite);
+        }
+
+        if (this.mode === Mode.cgb) {
             bus.map(reg.svbk, this.svbkRead, this.svbkWrite);
         }
 
@@ -68,8 +72,7 @@ export class Ram {
     }
 
     private initializeConfigurations() {
-        const wramSize = (this.wramSize() / 1024) | 0;
-        const wramBanks = Math.max((wramSize / 8) | 0, 1);
+        const wramBanks = Math.max((this.wramSize() / WRAMBankSize) | 0, 1);
 
         const ramSlices = new Array(wramBanks);
         for (let i = 0; i < wramBanks; i++) ramSlices[i] = this.wram.subarray(i * WRAMBankSize, (i + 1) * WRAMBankSize);
@@ -98,7 +101,7 @@ export class Ram {
     }
 
     private wramSize(): number {
-        return this.mode === Mode.dmg ? 4 * 1024 : 32 * 1024;
+        return (this.mode === Mode.dmg ? 8 : 32) * 1024;
     }
 
     private svbkRead: ReadHandler = () => this.svbk;
@@ -120,6 +123,30 @@ export class Ram {
 
     private wramBank1Read: ReadHandler = (address) => this.wramBank1[address & 0x1fff];
     private wramBank1Write: WriteHandler = (address, value) => (this.wramBank1[address & 0x1fff] = value);
+
+    private echoRamRead: ReadHandler = (address) => {
+        address = address & 0x1fff
+
+        if(0x1000 < address) {
+            address = address & 0x0fff
+            return this.wramBank1[address];
+        }
+
+        return this.wramBank0[address];
+    }
+
+    private echoRamWrite: WriteHandler = (address, value) => {
+        address = address & 0x1fff
+
+        if(0x1000 < address) {
+            address = address & 0x0fff
+            this.wramBank1[address] = value;
+
+            return
+        }
+
+        this.wramBank0[address] = value;
+    }
 
     private hiramRead: ReadHandler = (address) => this.hiram[address & 0x7f];
     private hiramWrite: WriteHandler = (address, value) => (this.hiram[address & 0x7f] = value);
