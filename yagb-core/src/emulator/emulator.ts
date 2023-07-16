@@ -17,7 +17,7 @@ import { Serial } from './serial';
 import { System } from './system';
 import { Timer } from './timer';
 import { Trace } from './trace';
-// import { Unmapped } from './unmapped';
+import { Unmapped } from './unmapped';
 import { hex16 } from '../helper/format';
 
 export interface BusTrap {
@@ -47,7 +47,7 @@ export class Emulator {
         this.cpu = new Cpu(mode, this.bus, this.clock, this.interrupt, this.system);
         this.ram = new Ram(mode);
         this.joypad = new Joypad(this.interrupt);
-        // const unmapped = new Unmapped(mode, this.bus);
+        const unmapped = new Unmapped(mode, this.bus);
 
         this.cartridge = cartridge;
 

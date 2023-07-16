@@ -4,7 +4,7 @@ import { PALETTE_CLASSIC } from '../palette';
 import { PpuBase } from './ppu-base';
 import { Savestate } from '../savestate';
 import { SpriteQueueDmg } from './sprite-queue-dmg';
-import { cgbRegisters } from '../cgbRegisters';
+import { cgbRegisters } from '../cgb-registers';
 
 const enum reg {
     vramBank = 0xff4f,
