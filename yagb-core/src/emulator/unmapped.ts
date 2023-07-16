@@ -1,7 +1,7 @@
 import { Bus, ReadHandler, WriteHandler } from './bus';
 
 import { Mode } from './mode';
-import { isCgbRegister } from './cgbRegisters';
+import { isCgbRegister } from './cgb-registers';
 
 export class Unmapped {
     constructor(private mode: Mode, private bus: Bus) {}
