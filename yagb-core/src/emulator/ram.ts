@@ -59,11 +59,12 @@ export class Ram {
     }
 
     load(savestate: Savestate): void {
-        savestate.validateChunk(SAVESTATE_VERSION);
+        const version = savestate.validateChunk(SAVESTATE_VERSION);
 
         this.wram.set(savestate.readBuffer(this.wram.length));
         this.hiram.set(savestate.readBuffer(this.hiram.length));
-        this.svbk = savestate.read16();
+
+        this.svbk = version > 0 ? savestate.read16() : 1;
 
         this.updateBanks();
     }
