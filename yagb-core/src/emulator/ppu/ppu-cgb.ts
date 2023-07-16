@@ -1,11 +1,13 @@
-import { Bus, WriteHandler } from '../bus';
+import { Bus, ReadHandler, WriteHandler } from '../bus';
 
 import { PALETTE_CLASSIC } from '../palette';
 import { PpuBase } from './ppu-base';
 import { Savestate } from '../savestate';
 import { SpriteQueueDmg } from './sprite-queue-dmg';
+import { cgbRegisters } from '../cgbRegisters';
 
 const enum reg {
+    vramBank = 0xff4f,
     base = 0xff40,
     lcdc = 0x00,
     stat = 0x01,
@@ -48,9 +50,26 @@ function clockPenaltyForSprite(scx: number, x: number): number {
     return 11 - tmp;
 }
 
-export class PpuDmg extends PpuBase {
+export class PpuCgb extends PpuBase {
+    save(savestate: Savestate): void {
+        const bank = this.bank;
+        this.switchBank(0);
+
+        super.save(savestate);
+        savestate.write16(bank).writeBuffer(this.vramBanks[1]);
+
+        this.switchBank(bank);
+    }
+
     load(savestate: Savestate): void {
+        this.switchBank(0);
+
         super.load(savestate);
+
+        const bank = savestate.read16();
+        this.vramBanks[1].set(savestate.readBuffer(this.vram.length));
+
+        this.switchBank(bank);
 
         this.frontBuffer.fill(PALETTE_CLASSIC[4]);
         this.backBuffer.fill(PALETTE_CLASSIC[4]);
@@ -63,6 +82,8 @@ export class PpuDmg extends PpuBase {
     install(bus: Bus): void {
         super.install(bus);
 
+        bus.map(cgbRegisters.vramBank, this.vramBankRead, this.vramBankWrite);
+
         bus.map(reg.base + reg.bgp, this.registerRead, this.bgpWrite);
         bus.map(reg.base + reg.obp0, this.registerRead, this.obp0Write);
         bus.map(reg.base + reg.obp1, this.registerRead, this.obp1Write);
@@ -73,6 +94,8 @@ export class PpuDmg extends PpuBase {
     reset(): void {
         super.reset();
 
+        this.switchBank(0);
+
         this.updatePalette(this.paletteBG, this.reg[reg.bgp]);
         this.updatePalette(this.paletteOB0, this.reg[reg.obp0]);
         this.updatePalette(this.paletteOB1, this.reg[reg.obp1]);
@@ -82,10 +105,16 @@ export class PpuDmg extends PpuBase {
     }
 
     protected initializeVram(): [Uint8Array, Uint16Array] {
-        const vram = new Uint8Array(0x2000);
-        const vram16 = new Uint16Array(vram.buffer);
+        this.vramBanks = new Array(2);
+        this.vram16Banks = new Array(2);
 
-        return [vram, vram16];
+        this.bank = 0;
+        for (let bank = 0; bank <= 1; bank++) {
+            this.vramBanks[bank] = new Uint8Array(0x2000);
+            this.vram16Banks[bank] = new Uint16Array(this.vramBanks[bank]);
+        }
+
+        return [this.vramBanks[0], this.vram16Banks[0]];
     }
 
     protected lcdcWrite: WriteHandler = (_, value) => {
@@ -266,6 +295,16 @@ export class PpuDmg extends PpuBase {
         }
     }
 
+    private switchBank(bank: number): void {
+        this.bank = bank;
+
+        this.vram = this.vramBanks[bank];
+        this.vram16 = this.vram16Banks[bank];
+    }
+
+    private vramBankRead: ReadHandler = (_) => 0xfe | this.bank;
+    private vramBankWrite: WriteHandler = (_, value) => (this.bank = value & 0x01);
+
     private backgroundTileData(window: boolean, nx: number, ny: number, y: number): number {
         const tileMapBase = this.reg[reg.lcdc] & (window ? lcdc.windowTileMapArea : lcdc.bgTileMapArea) ? 0x1c00 : 0x1800;
         const index = this.vram[tileMapBase + (ny % 32) * 32 + (nx % 32)];
@@ -312,4 +351,9 @@ export class PpuDmg extends PpuBase {
 
     private spriteQueue = new SpriteQueueDmg(this.vram, this.oam, this.paletteOB0, this.paletteOB1);
     private spriteCounter = new Uint8Array(10);
+
+    private vramBanks!: Array<Uint8Array>;
+    private vram16Banks!: Array<Uint16Array>;
+
+    private bank = 0;
 }

@@ -1,23 +1,24 @@
 import { Bus, ReadHandler, WriteHandler } from './bus';
+
+import { Mode } from './mode';
+import { isCgbRegister } from './cgbRegisters';
+
 export class Unmapped {
-    install(bus: Bus): void {
-        for (let i = 0xfea0; i < 0xff00; i++) {
-            bus.map(i, this.unmappedRead, this.unmappedWrite);
-        }
+    constructor(private mode: Mode, private bus: Bus) {}
 
-        for (let i = 0xff4c; i < 0xff80; i++) {
-            bus.map(i, this.unmappedRead, this.unmappedWrite);
-        }
+    install(): void {
+        for (let address = 0xfea0; address < 0xff00; address++) this.initializeUnmapped(address);
+        for (let address = 0xff4c; address < 0xff80; address++) this.initializeUnmapped(address);
+        for (let address = 0xff27; address < 0xff30; address++) this.initializeUnmapped(address);
+        for (let address = 0xff08; address < 0xff0f; address++) this.initializeUnmapped(address);
 
-        for (let i = 0xff27; i < 0xff30; i++) {
-            bus.map(i, this.unmappedRead, this.unmappedWrite);
-        }
+        [0xff03].forEach((address) => this.initializeUnmapped(address));
+    }
 
-        for (let i = 0xff08; i < 0xff0f; i++) {
-            bus.map(i, this.unmappedRead, this.unmappedWrite);
-        }
+    private initializeUnmapped(address: number): void {
+        if (this.mode === Mode.cgb && isCgbRegister(address)) return;
 
-        [0xff03].forEach((x) => bus.map(x, this.unmappedRead, this.unmappedWrite));
+        this.bus.map(address, this.unmappedRead, this.unmappedWrite);
     }
 
     private unmappedRead: ReadHandler = () => 0xff;

@@ -47,7 +47,7 @@ export class Emulator {
         this.cpu = new Cpu(mode, this.bus, this.clock, this.interrupt, this.system);
         this.ram = new Ram();
         this.joypad = new Joypad(this.interrupt);
-        // const unmapped = new Unmapped();
+        // const unmapped = new Unmapped(mode, this.bus);
 
         this.cartridge = cartridge;
 
@@ -61,7 +61,7 @@ export class Emulator {
         this.joypad.install(this.bus);
         this.sampleQueue?.reset();
         // CGBTODO
-        // unmapped.install(this.bus);
+        // unmapped.install();
 
         this.cpu.onExecute.addHandler(this.onExecuteHandler);
         this.onTrap = this.system.onTrap;

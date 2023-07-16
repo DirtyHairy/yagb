@@ -2,9 +2,7 @@ import { Bus, ReadHandler, WriteHandler } from '../bus';
 import { Interrupt, irq } from '../interrupt';
 import { Ppu, ppuMode } from '../ppu';
 
-import { PALETTE_CLASSIC } from '../palette';
 import { Savestate } from '../savestate';
-import { SpriteQueue } from './sprite-queue';
 import { System } from '../system';
 import { hex8 } from '../../helper/format';
 
@@ -52,7 +50,12 @@ function clockPenaltyForSprite(scx: number, x: number): number {
 }
 
 export abstract class PpuBase implements Ppu {
-    constructor(private system: System, private interrupt: Interrupt) {}
+    constructor(protected system: System, protected interrupt: Interrupt) {
+        const [vram, vram16] = this.initializeVram();
+
+        this.vram = vram;
+        this.vram16 = vram16;
+    }
 
     save(savestate: Savestate): void {
         const flag =
@@ -106,13 +109,6 @@ export abstract class PpuBase implements Ppu {
 
         this.frame = 0;
         this.skipFrame = this.mode === ppuMode.vblank ? 0 : 1;
-
-        this.frontBuffer.fill(PALETTE_CLASSIC[4]);
-        this.backBuffer.fill(PALETTE_CLASSIC[4]);
-
-        this.updatePalette(this.paletteOB0, this.reg[reg.obp0]);
-        this.updatePalette(this.paletteOB1, this.reg[reg.obp1]);
-        this.updatePalette(this.paletteBG, this.reg[reg.bgp]);
     }
 
     install(bus: Bus): void {
@@ -132,9 +128,9 @@ export abstract class PpuBase implements Ppu {
         bus.map(reg.base + reg.ly, this.lyRead, this.stubWrite);
         bus.map(reg.base + reg.stat, this.statRead, this.registerWrite);
         bus.map(reg.base + reg.dma, this.registerRead, this.dmaWrite);
-        bus.map(reg.base + reg.bgp, this.registerRead, this.bgpWrite);
-        bus.map(reg.base + reg.obp0, this.registerRead, this.obp0Write);
-        bus.map(reg.base + reg.obp1, this.registerRead, this.obp1Write);
+        bus.map(reg.base + reg.bgp, this.registerRead, this.registerWrite);
+        bus.map(reg.base + reg.obp0, this.registerRead, this.registerWrite);
+        bus.map(reg.base + reg.obp1, this.registerRead, this.registerWrite);
 
         this.bus = bus;
     }
@@ -160,13 +156,6 @@ export abstract class PpuBase implements Ppu {
         this.reg[reg.bgp] = 0xfc;
         this.reg[reg.obp0] = 0x00;
         this.reg[reg.obp1] = 0x00;
-
-        this.updatePalette(this.paletteBG, this.reg[reg.bgp]);
-        this.updatePalette(this.paletteOB0, this.reg[reg.obp0]);
-        this.updatePalette(this.paletteOB1, this.reg[reg.obp1]);
-
-        this.frontBuffer.fill(PALETTE_CLASSIC[4]);
-        this.backBuffer.fill(PALETTE_CLASSIC[4]);
 
         this.lineRendered = false;
         this.mode3ExtraClocks = 0;
@@ -214,6 +203,12 @@ export abstract class PpuBase implements Ppu {
     getMode(): ppuMode {
         return this.mode;
     }
+
+    protected abstract initializeVram(): [Uint8Array, Uint16Array];
+    protected abstract renderLine(): void;
+    protected abstract lcdcWrite: WriteHandler;
+
+    protected stubWrite: WriteHandler = () => undefined;
 
     protected consumeClocks(clocks: number): number {
         switch (this.mode) {
@@ -362,8 +357,6 @@ export abstract class PpuBase implements Ppu {
         this.frame = (this.frame + 1) | 0;
     }
 
-    protected abstract renderLine(): void;
-
     protected startFrame(): void {
         this.mode = ppuMode.oamScan;
         this.clockInMode = 0;
@@ -372,30 +365,28 @@ export abstract class PpuBase implements Ppu {
         this.windowLine = 0;
     }
 
-    protected stubWrite: WriteHandler = () => undefined;
-
-    // It seems that VRAM access is only blocked after the first cycle of mode 3. This fixes the Stunt Racer tech prototype.
-    private vramRead: ReadHandler = (address) => ((this.reg[reg.lcdc] & lcdc.enable) === 0 || this.mode !== ppuMode.draw ? this.vram[address & 0x1fff] : 0xff);
-    private vramWrite: WriteHandler = (address, value) =>
+    protected vramRead: ReadHandler = (address) =>
+        (this.reg[reg.lcdc] & lcdc.enable) === 0 || this.mode !== ppuMode.draw ? this.vram[address & 0x1fff] : 0xff;
+    protected vramWrite: WriteHandler = (address, value) =>
         ((this.reg[reg.lcdc] & lcdc.enable) === 0 || this.mode !== ppuMode.draw) && (this.vram[address & 0x1fff] = value);
 
-    private oamRead: ReadHandler = (address) =>
+    protected oamRead: ReadHandler = (address) =>
         (this.reg[reg.lcdc] & lcdc.enable) === 0 || (this.mode !== ppuMode.draw && this.mode !== ppuMode.oamScan) ? this.oam[address & 0xff] : 0xff;
-    private oamWrite: WriteHandler = (address, value) =>
+    protected oamWrite: WriteHandler = (address, value) =>
         ((this.reg[reg.lcdc] & lcdc.enable) === 0 || (this.mode !== ppuMode.draw && this.mode !== ppuMode.oamScan)) && (this.oam[address & 0xff] = value);
 
-    private registerRead: ReadHandler = (address) => this.reg[address - reg.base];
-    private registerWrite: WriteHandler = (address, value) => {
+    protected registerRead: ReadHandler = (address) => this.reg[address - reg.base];
+    protected registerWrite: WriteHandler = (address, value) => {
         this.reg[address - reg.base] = value;
         this.updateStat();
     };
 
-    private statRead: ReadHandler = () =>
+    protected statRead: ReadHandler = () =>
         (this.reg[reg.stat] & 0xf8) | (this.reg[reg.lyc] === this.scanline ? 0x04 : 0) | (this.reg[reg.lcdc] & lcdc.enable ? this.mode : 0);
 
-    private lyRead: ReadHandler = () => this.scanline;
+    protected lyRead: ReadHandler = () => this.scanline;
 
-    private dmaWrite: WriteHandler = (_, value) => {
+    protected dmaWrite: WriteHandler = (_, value) => {
         this.reg[reg.dma] = value;
 
         this.dmaCycle = 0;
@@ -403,78 +394,35 @@ export abstract class PpuBase implements Ppu {
         this.bus.lock();
     };
 
-    private bgpWrite: WriteHandler = (_, value) => {
-        value &= 0xff;
-        this.reg[reg.bgp] = value;
+    protected clockInMode = 0;
+    protected scanline = 0;
+    protected frame = 0;
+    protected mode: ppuMode = ppuMode.oamScan;
+    protected skipFrame = 0;
+    protected vblankFired = false;
+    protected vblankLines = 0;
 
-        this.updatePalette(this.paletteBG, value);
-    };
+    protected wx = 0;
+    protected wy = 0;
 
-    private obp0Write: WriteHandler = (_, value) => {
-        value &= 0xff;
-        this.reg[reg.obp0] = value;
+    protected oam = new Uint8Array(0xa0);
+    protected stat = false;
 
-        this.updatePalette(this.paletteOB0, value);
-    };
+    protected vram: Uint8Array;
+    protected vram16: Uint16Array;
 
-    private obp1Write: WriteHandler = (_, value) => {
-        value &= 0xff;
-        this.reg[reg.obp1] = value;
+    protected dmaInProgress = false;
+    protected dmaCycle = 0;
 
-        this.updatePalette(this.paletteOB1, value);
-    };
+    protected reg = new Uint8Array(reg.wx + 1);
+    protected bus!: Bus;
 
-    private lcdcWrite: WriteHandler = (_, value) => {
-        const oldValue = this.reg[reg.lcdc];
-        this.reg[reg.lcdc] = value;
+    protected frontBuffer = new Uint32Array(160 * 144);
+    protected backBuffer = new Uint32Array(160 * 144);
 
-        if (~oldValue & this.reg[reg.lcdc] & lcdc.enable) {
-            this.skipFrame = 1;
-        }
+    protected lineRendered = false;
+    protected mode3ExtraClocks = 0;
 
-        if (oldValue & ~this.reg[reg.lcdc] & lcdc.enable) {
-            this.backBuffer.fill(PALETTE_CLASSIC[4]);
-            this.swapBuffers();
-            this.startFrame();
-        }
-    };
-
-    private clockInMode = 0;
-    private scanline = 0;
-    private frame = 0;
-    private mode: ppuMode = ppuMode.oamScan;
-    private skipFrame = 0;
-    private vblankFired = false;
-    private vblankLines = 0;
-
-    private wx = 0;
-    private wy = 0;
-
-    private vram = new Uint8Array(0x2000);
-    private oam = new Uint8Array(0xa0);
-    private stat = false;
-
-    private vram16 = new Uint16Array(this.vram.buffer);
-
-    private dmaInProgress = false;
-    private dmaCycle = 0;
-
-    private reg = new Uint8Array(reg.wx + 1);
-    private bus!: Bus;
-
-    private paletteBG = PALETTE_CLASSIC.slice();
-    private paletteOB0 = PALETTE_CLASSIC.slice();
-    private paletteOB1 = PALETTE_CLASSIC.slice();
-
-    private frontBuffer = new Uint32Array(160 * 144);
-    private backBuffer = new Uint32Array(160 * 144);
-
-    private spriteQueue = new SpriteQueue(this.vram, this.oam, this.paletteOB0, this.paletteOB1);
-    private spriteCounter = new Uint8Array(10);
-
-    private lineRendered = false;
-    private mode3ExtraClocks = 0;
-
-    private windowTriggered = false;
-    private windowLine = 0;
+    protected windowTriggered = false;
+    protected windowLine = 0;
 }

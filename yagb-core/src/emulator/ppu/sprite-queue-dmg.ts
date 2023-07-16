@@ -11,7 +11,7 @@ for (let i = 0; i < 0x100; i++) {
         ((i & 0x80) >>> 7);
 }
 
-export class SpriteQueue {
+export class SpriteQueueDmg {
     constructor(public vram: Uint8Array, public oam: Uint8Array, public pal0: Uint32Array, public pal1: Uint32Array) {
         this.vram16 = new Uint16Array(vram.buffer);
     }
