@@ -5,6 +5,7 @@ import { PpuBase } from './ppu-base';
 import { Savestate } from '../savestate';
 import { SpriteQueueDmg } from './sprite-queue-dmg';
 import { cgbRegisters } from '../cgb-registers';
+import {ppuMode} from "../ppu";
 
 const enum reg {
     vramBank = 0xff4f,
@@ -41,7 +42,7 @@ const enum stat {
     sourceModeHblank = 0x08,
 }
 
-const SAVESTATE_VERSION = 0x01;
+const SAVESTATE_VERSION = 0x02;
 
 function clockPenaltyForSprite(scx: number, x: number): number {
     let tmp = (x + scx + 8) % 8;
@@ -56,7 +57,12 @@ export class PpuCgb extends PpuBase {
         this.switchBank(0);
 
         super.save(savestate);
-        savestate.write16(bank).writeBuffer(this.vramBanks[1]);
+        savestate
+            .write16(bank)
+            .writeBuffer(this.vramBanks[1])
+            .write16(this.bgpi)
+            .writeBuffer(this.cram)
+        ;
 
         this.switchBank(bank);
     }
@@ -68,6 +74,8 @@ export class PpuCgb extends PpuBase {
 
         const bank = savestate.read16();
         this.vramBanks[1].set(savestate.readBuffer(this.vram.length));
+        this.bgpi = savestate.read16();
+        this.cram.set(savestate.readBuffer(this.cram.length))
 
         this.switchBank(bank);
 
@@ -83,6 +91,9 @@ export class PpuCgb extends PpuBase {
         super.install(bus);
 
         bus.map(cgbRegisters.vramBank, this.vramBankRead, this.vramBankWrite);
+
+        bus.map(cgbRegisters.bgpi, this.bgpiRead, this.bgpiWrite);
+        bus.map(cgbRegisters.bgpd, this.bgpdRead, this.bgpdWrite);
 
         bus.map(reg.base + reg.bgp, this.registerRead, this.bgpWrite);
         bus.map(reg.base + reg.obp0, this.registerRead, this.obp0Write);
@@ -102,6 +113,8 @@ export class PpuCgb extends PpuBase {
 
         this.frontBuffer.fill(PALETTE_CLASSIC[4]);
         this.backBuffer.fill(PALETTE_CLASSIC[4]);
+
+        this.cram.fill(0xff)
     }
 
     protected initializeVram(): [Uint8Array, Uint16Array] {
@@ -345,6 +358,24 @@ export class PpuCgb extends PpuBase {
         this.updatePalette(this.paletteOB1, value);
     };
 
+    private bgpiRead: ReadHandler = (_) =>
+        this.bgpi;
+    private bgpiWrite: WriteHandler = (_, value) => {
+        this.bgpi = value & 0xff;
+    }
+
+    private bgpdRead: ReadHandler = (_) =>
+        (this.reg[reg.lcdc] & lcdc.enable) === 0 || this.mode !== ppuMode.draw ? this.cram[this.bgpi & 0x3f] : 0xff;
+    private bgpdWrite: WriteHandler = (_, value) => {
+        const address = this.bgpi & 0x3f;
+
+        if((this.bgpi & 0x80) > 0) {
+            this.bgpi = 0x80 | (address + 1);
+        }
+
+        ((this.reg[reg.lcdc] & lcdc.enable) === 0 || this.mode !== ppuMode.draw) && (this.cram[address] = value);
+    }
+
     private paletteBG = PALETTE_CLASSIC.slice();
     private paletteOB0 = PALETTE_CLASSIC.slice();
     private paletteOB1 = PALETTE_CLASSIC.slice();
@@ -356,4 +387,7 @@ export class PpuCgb extends PpuBase {
     private vram16Banks!: Array<Uint16Array>;
 
     private bank = 0;
+
+    private bgpi = 0;
+    private cram = new Uint8Array(0x40);
 }
