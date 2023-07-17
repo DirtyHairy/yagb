@@ -8,6 +8,7 @@ import { Bus } from './bus';
 import { Clock } from './clock';
 import { Cpu } from './cpu';
 import { Event } from 'microevent.ts';
+import { Infrared } from './infrared';
 import { Interrupt } from './interrupt';
 import { Mode } from './mode';
 import { Ram } from './ram';
@@ -47,6 +48,7 @@ export class Emulator {
         this.cpu = new Cpu(mode, this.bus, this.clock, this.interrupt, this.system);
         this.ram = new Ram(mode);
         this.joypad = new Joypad(this.interrupt);
+        this.infrared = new Infrared(mode);
         const unmapped = new Unmapped(mode, this.bus);
 
         this.cartridge = cartridge;
@@ -59,6 +61,7 @@ export class Emulator {
         this.apu.install(this.bus);
         this.timer.install(this.bus);
         this.joypad.install(this.bus);
+        this.infrared.install(this.bus);
         this.sampleQueue?.reset();
         // CGBTODO
         // unmapped.install();
@@ -330,6 +333,7 @@ export class Emulator {
     private cpu: Cpu;
     private clock: Clock;
     private ram: Ram;
+    private infrared: Infrared;
     private interrupt: Interrupt;
     private serial: Serial;
     private ppu: Ppu;
