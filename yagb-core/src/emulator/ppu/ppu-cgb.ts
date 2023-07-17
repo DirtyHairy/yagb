@@ -61,7 +61,9 @@ export class PpuCgb extends PpuBase {
             .write16(bank)
             .writeBuffer(this.vramBanks[1])
             .write16(this.bgpi)
-            .writeBuffer(this.cram)
+            .writeBuffer(this.bcram)
+            .write16(this.obpi)
+            .writeBuffer(this.ocram)
         ;
 
         this.switchBank(bank);
@@ -75,7 +77,9 @@ export class PpuCgb extends PpuBase {
         const bank = savestate.read16();
         this.vramBanks[1].set(savestate.readBuffer(this.vram.length));
         this.bgpi = savestate.read16();
-        this.cram.set(savestate.readBuffer(this.cram.length))
+        this.bcram.set(savestate.readBuffer(this.bcram.length))
+        this.obpi = savestate.read16();
+        this.ocram.set(savestate.readBuffer(this.ocram.length))
 
         this.switchBank(bank);
 
@@ -94,6 +98,8 @@ export class PpuCgb extends PpuBase {
 
         bus.map(cgbRegisters.bgpi, this.bgpiRead, this.bgpiWrite);
         bus.map(cgbRegisters.bgpd, this.bgpdRead, this.bgpdWrite);
+        bus.map(cgbRegisters.obpi, this.obpiRead, this.obpiWrite);
+        bus.map(cgbRegisters.obpd, this.obpdRead, this.obpdWrite);
 
         bus.map(reg.base + reg.bgp, this.registerRead, this.bgpWrite);
         bus.map(reg.base + reg.obp0, this.registerRead, this.obp0Write);
@@ -114,7 +120,8 @@ export class PpuCgb extends PpuBase {
         this.frontBuffer.fill(PALETTE_CLASSIC[4]);
         this.backBuffer.fill(PALETTE_CLASSIC[4]);
 
-        this.cram.fill(0xff)
+        this.bcram.fill(0xff)
+        this.ocram.fill(0)
     }
 
     protected initializeVram(): [Uint8Array, Uint16Array] {
@@ -365,7 +372,7 @@ export class PpuCgb extends PpuBase {
     }
 
     private bgpdRead: ReadHandler = (_) =>
-        (this.reg[reg.lcdc] & lcdc.enable) === 0 || this.mode !== ppuMode.draw ? this.cram[this.bgpi & 0x3f] : 0xff;
+        (this.reg[reg.lcdc] & lcdc.enable) === 0 || this.mode !== ppuMode.draw ? this.bcram[this.bgpi & 0x3f] : 0xff;
     private bgpdWrite: WriteHandler = (_, value) => {
         const address = this.bgpi & 0x3f;
 
@@ -373,7 +380,25 @@ export class PpuCgb extends PpuBase {
             this.bgpi = 0x80 | (address + 1);
         }
 
-        ((this.reg[reg.lcdc] & lcdc.enable) === 0 || this.mode !== ppuMode.draw) && (this.cram[address] = value);
+        ((this.reg[reg.lcdc] & lcdc.enable) === 0 || this.mode !== ppuMode.draw) && (this.bcram[address] = value);
+    }
+
+    private obpiRead: ReadHandler = (_) =>
+        this.obpi;
+    private obpiWrite: WriteHandler = (_, value) => {
+        this.obpi = value & 0xff;
+    }
+
+    private obpdRead: ReadHandler = (_) =>
+        (this.reg[reg.lcdc] & lcdc.enable) === 0 || this.mode !== ppuMode.draw ? this.ocram[this.obpi & 0x3f] : 0xff;
+    private obpdWrite: WriteHandler = (_, value) => {
+        const address = this.obpi & 0x3f;
+
+        if((this.obpi & 0x80) > 0) {
+            this.obpi = 0x80 | (address + 1);
+        }
+
+        ((this.reg[reg.lcdc] & lcdc.enable) === 0 || this.mode !== ppuMode.draw) && (this.ocram[address] = value);
     }
 
     private paletteBG = PALETTE_CLASSIC.slice();
@@ -389,5 +414,8 @@ export class PpuCgb extends PpuBase {
     private bank = 0;
 
     private bgpi = 0;
-    private cram = new Uint8Array(0x40);
+    private bcram = new Uint8Array(0x40);
+
+    private obpi = 0;
+    private ocram = new Uint8Array(0x40);
 }
