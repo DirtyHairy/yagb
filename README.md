@@ -12,7 +12,7 @@ emulator in about one month. It is written in TypeScript, and you can either run
 In its current form YAGB gives you a CLI-like interface that allows you to load, run
 and debug ROM images. The most important commands are
 
-* `load`: Load a ROM image (`.gb`)
+* `load`: Load a ROM image (`.gb, .gbc`)
 * `run`: Run or resume the current ROM
 * `stop`: Pause the current ROM
 * `reset`: Reset the current ROM
