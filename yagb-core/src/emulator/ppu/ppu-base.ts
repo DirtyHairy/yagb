@@ -2,6 +2,7 @@ import { Bus, ReadHandler, WriteHandler } from '../bus';
 import { Interrupt, irq } from '../interrupt';
 import { Ppu, ppuMode } from '../ppu';
 
+import { Event } from 'microevent.ts';
 import { Savestate } from '../savestate';
 import { System } from '../system';
 import { hex8 } from '../../helper/format';
@@ -221,6 +222,7 @@ export abstract class PpuBase implements Ppu {
                     this.lineRendered = false;
                     this.mode3ExtraClocks = 0;
                     this.updateStat();
+                    this.onModeSwitch.dispatch(this.mode);
 
                     // Save wx and wy at the beginning and draw and use them later. This helps games
                     // like Popeye 2 that disable the window by moving it off screen during the last
@@ -250,6 +252,7 @@ export abstract class PpuBase implements Ppu {
                         this.mode = ppuMode.hblank;
                         this.clockInMode = 0;
                         this.updateStat();
+                        this.onModeSwitch.dispatch(this.mode);
                     }
 
                     return consumed;
@@ -274,6 +277,7 @@ export abstract class PpuBase implements Ppu {
 
                     this.clockInMode = 0;
                     this.updateStat();
+                    this.onModeSwitch.dispatch(this.mode);
 
                     return consumed;
                 } else {
@@ -358,11 +362,13 @@ export abstract class PpuBase implements Ppu {
     }
 
     protected startFrame(): void {
+        const oldMode = this.mode;
         this.mode = ppuMode.oamScan;
         this.clockInMode = 0;
         this.scanline = 0;
         this.windowTriggered = false;
         this.windowLine = 0;
+        if (oldMode !== this.mode) this.onModeSwitch.dispatch(this.mode);
     }
 
     protected vramRead: ReadHandler = (address) =>
@@ -425,4 +431,6 @@ export abstract class PpuBase implements Ppu {
 
     protected windowTriggered = false;
     protected windowLine = 0;
+
+    readonly onModeSwitch = new Event<ppuMode>();
 }

@@ -5,6 +5,7 @@ import { PpuBase } from './ppu-base';
 import { Savestate } from '../savestate';
 import { SpriteQueueDmg } from './sprite-queue-dmg';
 import { cgbRegisters } from '../cgb-registers';
+import { hex16 } from '../../helper/format';
 import { ppuMode } from '../ppu';
 
 const enum reg {
@@ -39,6 +40,11 @@ const enum stat {
     sourceModeOAM = 0x20,
     sourceModeVblank = 0x10,
     sourceModeHblank = 0x08,
+}
+
+const enum TransferMode {
+    general = 0,
+    hblank = 1,
 }
 
 const SAVESTATE_VERSION = 0x01;
@@ -88,6 +94,12 @@ export class PpuCgb extends PpuBase {
 
         bus.map(cgbRegisters.vramBank, this.vramBankRead, this.vramBankWrite);
 
+        bus.map(cgbRegisters.hdma1, this.invalidRead, this.hdma1Write);
+        bus.map(cgbRegisters.hdma2, this.invalidRead, this.hdma2Write);
+        bus.map(cgbRegisters.hdma3, this.invalidRead, this.hdma3Write);
+        bus.map(cgbRegisters.hdma4, this.invalidRead, this.hdma4Write);
+        bus.map(cgbRegisters.hdma5, this.hdma5Read, this.hdma5Write);
+
         bus.map(cgbRegisters.bgpi, this.bgpiRead, this.bgpiWrite);
         bus.map(cgbRegisters.bgpd, this.bgpdRead, this.bgpdWrite);
         bus.map(cgbRegisters.obpi, this.obpiRead, this.obpiWrite);
@@ -98,6 +110,8 @@ export class PpuCgb extends PpuBase {
         bus.map(reg.base + reg.obp1, this.registerRead, this.obp1Write);
 
         this.bus = bus;
+
+        this.onModeSwitch.addHandler(this.executeHDMA);
     }
 
     reset(): void {
@@ -114,6 +128,8 @@ export class PpuCgb extends PpuBase {
 
         this.bcram.fill(0xff);
         this.ocram.fill(0);
+
+        this.resetHDMA();
     }
 
     protected initializeVram(): [Uint8Array, Uint16Array] {
@@ -389,6 +405,101 @@ export class PpuCgb extends PpuBase {
         }
     };
 
+    private invalidRead: ReadHandler = (address) => {
+        this.system.log(`Invalid read from HDMA register ${hex16(address)}`);
+
+        return 0x00;
+    };
+
+    private hdma1Write: WriteHandler = (_, value) => {
+        this.hdmaSource = (this.hdmaSource & 0xff) | (value << 8);
+        this.hdmaSource &= 0xfff0;
+    };
+
+    private hdma2Write: WriteHandler = (_, value) => {
+        this.hdmaSource = (this.hdmaSource & 0xff00) | (value & 0xf0);
+        this.hdmaSource &= 0xfff0;
+    };
+
+    private hdma3Write: WriteHandler = (_, value) => {
+        this.hdmaDestination = (this.hdmaDestination & 0xff) | (value << 8);
+        this.hdmaDestination &= 0x1ff0;
+    };
+
+    private hdma4Write: WriteHandler = (_, value) => {
+        this.hdmaDestination = (this.hdmaDestination & 0xff00) | (value & 0xf0);
+        this.hdmaDestination &= 0x1ff0;
+    };
+
+    private hdma5Read: ReadHandler = () => {
+        if (this.hdmaLength === 0) return 0xff;
+
+        return (this.hdmaOn ? 0x00 : 0x80) | ((this.hdmaLength >> 4) - 1);
+    };
+
+    private hdma5Write: WriteHandler = (_, value) => {
+        if (this.hdmaOn && TransferMode.hblank === this.hdmaMode) {
+            if ((value & 0x80) === 0) {
+                this.hdmaOn = false;
+                return;
+            }
+        }
+
+        if (this.hdmaOn) {
+            this.system.log('HDMA transfer already in progress!');
+
+            return;
+        }
+
+        this.hdmaOn = true;
+        this.hdmaMode = value & 0x80;
+        this.hdmaLength = ((value & 0x7f) + 1) << 4;
+
+        if (this.hdmaMode !== TransferMode.general) return;
+
+        this.hdmaCopyMemory(this.hdmaLength);
+
+        this.resetHDMA();
+    };
+
+    private hdmaCopyMemory(length: number) {
+        const destination = 0x8000 + this.hdmaDestination;
+
+        let value;
+        for (let address = 0; address < length; address++) {
+            if (0x9ff0 < destination + address) {
+                this.system.log('Address overflow during HDMA transfer');
+
+                return;
+            }
+
+            value = this.bus.read(this.hdmaSource + address);
+            this.bus.write(destination + address, value);
+        }
+
+        this.hdmaSource += length;
+        this.hdmaDestination += length;
+        this.hdmaLength -= length;
+    }
+
+    protected executeHDMA() {
+        if (this.hdmaOn && this.mode === ppuMode.hblank) {
+            this.hdmaCopyMemory(0x10);
+
+            if (this.hdmaLength <= 0) {
+                this.resetHDMA();
+            }
+        }
+    }
+
+    private resetHDMA() {
+        this.hdmaOn = false;
+        this.hdmaMode = 0;
+        this.hdmaLength = 0;
+        this.hdmaSource = 0xffff;
+        this.hdmaDestination = 0xffff;
+    }
+
     private paletteBG = PALETTE_CLASSIC.slice();
     private paletteOB0 = PALETTE_CLASSIC.slice();
     private paletteOB1 = PALETTE_CLASSIC.slice();
@@ -406,4 +517,10 @@ export class PpuCgb extends PpuBase {
 
     private obpi = 0;
     private ocram = new Uint8Array(0x40);
+
+    private hdmaOn = false;
+    private hdmaMode = 0;
+    private hdmaLength = 0;
+    private hdmaSource = 0xffff;
+    private hdmaDestination = 0xffff;
 }

@@ -1,6 +1,11 @@
 export const enum cgbRegisters {
     vramBank = 0xff4f,
     svbk = 0xff70,
+    hdma1 = 0xff51,
+    hdma2 = 0xff52,
+    hdma3 = 0xff53,
+    hdma4 = 0xff54,
+    hdma5 = 0xff55,
     rp = 0xff56,
     bgpi = 0xff68,
     bgpd = 0xff69,
@@ -17,6 +22,11 @@ export function isCgbRegister(address: number): boolean {
         case cgbRegisters.bgpd:
         case cgbRegisters.obpi:
         case cgbRegisters.obpd:
+        case cgbRegisters.hdma1:
+        case cgbRegisters.hdma2:
+        case cgbRegisters.hdma3:
+        case cgbRegisters.hdma4:
+        case cgbRegisters.hdma5:
             return true;
 
         default:
