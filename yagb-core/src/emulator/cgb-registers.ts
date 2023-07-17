@@ -4,6 +4,8 @@ export const enum cgbRegisters {
     rp = 0xff56,
     bgpi = 0xff68,
     bgpd = 0xff69,
+    obpi = 0xff6a,
+    obpd = 0xff6b,
 }
 
 export function isCgbRegister(address: number): boolean {
@@ -13,6 +15,8 @@ export function isCgbRegister(address: number): boolean {
         case cgbRegisters.rp:
         case cgbRegisters.bgpi:
         case cgbRegisters.bgpd:
+        case cgbRegisters.obpi:
+        case cgbRegisters.obpd:
             return true;
 
         default:
