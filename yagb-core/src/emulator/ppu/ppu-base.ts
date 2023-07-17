@@ -250,6 +250,7 @@ export abstract class PpuBase implements Ppu {
                         this.mode = ppuMode.hblank;
                         this.clockInMode = 0;
                         this.updateStat();
+                        this.onHblankStart();
                     }
 
                     return consumed;
@@ -358,6 +359,7 @@ export abstract class PpuBase implements Ppu {
     }
 
     protected startFrame(): void {
+        const oldMode = this.mode;
         this.mode = ppuMode.oamScan;
         this.clockInMode = 0;
         this.scanline = 0;
@@ -393,6 +395,8 @@ export abstract class PpuBase implements Ppu {
         this.dmaInProgress = true;
         this.bus.lock();
     };
+
+    protected onHblankStart(): void {}
 
     protected clockInMode = 0;
     protected scanline = 0;
