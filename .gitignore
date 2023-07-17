@@ -2,6 +2,7 @@ node_modules
 yarn-error.log
 dist
 *.gb
+*.gbc
 .idea
 test_results
 coverage

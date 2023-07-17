@@ -296,7 +296,7 @@ Keyboard controls (click the canvas to give it focus):
             await repository.setLastRom({ name, data });
 
             loadCartridge(data, name);
-        }, '.gb');
+        }, '.gb,.gbc');
     },
     disassemble(count?: string, address?: string): void {
         if (!assertEmulator(emulator)) return;
