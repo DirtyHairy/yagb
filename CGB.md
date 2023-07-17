@@ -1,6 +1,6 @@
 # Differences to be accounted for in CGB mode
 
- * VRAM banking
+ * √ VRAM banking
  * Background attribute map
  * Display proprity handling
  * Object ordering
@@ -13,4 +13,4 @@
 
  * IR port
 
- * WRAM banking
+ * √ WRAM banking

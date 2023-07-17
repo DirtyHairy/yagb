@@ -5,9 +5,9 @@ import { PpuBase } from './ppu-base';
 import { Savestate } from '../savestate';
 import { SpriteQueueDmg } from './sprite-queue-dmg';
 import { cgbRegisters } from '../cgb-registers';
+import { ppuMode } from '../ppu';
 
 const enum reg {
-    vramBank = 0xff4f,
     base = 0xff40,
     lcdc = 0x00,
     stat = 0x01,
@@ -56,7 +56,7 @@ export class PpuCgb extends PpuBase {
         this.switchBank(0);
 
         super.save(savestate);
-        savestate.write16(bank).writeBuffer(this.vramBanks[1]);
+        savestate.write16(bank).writeBuffer(this.vramBanks[1]).write16(this.bgpi).writeBuffer(this.bcram).write16(this.obpi).writeBuffer(this.ocram);
 
         this.switchBank(bank);
     }
@@ -68,6 +68,10 @@ export class PpuCgb extends PpuBase {
 
         const bank = savestate.read16();
         this.vramBanks[1].set(savestate.readBuffer(this.vram.length));
+        this.bgpi = savestate.read16();
+        this.bcram.set(savestate.readBuffer(this.bcram.length));
+        this.obpi = savestate.read16();
+        this.ocram.set(savestate.readBuffer(this.ocram.length));
 
         this.switchBank(bank);
 
@@ -83,6 +87,11 @@ export class PpuCgb extends PpuBase {
         super.install(bus);
 
         bus.map(cgbRegisters.vramBank, this.vramBankRead, this.vramBankWrite);
+
+        bus.map(cgbRegisters.bgpi, this.bgpiRead, this.bgpiWrite);
+        bus.map(cgbRegisters.bgpd, this.bgpdRead, this.bgpdWrite);
+        bus.map(cgbRegisters.obpi, this.obpiRead, this.obpiWrite);
+        bus.map(cgbRegisters.obpd, this.obpdRead, this.obpdWrite);
 
         bus.map(reg.base + reg.bgp, this.registerRead, this.bgpWrite);
         bus.map(reg.base + reg.obp0, this.registerRead, this.obp0Write);
@@ -102,6 +111,9 @@ export class PpuCgb extends PpuBase {
 
         this.frontBuffer.fill(PALETTE_CLASSIC[4]);
         this.backBuffer.fill(PALETTE_CLASSIC[4]);
+
+        this.bcram.fill(0xff);
+        this.ocram.fill(0);
     }
 
     protected initializeVram(): [Uint8Array, Uint16Array] {
@@ -345,6 +357,38 @@ export class PpuCgb extends PpuBase {
         this.updatePalette(this.paletteOB1, value);
     };
 
+    private bgpiRead: ReadHandler = (_) => this.bgpi;
+    private bgpiWrite: WriteHandler = (_, value) => {
+        this.bgpi = value | 0x40;
+    };
+
+    private bgpdRead: ReadHandler = (_) => ((this.reg[reg.lcdc] & lcdc.enable) === 0 || this.mode !== ppuMode.draw ? this.bcram[this.bgpi & 0x3f] : 0xff);
+    private bgpdWrite: WriteHandler = (_, value) => {
+        const address = this.bgpi & 0x3f;
+
+        ((this.reg[reg.lcdc] & lcdc.enable) === 0 || this.mode !== ppuMode.draw) && (this.bcram[address] = value);
+
+        if (this.bgpi & 0x80) {
+            this.bgpi = 0x80 | ((address + 1) & 0x3f);
+        }
+    };
+
+    private obpiRead: ReadHandler = (_) => this.obpi;
+    private obpiWrite: WriteHandler = (_, value) => {
+        this.bgpi = value | 0x40;
+    };
+
+    private obpdRead: ReadHandler = (_) => ((this.reg[reg.lcdc] & lcdc.enable) === 0 || this.mode !== ppuMode.draw ? this.ocram[this.obpi & 0x3f] : 0xff);
+    private obpdWrite: WriteHandler = (_, value) => {
+        const address = this.obpi & 0x3f;
+
+        ((this.reg[reg.lcdc] & lcdc.enable) === 0 || this.mode !== ppuMode.draw) && (this.ocram[address] = value);
+
+        if (this.obpi & 0x80) {
+            this.obpi = 0x80 | ((address + 1) & 0x3f);
+        }
+    };
+
     private paletteBG = PALETTE_CLASSIC.slice();
     private paletteOB0 = PALETTE_CLASSIC.slice();
     private paletteOB1 = PALETTE_CLASSIC.slice();
@@ -356,4 +400,10 @@ export class PpuCgb extends PpuBase {
     private vram16Banks!: Array<Uint16Array>;
 
     private bank = 0;
+
+    private bgpi = 0;
+    private bcram = new Uint8Array(0x40);
+
+    private obpi = 0;
+    private ocram = new Uint8Array(0x40);
 }

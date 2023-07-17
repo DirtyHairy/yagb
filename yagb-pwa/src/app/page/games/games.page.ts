@@ -87,7 +87,7 @@ export class GamesPage {
     resetGame(game: Game): void {}
 
     importGame(): void {
-        this.fileService.openFile(this.handleFile.bind(this), '.gb');
+        this.fileService.openFile(this.handleFile.bind(this), '.gb,.gbc');
     }
 
     private async handleFile(data: Uint8Array, name: string): Promise<void> {
@@ -103,7 +103,7 @@ export class GamesPage {
         }
 
         const settings: GameSettings = {
-            name: this.disambiguateName(name.replace(/\.gb$/, '')),
+            name: this.disambiguateName(name.replace(/\.gbc?$/, '')),
         };
 
         const modal = await this.modalController.create({
