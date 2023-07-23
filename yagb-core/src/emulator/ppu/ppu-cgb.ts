@@ -429,14 +429,8 @@ export class PpuCgb extends PpuBase {
     };
 
     private hdma5Write: WriteHandler = (_, value) => {
-        if ((value & 0x80) === 0) {
+        if (this.hdmaMode === HdmaMode.hblank && (value & 0x80) === 0) {
             this.hdmaMode = HdmaMode.off;
-            return;
-        }
-
-        if (this.hdmaMode !== HdmaMode.off) {
-            this.system.log('HDMA transfer already in progress!');
-
             return;
         }
 
