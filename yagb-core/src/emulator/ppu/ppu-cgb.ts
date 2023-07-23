@@ -38,9 +38,8 @@ const enum lcdc {
 const enum HdmaMode {
     off = 0,
     hblank = 1,
+    general = 2,
 }
-
-const SAVESTATE_VERSION = 0x01;
 
 function clockPenaltyForSprite(scx: number, x: number): number {
     let tmp = (x + scx + 8) % 8;
@@ -120,7 +119,10 @@ export class PpuCgb extends PpuBase {
         this.bcram.fill(0xff);
         this.ocram.fill(0);
 
-        this.resetHDMA();
+        this.hdmaMode = HdmaMode.off;
+        this.hdmaSource = 0x0000;
+        this.hdmaDestination = 0x0000;
+        this.hdmaRemaining = 0x00;
     }
 
     protected initializeVram(): [Uint8Array, Uint16Array] {
@@ -145,6 +147,8 @@ export class PpuCgb extends PpuBase {
         }
 
         if (oldValue & ~this.reg[reg.lcdc] & lcdc.enable) {
+            this.hdmaCopyBlock();
+
             this.backBuffer.fill(PALETTE_CLASSIC[4]);
             this.swapBuffers();
             this.startFrame();
@@ -404,12 +408,10 @@ export class PpuCgb extends PpuBase {
 
     private hdma1Write: WriteHandler = (_, value) => {
         this.hdmaSource = (this.hdmaSource & 0xff) | (value << 8);
-        this.hdmaSource &= 0xfff0;
     };
 
     private hdma2Write: WriteHandler = (_, value) => {
         this.hdmaSource = (this.hdmaSource & 0xff00) | (value & 0xf0);
-        this.hdmaSource &= 0xfff0;
     };
 
     private hdma3Write: WriteHandler = (_, value) => {
@@ -419,13 +421,10 @@ export class PpuCgb extends PpuBase {
 
     private hdma4Write: WriteHandler = (_, value) => {
         this.hdmaDestination = (this.hdmaDestination & 0xff00) | (value & 0xf0);
-        this.hdmaDestination &= 0x1ff0;
     };
 
     private hdma5Read: ReadHandler = () => {
-        if (this.hdmaLength === 0) return 0xff;
-
-        return (this.hdmaMode !== HdmaMode.off ? 0x00 : 0x80) | ((this.hdmaLength >> 4) - 1);
+        return (this.hdmaMode === HdmaMode.off ? 0x80 : 0x00) | this.hdmaRemaining;
     };
 
     private hdma5Write: WriteHandler = (_, value) => {
@@ -434,55 +433,40 @@ export class PpuCgb extends PpuBase {
             return;
         }
 
-        this.hdmaLength = ((value & 0x7f) + 1) << 4;
+        this.hdmaRemaining = value & 0x7f;
 
         if (value & 0x80) {
             this.hdmaMode = HdmaMode.hblank;
 
             if ((this.reg[reg.lcdc] & lcdc.enable) === 0) {
-                this.hdmaCopyMemory(0x10);
+                this.hdmaCopyBlock();
             }
         } else {
-            this.hdmaCopyMemory(this.hdmaLength);
-            this.resetHDMA();
+            this.hdmaMode = HdmaMode.general;
+
+            while ((this.hdmaMode as HdmaMode) !== HdmaMode.off) this.hdmaCopyBlock();
         }
     };
 
-    private hdmaCopyMemory(length: number) {
-        const destination = 0x8000 + this.hdmaDestination;
+    private hdmaCopyBlock() {
+        if (this.hdmaMode === HdmaMode.off) return;
 
-        for (let address = 0; address < length; address++) {
-            if (0x9ff0 < destination + address) {
-                this.system.log('Address overflow during HDMA transfer, DMA stopped');
-                this.resetHDMA();
+        const destination = this.hdmaDestination + 0x8000;
 
-                return;
-            }
-
-            const value = this.bus.read(this.hdmaSource + address);
-            this.bus.write(destination + address, value);
+        for (let index = 0; index < 0x10; index++) {
+            const value = this.bus.read(this.hdmaSource + index);
+            this.bus.write(destination + index, value);
         }
 
-        this.hdmaSource += length;
-        this.hdmaDestination += length;
-        this.hdmaLength -= length;
+        this.hdmaSource = (this.hdmaSource + 0x10) & 0xfff0;
+        this.hdmaDestination = (this.hdmaDestination + 0x10) & 0x1ff0;
+        this.hdmaRemaining = (this.hdmaRemaining - 1) & 0x7f;
+
+        if (this.hdmaRemaining === 0x7f || this.hdmaDestination === 0x0000) this.hdmaMode = HdmaMode.off;
     }
 
     protected onHblankStart() {
-        if (this.hdmaMode === HdmaMode.hblank) {
-            this.hdmaCopyMemory(0x10);
-
-            if (this.hdmaLength <= 0) {
-                this.resetHDMA();
-            }
-        }
-    }
-
-    private resetHDMA() {
-        this.hdmaMode = HdmaMode.off;
-        this.hdmaLength = 0;
-        this.hdmaSource = 0xffff;
-        this.hdmaDestination = 0xffff;
+        this.hdmaCopyBlock();
     }
 
     private paletteBG = PALETTE_CLASSIC.slice();
@@ -504,7 +488,7 @@ export class PpuCgb extends PpuBase {
     private ocram = new Uint8Array(0x40);
 
     private hdmaMode: HdmaMode = HdmaMode.off;
-    private hdmaLength = 0;
-    private hdmaSource = 0xffff;
-    private hdmaDestination = 0xffff;
+    private hdmaRemaining = 0;
+    private hdmaSource = 0x0000;
+    private hdmaDestination = 0x0000;
 }
