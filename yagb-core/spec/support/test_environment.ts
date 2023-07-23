@@ -3,6 +3,7 @@ import { Cpu, r8 } from '../../src/emulator/cpu';
 
 import { Apu } from '../../src/emulator/apu';
 import { Clock } from '../../src/emulator/clock';
+import { ClockDmg } from '../../src/emulator/clock/clock-dmg';
 import { Interrupt } from '../../src/emulator/interrupt';
 import { Mode } from '../../src/emulator/mode';
 import { Ppu } from '../../src/emulator/ppu';
@@ -41,12 +42,14 @@ export class TestEnvironment {
         this.timer = new Timer(this.interrupt);
         this.serial = new Serial(this.interrupt);
         this.apu = new Apu();
-        this.clock = new Clock(this.ppu, this.timer, this.serial, this.apu);
+        this.clock = new ClockDmg(this.ppu, this.timer, this.serial, this.apu);
         this.bus = new Bus(this.system);
         this.ram = new Ram(Mode.dmg);
         this.cpu = new Cpu(Mode.dmg, this.bus, this.clock, this.interrupt, this.system);
         this.cartridge = new Uint8Array(0x8000);
         this.unmapped = new Unmapped(Mode.dmg, this.bus);
+
+        this.ppu.setCpu(this.cpu).setClock(this.clock);
 
         this.code = code;
         this.address = address;

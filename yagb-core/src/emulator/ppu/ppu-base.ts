@@ -2,6 +2,8 @@ import { Bus, ReadHandler, WriteHandler } from '../bus';
 import { Interrupt, irq } from '../interrupt';
 import { Ppu, ppuMode } from '../ppu';
 
+import { Clock } from '../clock';
+import { Cpu } from '../cpu';
 import { Savestate } from '../savestate';
 import { System } from '../system';
 import { hex8 } from '../../helper/format';
@@ -55,6 +57,18 @@ export abstract class PpuBase implements Ppu {
 
         this.vram = vram;
         this.vram16 = vram16;
+    }
+
+    setCpu(cpu: Cpu): this {
+        this.cpu = cpu;
+
+        return this;
+    }
+
+    setClock(clock: Clock): this {
+        this.clock = clock;
+
+        return this;
     }
 
     save(savestate: Savestate): void {
@@ -396,6 +410,9 @@ export abstract class PpuBase implements Ppu {
     };
 
     protected onHblankStart(): void {}
+
+    protected cpu!: Cpu;
+    protected clock!: Clock;
 
     protected clockInMode = 0;
     protected scanline = 0;

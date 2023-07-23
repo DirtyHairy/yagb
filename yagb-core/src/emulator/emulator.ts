@@ -1,11 +1,11 @@
 import { Cartridge, CgbSupportLevel, createCartridge } from './cartridge';
+import { Clock, createClock } from './clock';
 import { Joypad, key } from './joypad';
 import { Ppu, createPpu } from './ppu';
 import { decodeInstruction, disassembleInstruction } from './instruction';
 
 import { Apu } from './apu';
 import { Bus } from './bus';
-import { Clock } from './clock';
 import { Cpu } from './cpu';
 import { Event } from 'microevent.ts';
 import { Infrared } from './infrared';
@@ -44,14 +44,15 @@ export class Emulator {
         this.apu = new Apu();
         this.timer = new Timer(this.interrupt);
         this.serial = new Serial(this.interrupt);
-        this.clock = new Clock(this.ppu, this.timer, this.serial, this.apu);
+        this.clock = createClock(mode, this.ppu, this.timer, this.serial, this.apu);
         this.cpu = new Cpu(mode, this.bus, this.clock, this.interrupt, this.system);
         this.ram = new Ram(mode);
         this.joypad = new Joypad(this.interrupt);
         this.infrared = new Infrared(mode);
+        this.cartridge = cartridge;
         const unmapped = new Unmapped(mode, this.bus);
 
-        this.cartridge = cartridge;
+        this.ppu.setCpu(this.cpu).setClock(this.clock);
 
         this.cartridge.install(this.bus);
         this.ram.install(this.bus);
@@ -166,6 +167,7 @@ export class Emulator {
 
     reset(savedRam?: Uint8Array): void {
         this.cartridge.reset(savedRam);
+        this.clock.reset();
         this.cpu.reset();
         this.ram.reset();
         this.ppu.reset();

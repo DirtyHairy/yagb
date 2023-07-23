@@ -1,4 +1,5 @@
 import { Bus } from './bus';
+import { Clock } from './clock';
 import { Cpu } from './cpu';
 import { Interrupt } from './interrupt';
 import { Mode } from './mode';
@@ -15,6 +16,9 @@ export const enum ppuMode {
 }
 
 export interface Ppu {
+    setCpu(cpu: Cpu): Ppu;
+    setClock(clock: Clock): Ppu;
+
     save(savestate: Savestate): void;
     load(savestate: Savestate): void;
 
@@ -30,10 +34,10 @@ export interface Ppu {
     getMode(): ppuMode;
 }
 
-export function createPpu(mode: Mode, system: System, interrupt: Interrupt, cpu: Cpu): Ppu {
+export function createPpu(mode: Mode, system: System, interrupt: Interrupt): Ppu {
     switch (mode) {
         case Mode.cgb:
-            return new PpuCgb(system, interrupt, cpu);
+            return new PpuCgb(system, interrupt);
 
         case Mode.dmg:
             return new PpuDmg(system, interrupt);

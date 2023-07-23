@@ -1,6 +1,5 @@
 import { Bus, ReadHandler, WriteHandler } from '../bus';
 
-import { Cpu } from '../cpu';
 import { Interrupt } from '../interrupt';
 import { PALETTE_CLASSIC } from '../palette';
 import { PpuBase } from './ppu-base';
@@ -52,7 +51,7 @@ function clockPenaltyForSprite(scx: number, x: number): number {
 }
 
 export class PpuCgb extends PpuBase {
-    constructor(protected system: System, protected interrupt: Interrupt, private cpu: Cpu) {
+    constructor(protected system: System, protected interrupt: Interrupt) {
         super(system, interrupt);
     }
 
@@ -451,6 +450,7 @@ export class PpuCgb extends PpuBase {
         } else {
             this.hdmaMode = HdmaMode.general;
 
+            this.clock.pauseCpu(4);
             while ((this.hdmaMode as HdmaMode) !== HdmaMode.off) this.hdmaCopyBlock();
         }
     };
@@ -470,6 +470,8 @@ export class PpuCgb extends PpuBase {
         this.hdmaRemaining = (this.hdmaRemaining - 1) & 0x7f;
 
         if (this.hdmaRemaining === 0x7f || this.hdmaDestination === 0x0000) this.hdmaMode = HdmaMode.off;
+
+        this.clock.pauseCpu(this.hdmaMode === HdmaMode.hblank ? 36 : 32);
     }
 
     protected onHblankStart() {
