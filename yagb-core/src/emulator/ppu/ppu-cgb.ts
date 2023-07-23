@@ -1,10 +1,12 @@
 import { Bus, ReadHandler, WriteHandler } from '../bus';
 
+import { COLOR_MAPPING } from './color-mapping';
+import { Cram } from './cram';
 import { Interrupt } from '../interrupt';
 import { PALETTE_CLASSIC } from '../palette';
 import { PpuBase } from './ppu-base';
 import { Savestate } from '../savestate';
-import { SpriteQueueDmg } from './sprite-queue-dmg';
+import { SpriteQueueCgb } from './sprite-queue-cgb';
 import { System } from '../system';
 import { cgbRegisters } from '../cgb-registers';
 import { hex16 } from '../../helper/format';
@@ -53,6 +55,8 @@ function clockPenaltyForSprite(scx: number, x: number): number {
 export class PpuCgb extends PpuBase {
     constructor(protected system: System, protected interrupt: Interrupt) {
         super(system, interrupt);
+
+        this.spriteQueue = new SpriteQueueCgb(this.vramBanks, this.oam, this.ocram);
     }
 
     save(savestate: Savestate): void {
@@ -60,7 +64,7 @@ export class PpuCgb extends PpuBase {
         this.switchBank(0);
 
         super.save(savestate);
-        savestate.write16(bank).writeBuffer(this.vramBanks[1]).write16(this.bgpi).writeBuffer(this.bcram).write16(this.obpi).writeBuffer(this.ocram);
+        savestate.write16(bank).writeBuffer(this.vramBanks[1]).write16(this.bgpi).writeBuffer(this.bcram.data).write16(this.obpi).writeBuffer(this.ocram.data);
 
         this.switchBank(bank);
     }
@@ -73,18 +77,14 @@ export class PpuCgb extends PpuBase {
         const bank = savestate.read16();
         this.vramBanks[1].set(savestate.readBuffer(this.vram.length));
         this.bgpi = savestate.read16();
-        this.bcram.set(savestate.readBuffer(this.bcram.length));
+        this.bcram.load(savestate.readBuffer(0x40));
         this.obpi = savestate.read16();
-        this.ocram.set(savestate.readBuffer(this.ocram.length));
+        this.ocram.load(savestate.readBuffer(0x40));
 
         this.switchBank(bank);
 
-        this.frontBuffer.fill(PALETTE_CLASSIC[4]);
-        this.backBuffer.fill(PALETTE_CLASSIC[4]);
-
-        this.updatePalette(this.paletteOB0, this.reg[reg.obp0]);
-        this.updatePalette(this.paletteOB1, this.reg[reg.obp1]);
-        this.updatePalette(this.paletteBG, this.reg[reg.bgp]);
+        this.frontBuffer.fill(COLOR_MAPPING[0x7fff]);
+        this.backBuffer.fill(COLOR_MAPPING[0x7fff]);
     }
 
     install(bus: Bus): void {
@@ -103,10 +103,6 @@ export class PpuCgb extends PpuBase {
         bus.map(cgbRegisters.obpi, this.obpiRead, this.obpiWrite);
         bus.map(cgbRegisters.obpd, this.obpdRead, this.obpdWrite);
 
-        bus.map(reg.base + reg.bgp, this.registerRead, this.bgpWrite);
-        bus.map(reg.base + reg.obp0, this.registerRead, this.obp0Write);
-        bus.map(reg.base + reg.obp1, this.registerRead, this.obp1Write);
-
         this.bus = bus;
     }
 
@@ -115,15 +111,11 @@ export class PpuCgb extends PpuBase {
 
         this.switchBank(0);
 
-        this.updatePalette(this.paletteBG, this.reg[reg.bgp]);
-        this.updatePalette(this.paletteOB0, this.reg[reg.obp0]);
-        this.updatePalette(this.paletteOB1, this.reg[reg.obp1]);
+        this.frontBuffer.fill(COLOR_MAPPING[0x7fff]);
+        this.backBuffer.fill(COLOR_MAPPING[0x7fff]);
 
-        this.frontBuffer.fill(PALETTE_CLASSIC[4]);
-        this.backBuffer.fill(PALETTE_CLASSIC[4]);
-
-        this.bcram.fill(0xff);
-        this.ocram.fill(0);
+        this.bcram.reset();
+        this.ocram.reset();
 
         this.hdmaMode = HdmaMode.off;
         this.hdmaSource = 0x0000;
@@ -138,7 +130,7 @@ export class PpuCgb extends PpuBase {
         this.bank = 0;
         for (let bank = 0; bank <= 1; bank++) {
             this.vramBanks[bank] = new Uint8Array(0x2000);
-            this.vram16Banks[bank] = new Uint16Array(this.vramBanks[bank]);
+            this.vram16Banks[bank] = new Uint16Array(this.vramBanks[bank].buffer);
         }
 
         return [this.vramBanks[0], this.vram16Banks[0]];
@@ -164,8 +156,7 @@ export class PpuCgb extends PpuBase {
     protected renderLine(): void {
         const backgroundX = this.reg[reg.scx];
         const backgroundY = this.reg[reg.scy] + this.scanline;
-        const bgEnable = (this.reg[reg.lcdc] & lcdc.bgEnable) !== 0;
-        const windowEnable = bgEnable && (this.reg[reg.lcdc] & lcdc.windowEnable) !== 0 && this.wx <= 166;
+        const windowEnable = (this.reg[reg.lcdc] & lcdc.windowEnable) !== 0 && this.wx <= 166;
         const windowX = this.wx - 7;
         const windowY = this.wy;
 
@@ -174,6 +165,7 @@ export class PpuCgb extends PpuBase {
         let bgTileX = 0;
         let bgTileNX = 0;
         let bgTileData = 0;
+        let bgTileAttr = 0;
 
         // Increment window line if window is enabled and has been triggered for this frame
         if (windowEnable && this.windowTriggered) this.windowLine++;
@@ -182,20 +174,21 @@ export class PpuCgb extends PpuBase {
         // Start with window active?
         let windowActive = windowEnable && this.windowTriggered && windowX <= 0;
 
-        if (bgEnable) {
-            if (windowActive) {
-                bgTileNY = this.windowLine >>> 3;
-                bgTileY = this.windowLine & 0x07;
-                bgTileX = -windowX;
-                bgTileData = this.backgroundTileData(true, bgTileNX, bgTileNY, bgTileY) << bgTileX;
-            } else {
-                bgTileNY = backgroundY >>> 3;
-                bgTileY = backgroundY & 0x07;
-                bgTileX = backgroundX & 0x07;
-                bgTileNX = backgroundX >>> 3;
-                bgTileData = this.backgroundTileData(false, bgTileNX, bgTileNY, bgTileY) << bgTileX;
-            }
+        if (windowActive) {
+            bgTileNY = this.windowLine >>> 3;
+            bgTileY = this.windowLine & 0x07;
+            bgTileX = -windowX;
+            bgTileData = this.backgroundTileData(true, bgTileNX, bgTileNY, bgTileY);
+        } else {
+            bgTileNY = backgroundY >>> 3;
+            bgTileY = backgroundY & 0x07;
+            bgTileX = backgroundX & 0x07;
+            bgTileNX = backgroundX >>> 3;
+            bgTileData = this.backgroundTileData(false, bgTileNX, bgTileNY, bgTileY);
         }
+
+        bgTileAttr = bgTileData >>> 16;
+        bgTileData <<= bgTileX;
 
         // see pandocs; penalty from background shift
         this.mode3ExtraClocks = backgroundX % 8;
@@ -252,6 +245,7 @@ export class PpuCgb extends PpuBase {
                 bgTileX = 0;
                 bgTileNX = 0;
                 bgTileData = this.backgroundTileData(true, bgTileNX, bgTileNY, bgTileY);
+                bgTileAttr = bgTileData >>> 16;
             }
 
             // Check whether we have a pending sprite and whether it starts on this pixel
@@ -293,33 +287,34 @@ export class PpuCgb extends PpuBase {
                 // What is the BG vs OBJ priority of this sprite?
                 if (this.spriteQueue.flag[spriteIndex] & 0x80) {
                     // Sprite behind background
-                    const bgValue = bgEnable ? ((bgTileData & 0x8000) >>> 14) | ((bgTileData & 0x80) >>> 7) : 0;
+                    const bgValue = ((bgTileData & 0x8000) >>> 14) | ((bgTileData & 0x80) >>> 7);
                     this.backBuffer[pixelAddress++] =
-                        bgValue > 0 || spriteValue === 0 ? this.paletteBG[bgValue] : this.spriteQueue.palette[spriteIndex][spriteValue];
+                        bgValue > 0 || spriteValue === 0
+                            ? this.bcram.getPalette(bgTileAttr & 0x07)[bgValue]
+                            : this.spriteQueue.palette[spriteIndex][spriteValue];
                 } else {
                     // Sprite in front of background
                     if (spriteValue > 0) {
                         this.backBuffer[pixelAddress++] = this.spriteQueue.palette[spriteIndex][spriteValue];
                     } else {
-                        const bgValue = bgEnable ? ((bgTileData & 0x8000) >>> 14) | ((bgTileData & 0x80) >>> 7) : 0;
-                        this.backBuffer[pixelAddress++] = this.paletteBG[bgValue];
+                        const bgValue = ((bgTileData & 0x8000) >>> 14) | ((bgTileData & 0x80) >>> 7);
+                        this.backBuffer[pixelAddress++] = this.bcram.getPalette(bgTileAttr & 0x07)[bgValue];
                     }
                 }
             } else {
-                const bgValue = bgEnable ? ((bgTileData & 0x8000) >>> 14) | ((bgTileData & 0x80) >>> 7) : 0;
-                this.backBuffer[pixelAddress++] = this.paletteBG[bgValue];
+                const bgValue = ((bgTileData & 0x8000) >>> 14) | ((bgTileData & 0x80) >>> 7);
+                this.backBuffer[pixelAddress++] = this.bcram.getPalette(bgTileAttr & 0x07)[bgValue];
             }
 
-            if (bgEnable) {
-                if (bgTileX === 7) {
-                    bgTileNX++;
-                    bgTileX = 0;
+            if (bgTileX === 7) {
+                bgTileNX++;
+                bgTileX = 0;
 
-                    bgTileData = this.backgroundTileData(windowActive, bgTileNX, bgTileNY, bgTileY);
-                } else {
-                    bgTileX++;
-                    bgTileData <<= 1;
-                }
+                bgTileData = this.backgroundTileData(windowActive, bgTileNX, bgTileNY, bgTileY);
+                bgTileAttr = bgTileData >>> 16;
+            } else {
+                bgTileX++;
+                bgTileData <<= 1;
             }
         }
     }
@@ -332,58 +327,33 @@ export class PpuCgb extends PpuBase {
     }
 
     private vramBankRead: ReadHandler = (_) => 0xfe | this.bank;
-    private vramBankWrite: WriteHandler = (_, value) => (this.bank = value & 0x01);
+    private vramBankWrite: WriteHandler = (_, value) => this.switchBank(value & 0x01);
 
     private backgroundTileData(window: boolean, nx: number, ny: number, y: number): number {
         const tileMapBase = this.reg[reg.lcdc] & (window ? lcdc.windowTileMapArea : lcdc.bgTileMapArea) ? 0x1c00 : 0x1800;
-        const index = this.vram[tileMapBase + (ny % 32) * 32 + (nx % 32)];
+        const index = this.vramBanks[0][tileMapBase + (ny % 32) * 32 + (nx % 32)];
+        const attr = this.vramBanks[1][tileMapBase + (ny % 32) * 32 + (nx % 32)];
+        const bank = this.vram16Banks[(attr >>> 3) & 0x01];
 
         if (index >= 0x80) {
-            return this.vram16[0x0400 + 8 * (index - 0x80) + y];
+            return bank[0x0400 + 8 * (index - 0x80) + y] | (attr << 16);
         } else {
-            const tildeDataBase = this.reg[reg.lcdc] & lcdc.bgTileDataArea ? 0x0000 : 0x800;
+            const tileDataBase = this.reg[reg.lcdc] & lcdc.bgTileDataArea ? 0x0000 : 0x800;
 
-            return this.vram16[tildeDataBase + 8 * index + y];
+            return bank[tileDataBase + 8 * index + y] | (attr << 16);
         }
     }
-
-    private updatePalette(target: Uint32Array, palette: number): void {
-        for (let i = 0; i < 4; i++) {
-            target[i] = PALETTE_CLASSIC[(palette >> (2 * i)) & 0x03];
-        }
-    }
-
-    private bgpWrite: WriteHandler = (_, value) => {
-        value &= 0xff;
-        this.reg[reg.bgp] = value;
-
-        this.updatePalette(this.paletteBG, value);
-    };
-
-    private obp0Write: WriteHandler = (_, value) => {
-        value &= 0xff;
-        this.reg[reg.obp0] = value;
-
-        this.updatePalette(this.paletteOB0, value);
-    };
-
-    private obp1Write: WriteHandler = (_, value) => {
-        value &= 0xff;
-        this.reg[reg.obp1] = value;
-
-        this.updatePalette(this.paletteOB1, value);
-    };
 
     private bgpiRead: ReadHandler = (_) => this.bgpi;
     private bgpiWrite: WriteHandler = (_, value) => {
         this.bgpi = value | 0x40;
     };
 
-    private bgpdRead: ReadHandler = (_) => ((this.reg[reg.lcdc] & lcdc.enable) === 0 || this.mode !== ppuMode.draw ? this.bcram[this.bgpi & 0x3f] : 0xff);
+    private bgpdRead: ReadHandler = (_) => ((this.reg[reg.lcdc] & lcdc.enable) === 0 || this.mode !== ppuMode.draw ? this.bcram.read(this.bgpi & 0x3f) : 0xff);
     private bgpdWrite: WriteHandler = (_, value) => {
         const address = this.bgpi & 0x3f;
 
-        ((this.reg[reg.lcdc] & lcdc.enable) === 0 || this.mode !== ppuMode.draw) && (this.bcram[address] = value);
+        if ((this.reg[reg.lcdc] & lcdc.enable) === 0 || this.mode !== ppuMode.draw) this.bcram.write(address, value);
 
         if (this.bgpi & 0x80) {
             this.bgpi = 0x80 | ((address + 1) & 0x3f);
@@ -392,14 +362,14 @@ export class PpuCgb extends PpuBase {
 
     private obpiRead: ReadHandler = (_) => this.obpi;
     private obpiWrite: WriteHandler = (_, value) => {
-        this.bgpi = value | 0x40;
+        this.obpi = value | 0x40;
     };
 
-    private obpdRead: ReadHandler = (_) => ((this.reg[reg.lcdc] & lcdc.enable) === 0 || this.mode !== ppuMode.draw ? this.ocram[this.obpi & 0x3f] : 0xff);
+    private obpdRead: ReadHandler = (_) => ((this.reg[reg.lcdc] & lcdc.enable) === 0 || this.mode !== ppuMode.draw ? this.ocram.read(this.obpi & 0x3f) : 0xff);
     private obpdWrite: WriteHandler = (_, value) => {
         const address = this.obpi & 0x3f;
 
-        ((this.reg[reg.lcdc] & lcdc.enable) === 0 || this.mode !== ppuMode.draw) && (this.ocram[address] = value);
+        if ((this.reg[reg.lcdc] & lcdc.enable) === 0 || this.mode !== ppuMode.draw) this.ocram.write(address, value);
 
         if (this.obpi & 0x80) {
             this.obpi = 0x80 | ((address + 1) & 0x3f);
@@ -458,11 +428,8 @@ export class PpuCgb extends PpuBase {
     private hdmaCopyBlock() {
         if (this.hdmaMode === HdmaMode.off || this.cpu.state.halt) return;
 
-        const destination = this.hdmaDestination + 0x8000;
-
         for (let index = 0; index < 0x10; index++) {
-            const value = this.bus.read(this.hdmaSource + index);
-            this.bus.write(destination + index, value);
+            this.vram[this.hdmaDestination + index] = this.bus.read(this.hdmaSource + index);
         }
 
         this.hdmaSource = (this.hdmaSource + 0x10) & 0xfff0;
@@ -478,11 +445,7 @@ export class PpuCgb extends PpuBase {
         this.hdmaCopyBlock();
     }
 
-    private paletteBG = PALETTE_CLASSIC.slice();
-    private paletteOB0 = PALETTE_CLASSIC.slice();
-    private paletteOB1 = PALETTE_CLASSIC.slice();
-
-    private spriteQueue = new SpriteQueueDmg(this.vram, this.oam, this.paletteOB0, this.paletteOB1);
+    private spriteQueue: SpriteQueueCgb;
     private spriteCounter = new Uint8Array(10);
 
     private vramBanks!: Array<Uint8Array>;
@@ -491,10 +454,10 @@ export class PpuCgb extends PpuBase {
     private bank = 0;
 
     private bgpi = 0;
-    private bcram = new Uint8Array(0x40);
+    private bcram = new Cram(0xff);
 
     private obpi = 0;
-    private ocram = new Uint8Array(0x40);
+    private ocram = new Cram(0x00);
 
     private hdmaMode: HdmaMode = HdmaMode.off;
     private hdmaRemaining = 0;
