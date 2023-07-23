@@ -35,15 +35,8 @@ const enum lcdc {
     bgEnable = 0x01,
 }
 
-const enum stat {
-    sourceLY = 0x40,
-    sourceModeOAM = 0x20,
-    sourceModeVblank = 0x10,
-    sourceModeHblank = 0x08,
-}
-
-const enum TransferMode {
-    general = 0,
+const enum HdmaMode {
+    off = 0,
     hblank = 1,
 }
 
@@ -432,32 +425,30 @@ export class PpuCgb extends PpuBase {
     private hdma5Read: ReadHandler = () => {
         if (this.hdmaLength === 0) return 0xff;
 
-        return (this.hdmaOn ? 0x00 : 0x80) | ((this.hdmaLength >> 4) - 1);
+        return (this.hdmaMode !== HdmaMode.off ? 0x00 : 0x80) | ((this.hdmaLength >> 4) - 1);
     };
 
     private hdma5Write: WriteHandler = (_, value) => {
-        if (this.hdmaOn && TransferMode.hblank === this.hdmaMode) {
-            if ((value & 0x80) === 0) {
-                this.hdmaOn = false;
-                return;
-            }
+        if ((value & 0x80) === 0) {
+            this.hdmaMode = HdmaMode.off;
+            return;
         }
 
-        if (this.hdmaOn) {
+        if (this.hdmaMode !== HdmaMode.off) {
             this.system.log('HDMA transfer already in progress!');
 
             return;
         }
 
-        this.hdmaOn = true;
-        this.hdmaMode = value & 0x80;
         this.hdmaLength = ((value & 0x7f) + 1) << 4;
 
-        if (this.hdmaMode === TransferMode.hblank && (this.reg[reg.lcdc] & lcdc.enable) === 0) {
-            this.hdmaCopyMemory(0x10);
-        }
+        if (value & 0x80) {
+            this.hdmaMode = HdmaMode.hblank;
 
-        if (this.hdmaMode === TransferMode.general) {
+            if ((this.reg[reg.lcdc] & lcdc.enable) === 0) {
+                this.hdmaCopyMemory(0x10);
+            }
+        } else {
             this.hdmaCopyMemory(this.hdmaLength);
             this.resetHDMA();
         }
@@ -468,7 +459,8 @@ export class PpuCgb extends PpuBase {
 
         for (let address = 0; address < length; address++) {
             if (0x9ff0 < destination + address) {
-                this.system.log('Address overflow during HDMA transfer');
+                this.system.log('Address overflow during HDMA transfer, DMA stopped');
+                this.resetHDMA();
 
                 return;
             }
@@ -483,7 +475,7 @@ export class PpuCgb extends PpuBase {
     }
 
     protected onHblankStart() {
-        if (this.hdmaOn && this.mode === ppuMode.hblank) {
+        if (this.hdmaMode === HdmaMode.hblank) {
             this.hdmaCopyMemory(0x10);
 
             if (this.hdmaLength <= 0) {
@@ -493,8 +485,7 @@ export class PpuCgb extends PpuBase {
     }
 
     private resetHDMA() {
-        this.hdmaOn = false;
-        this.hdmaMode = 0;
+        this.hdmaMode = HdmaMode.off;
         this.hdmaLength = 0;
         this.hdmaSource = 0xffff;
         this.hdmaDestination = 0xffff;
@@ -518,8 +509,7 @@ export class PpuCgb extends PpuBase {
     private obpi = 0;
     private ocram = new Uint8Array(0x40);
 
-    private hdmaOn = false;
-    private hdmaMode = 0;
+    private hdmaMode: HdmaMode = HdmaMode.off;
     private hdmaLength = 0;
     private hdmaSource = 0xffff;
     private hdmaDestination = 0xffff;

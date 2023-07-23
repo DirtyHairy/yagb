@@ -359,7 +359,6 @@ export abstract class PpuBase implements Ppu {
     }
 
     protected startFrame(): void {
-        const oldMode = this.mode;
         this.mode = ppuMode.oamScan;
         this.clockInMode = 0;
         this.scanline = 0;
