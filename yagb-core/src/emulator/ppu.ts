@@ -1,4 +1,5 @@
 import { Bus } from './bus';
+import { Cpu } from './cpu';
 import { Interrupt } from './interrupt';
 import { Mode } from './mode';
 import { PpuCgb } from './ppu/ppu-cgb';
@@ -29,10 +30,10 @@ export interface Ppu {
     getMode(): ppuMode;
 }
 
-export function createPpu(mode: Mode, system: System, interrupt: Interrupt): Ppu {
+export function createPpu(mode: Mode, system: System, interrupt: Interrupt, cpu: Cpu): Ppu {
     switch (mode) {
         case Mode.cgb:
-            return new PpuCgb(system, interrupt);
+            return new PpuCgb(system, interrupt, cpu);
 
         case Mode.dmg:
             return new PpuDmg(system, interrupt);

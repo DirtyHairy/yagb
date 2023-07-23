@@ -1,8 +1,10 @@
-import { Interrupt, irq } from './../../src/emulator/interrupt';
+import { Interrupt, irq } from '../../src/emulator/interrupt';
 import { Ppu, ppuMode } from '../../src/emulator/ppu';
 
 import { Bus } from '../../src/emulator/bus';
-import { Ram } from './../../src/emulator/ram';
+import { Mode } from '../../src/emulator/mode';
+import { PpuDmg } from '../../src/emulator/ppu/ppu-dmg';
+import { Ram } from '../../src/emulator/ram';
 import { System } from '../../src/emulator/system';
 
 describe('PPU', () => {
@@ -14,8 +16,8 @@ describe('PPU', () => {
         const system = new System((msg) => console.log(msg));
         const bus = new Bus(system);
         const interrupt = new Interrupt();
-        const ppu = new Ppu(system, interrupt);
-        const ram = new Ram();
+        const ppu = new PpuDmg(system, interrupt);
+        const ram = new Ram(Mode.dmg);
 
         ppu.install(bus);
         ram.install(bus);

@@ -1,9 +1,12 @@
 import { Bus, ReadHandler, WriteHandler } from '../bus';
 
+import { Cpu } from '../cpu';
+import { Interrupt } from '../interrupt';
 import { PALETTE_CLASSIC } from '../palette';
 import { PpuBase } from './ppu-base';
 import { Savestate } from '../savestate';
 import { SpriteQueueDmg } from './sprite-queue-dmg';
+import { System } from '../system';
 import { cgbRegisters } from '../cgb-registers';
 import { hex16 } from '../../helper/format';
 import { ppuMode } from '../ppu';
@@ -49,6 +52,10 @@ function clockPenaltyForSprite(scx: number, x: number): number {
 }
 
 export class PpuCgb extends PpuBase {
+    constructor(protected system: System, protected interrupt: Interrupt, private cpu: Cpu) {
+        super(system, interrupt);
+    }
+
     save(savestate: Savestate): void {
         const bank = this.bank;
         this.switchBank(0);
@@ -449,7 +456,7 @@ export class PpuCgb extends PpuBase {
     };
 
     private hdmaCopyBlock() {
-        if (this.hdmaMode === HdmaMode.off) return;
+        if (this.hdmaMode === HdmaMode.off || this.cpu.state.halt) return;
 
         const destination = this.hdmaDestination + 0x8000;
 

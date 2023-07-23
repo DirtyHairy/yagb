@@ -6,6 +6,7 @@ import { Clock } from '../../src/emulator/clock';
 import { Interrupt } from '../../src/emulator/interrupt';
 import { Mode } from '../../src/emulator/mode';
 import { Ppu } from '../../src/emulator/ppu';
+import { PpuDmg } from '../../src/emulator/ppu/ppu-dmg';
 import { Ram } from '../../src/emulator/ram';
 import { Serial } from './../../src/emulator/serial';
 import { System } from '../../src/emulator/system';
@@ -36,16 +37,16 @@ export class TestEnvironment {
         });
 
         this.interrupt = new Interrupt();
-        this.ppu = new Ppu(this.system, this.interrupt);
+        this.ppu = new PpuDmg(this.system, this.interrupt);
         this.timer = new Timer(this.interrupt);
         this.serial = new Serial(this.interrupt);
         this.apu = new Apu();
         this.clock = new Clock(this.ppu, this.timer, this.serial, this.apu);
         this.bus = new Bus(this.system);
-        this.ram = new Ram();
+        this.ram = new Ram(Mode.dmg);
         this.cpu = new Cpu(Mode.dmg, this.bus, this.clock, this.interrupt, this.system);
         this.cartridge = new Uint8Array(0x8000);
-        this.unmapped = new Unmapped();
+        this.unmapped = new Unmapped(Mode.dmg, this.bus);
 
         this.code = code;
         this.address = address;
@@ -64,7 +65,7 @@ export class TestEnvironment {
         this.ram.install(this.bus);
         this.interrupt.install(this.bus);
         this.timer.install(this.bus);
-        this.unmapped.install(this.bus);
+        this.unmapped.install();
 
         this.reset();
     }
