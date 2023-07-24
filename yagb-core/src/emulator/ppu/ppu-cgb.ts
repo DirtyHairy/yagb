@@ -1,10 +1,9 @@
 import { Bus, ReadHandler, WriteHandler } from '../bus';
+import { PpuBase, clockPenaltyForSprite } from './ppu-base';
 
 import { COLOR_MAPPING } from './color-mapping';
 import { Cram } from './cram';
 import { Interrupt } from '../interrupt';
-import { PALETTE_CLASSIC } from '../palette';
-import { PpuBase } from './ppu-base';
 import { Savestate } from '../savestate';
 import { SpriteQueueCgb } from './sprite-queue-cgb';
 import { System } from '../system';
@@ -43,13 +42,6 @@ const enum HdmaMode {
     off = 0,
     hblank = 1,
     general = 2,
-}
-
-function clockPenaltyForSprite(scx: number, x: number): number {
-    let tmp = (x + scx + 8) % 8;
-    if (tmp > 5) tmp = 5;
-
-    return 11 - tmp;
 }
 
 export class PpuCgb extends PpuBase {
@@ -147,7 +139,7 @@ export class PpuCgb extends PpuBase {
         if (oldValue & ~this.reg[reg.lcdc] & lcdc.enable) {
             this.hdmaCopyBlock();
 
-            this.backBuffer.fill(PALETTE_CLASSIC[4]);
+            this.backBuffer.fill(COLOR_MAPPING[0x7fff]);
             this.swapBuffers();
             this.startFrame();
         }
@@ -319,6 +311,10 @@ export class PpuCgb extends PpuBase {
         }
     }
 
+    protected onHblankStart() {
+        this.hdmaCopyBlock();
+    }
+
     private switchBank(bank: number): void {
         this.bank = bank;
 
@@ -439,10 +435,6 @@ export class PpuCgb extends PpuBase {
         if (this.hdmaRemaining === 0x7f || this.hdmaDestination === 0x0000) this.hdmaMode = HdmaMode.off;
 
         this.clock.pauseCpu(this.hdmaMode === HdmaMode.hblank ? 36 : 32);
-    }
-
-    protected onHblankStart() {
-        this.hdmaCopyBlock();
     }
 
     private spriteQueue: SpriteQueueCgb;

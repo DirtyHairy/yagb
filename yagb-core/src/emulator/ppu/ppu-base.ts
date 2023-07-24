@@ -44,7 +44,7 @@ const enum stat {
 
 const SAVESTATE_VERSION = 0x01;
 
-function clockPenaltyForSprite(scx: number, x: number): number {
+export function clockPenaltyForSprite(scx: number, x: number): number {
     let tmp = (x + scx + 8) % 8;
     if (tmp > 5) tmp = 5;
 
@@ -221,6 +221,8 @@ export abstract class PpuBase implements Ppu {
     protected abstract initializeVram(): [Uint8Array, Uint16Array];
     protected abstract renderLine(): void;
     protected abstract lcdcWrite: WriteHandler;
+
+    protected onHblankStart(): void {}
 
     protected stubWrite: WriteHandler = () => undefined;
 
@@ -408,8 +410,6 @@ export abstract class PpuBase implements Ppu {
         this.dmaInProgress = true;
         this.bus.lock();
     };
-
-    protected onHblankStart(): void {}
 
     protected cpu!: Cpu;
     protected clock!: Clock;

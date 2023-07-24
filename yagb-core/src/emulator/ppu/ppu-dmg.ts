@@ -1,7 +1,7 @@
 import { Bus, WriteHandler } from '../bus';
+import { PpuBase, clockPenaltyForSprite } from './ppu-base';
 
 import { PALETTE_CLASSIC } from '../palette';
-import { PpuBase } from './ppu-base';
 import { Savestate } from '../savestate';
 import { SpriteQueueDmg } from './sprite-queue-dmg';
 
@@ -40,13 +40,6 @@ const enum stat {
 }
 
 const SAVESTATE_VERSION = 0x01;
-
-function clockPenaltyForSprite(scx: number, x: number): number {
-    let tmp = (x + scx + 8) % 8;
-    if (tmp > 5) tmp = 5;
-
-    return 11 - tmp;
-}
 
 export class PpuDmg extends PpuBase {
     load(savestate: Savestate): void {
