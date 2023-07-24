@@ -416,7 +416,7 @@ export class PpuCgb extends PpuBase {
         } else {
             this.hdmaMode = HdmaMode.general;
 
-            this.clock.pauseCpu(4);
+            this.clock.pauseCpu(1);
             while ((this.hdmaMode as HdmaMode) !== HdmaMode.off) this.hdmaCopyBlock();
         }
     };
@@ -434,7 +434,7 @@ export class PpuCgb extends PpuBase {
 
         if (this.hdmaRemaining === 0x7f || this.hdmaDestination === 0x0000) this.hdmaMode = HdmaMode.off;
 
-        this.clock.pauseCpu(this.hdmaMode === HdmaMode.hblank ? 36 : 32);
+        this.clock.pauseCpu(this.hdmaMode === HdmaMode.hblank ? 9 : 8);
     }
 
     private spriteQueue: SpriteQueueCgb;
