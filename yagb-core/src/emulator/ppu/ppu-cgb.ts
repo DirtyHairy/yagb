@@ -269,14 +269,7 @@ export class PpuCgb extends PpuBase {
                 }
 
                 // What is the BG vs OBJ priority of this sprite?
-                if ((this.reg[reg.lcdc] & lcdc.bgEnable) !== 0x00 && ((this.spriteQueue.flag[spriteIndex] & 0x80) !== 0x00 || (bgTileAttr & 0x80) !== 0x00)) {
-                    // Sprite behind background
-                    const bgValue = ((bgTileData & 0x8000) >>> 14) | ((bgTileData & 0x80) >>> 7);
-                    this.backBuffer[pixelAddress++] =
-                        bgValue > 0 || spriteValue === 0
-                            ? this.bcram.getPalette(bgTileAttr & 0x07)[bgValue]
-                            : this.spriteQueue.palette[spriteIndex][spriteValue];
-                } else {
+                if ((this.reg[reg.lcdc] & lcdc.bgEnable) === 0x00 || ((this.spriteQueue.flag[spriteIndex] & 0x80) === 0x00 && (bgTileAttr & 0x80) === 0x00)) {
                     // Sprite in front of background
                     if (spriteValue > 0) {
                         this.backBuffer[pixelAddress++] = this.spriteQueue.palette[spriteIndex][spriteValue];
@@ -284,6 +277,13 @@ export class PpuCgb extends PpuBase {
                         const bgValue = ((bgTileData & 0x8000) >>> 14) | ((bgTileData & 0x80) >>> 7);
                         this.backBuffer[pixelAddress++] = this.bcram.getPalette(bgTileAttr & 0x07)[bgValue];
                     }
+                } else {
+                    // Sprite behind background
+                    const bgValue = ((bgTileData & 0x8000) >>> 14) | ((bgTileData & 0x80) >>> 7);
+                    this.backBuffer[pixelAddress++] =
+                        bgValue > 0 || spriteValue === 0
+                            ? this.bcram.getPalette(bgTileAttr & 0x07)[bgValue]
+                            : this.spriteQueue.palette[spriteIndex][spriteValue];
                 }
             } else {
                 const bgValue = ((bgTileData & 0x8000) >>> 14) | ((bgTileData & 0x80) >>> 7);
