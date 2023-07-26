@@ -2,7 +2,6 @@ import { Average } from './average';
 import { Emulator } from './emulator';
 import { Event } from 'microevent.ts';
 
-const SYSTEM_CLOCK = 1048576;
 const HOST_SPEED_AVERAGE_SAMPLES = 100;
 const EMIT_STATISTICS_INTERVAL = 1000;
 const CLOCK_DRIFT_LIMIT_SEC = 0.5;
@@ -66,18 +65,20 @@ export class Scheduler {
     }
 
     private executeTimeslice(durationSeconds: number, timestamp: number): boolean {
+        const clock = this.emulator.getClock();
+
         if (durationSeconds > CLOCK_DRIFT_LIMIT_SEC) {
             durationSeconds = CLOCK_DRIFT_RESET_HEADROOM_SEC;
             this.virtualClockSeconds = (timestamp - this.realClockBase) / 1000 - CLOCK_DRIFT_RESET_HEADROOM_SEC;
         }
 
-        const cyclesGoal = Math.round(durationSeconds * SYSTEM_CLOCK * this.speed);
+        const cyclesGoal = Math.round(durationSeconds * clock * this.speed);
         if (cyclesGoal <= 0) return false;
 
         this.onBeforeTimeslice.dispatch();
 
         const timestampBeforeDispatch = performance.now();
-        const timeslice = this.emulator.run(cyclesGoal) / SYSTEM_CLOCK / this.speed;
+        const timeslice = this.emulator.run(cyclesGoal) / clock / this.speed;
         const timestampAfterDispatch = performance.now();
 
         this.virtualClockSeconds += timeslice;

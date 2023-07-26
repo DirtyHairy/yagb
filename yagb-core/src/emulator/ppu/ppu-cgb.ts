@@ -115,6 +115,10 @@ export class PpuCgb extends PpuBase {
         this.hdmaRemaining = 0x00;
     }
 
+    protected oamDmaCyclesTotal(): number {
+        return this.clock.isDoubleSpeed() ? 320 : 640;
+    }
+
     protected initializeVram(): [Uint8Array, Uint16Array] {
         this.vramBanks = new Array(2);
         this.vram16Banks = new Array(2);

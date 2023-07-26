@@ -1,4 +1,5 @@
 import { Apu } from './apu';
+import { Bus } from './bus';
 import { ClockCgb } from './clock/clock-cgb';
 import { ClockDmg } from './clock/clock-dmg';
 import { Mode } from './mode';
@@ -9,9 +10,19 @@ import { Timer } from './timer';
 export interface Clock {
     reset(): void;
 
-    increment(cpuCycles: number): void;
-    pauseCpu(timerCycles: number): void;
+    install(bus: Bus): void;
 
+    // Unit: 1MHz (DMG, CGB slow), 2MHz (CGB fast)
+    increment(cpuCycles: number): void;
+
+    // Unit: 1MHz
+    pauseCpu(oneMhzCycles: number): void;
+
+    notifyStop(): void;
+
+    isDoubleSpeed(): boolean;
+
+    // Unit: 1MHz (DMG), 2MHz (CGB)
     resetCpuCycles(): void;
     get cpuCycles(): number;
 }

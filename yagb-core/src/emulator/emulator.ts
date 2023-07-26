@@ -21,6 +21,8 @@ import { Trace } from './trace';
 import { Unmapped } from './unmapped';
 import { hex16 } from '../helper/format';
 
+const CLOCK_DMG = 1048576;
+
 export interface BusTrap {
     address: number;
     trapRead: boolean;
@@ -36,21 +38,21 @@ export class Emulator {
             throw new Error('bad cartridge image');
         }
 
-        const mode = cartridge.cgbSupportLevel === CgbSupportLevel.none ? Mode.dmg : Mode.cgb;
+        this.mode = cartridge.cgbSupportLevel === CgbSupportLevel.none ? Mode.dmg : Mode.cgb;
 
         this.bus = new Bus(this.system);
         this.interrupt = new Interrupt();
-        this.ppu = createPpu(mode, this.system, this.interrupt);
+        this.ppu = createPpu(this.mode, this.system, this.interrupt);
         this.apu = new Apu();
         this.timer = new Timer(this.interrupt);
         this.serial = new Serial(this.interrupt);
-        this.clock = createClock(mode, this.ppu, this.timer, this.serial, this.apu);
-        this.cpu = new Cpu(mode, this.bus, this.clock, this.interrupt, this.system);
-        this.ram = new Ram(mode);
+        this.clock = createClock(this.mode, this.ppu, this.timer, this.serial, this.apu);
+        this.cpu = new Cpu(this.mode, this.bus, this.clock, this.interrupt, this.system);
+        this.ram = new Ram(this.mode);
         this.joypad = new Joypad(this.interrupt);
-        this.infrared = new Infrared(mode);
+        this.infrared = new Infrared(this.mode);
         this.cartridge = cartridge;
-        const unmapped = new Unmapped(mode, this.bus);
+        const unmapped = new Unmapped(this.mode, this.bus);
 
         this.ppu.setCpu(this.cpu).setClock(this.clock);
 
@@ -63,6 +65,7 @@ export class Emulator {
         this.timer.install(this.bus);
         this.joypad.install(this.bus);
         this.infrared.install(this.bus);
+        this.clock.install(this.bus);
         this.sampleQueue?.reset();
         // CGBTODO
         // unmapped.install();
@@ -71,6 +74,10 @@ export class Emulator {
         this.onTrap = this.system.onTrap;
 
         this.reset(savedRam);
+    }
+
+    getClock(): number {
+        return this.mode === Mode.dmg ? CLOCK_DMG : 2 * CLOCK_DMG;
     }
 
     getNvData(): Uint8Array | undefined {
@@ -329,6 +336,8 @@ export class Emulator {
     readonly onTrap: Event<string>;
 
     private system: System;
+
+    private mode: Mode;
 
     private bus: Bus;
     private cartridge: Cartridge;

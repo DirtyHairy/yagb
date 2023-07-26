@@ -74,6 +74,10 @@ export class PpuDmg extends PpuBase {
         this.backBuffer.fill(PALETTE_CLASSIC[4]);
     }
 
+    protected oamDmaCyclesTotal(): number {
+        return 640;
+    }
+
     protected initializeVram(): [Uint8Array, Uint16Array] {
         const vram = new Uint8Array(0x2000);
         const vram16 = new Uint16Array(vram.buffer);

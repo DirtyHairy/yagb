@@ -1,4 +1,5 @@
 import { Apu } from '../apu';
+import { Bus } from '../bus';
 import { Clock } from '../clock';
 import { Ppu } from '../ppu';
 import { Serial } from '../serial';
@@ -11,6 +12,8 @@ export class ClockDmg implements Clock {
         this.cpuCycles = 0;
     }
 
+    install(bus: Bus): void {}
+
     increment(cpuCycles: number) {
         this.ppu.cycle(4 * cpuCycles);
         this.timer.cycle(cpuCycles);
@@ -20,10 +23,16 @@ export class ClockDmg implements Clock {
         this.cpuCycles += cpuCycles;
     }
 
-    pauseCpu(timerCycles: number): void {}
+    pauseCpu(oneMhzCycles: number): void {}
 
     resetCpuCycles(): void {
         this.cpuCycles = 0;
+    }
+
+    notifyStop(): void {}
+
+    isDoubleSpeed(): boolean {
+        return false;
     }
 
     cpuCycles = 0;

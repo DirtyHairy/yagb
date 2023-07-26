@@ -1,6 +1,6 @@
 export const enum cgbRegisters {
+    key1 = 0xff4d,
     vramBank = 0xff4f,
-    svbk = 0xff70,
     hdma1 = 0xff51,
     hdma2 = 0xff52,
     hdma3 = 0xff53,
@@ -11,10 +11,12 @@ export const enum cgbRegisters {
     bgpd = 0xff69,
     obpi = 0xff6a,
     obpd = 0xff6b,
+    svbk = 0xff70,
 }
 
 export function isCgbRegister(address: number): boolean {
     switch (address) {
+        case cgbRegisters.key1:
         case cgbRegisters.vramBank:
         case cgbRegisters.svbk:
         case cgbRegisters.rp:

@@ -182,7 +182,9 @@ export abstract class PpuBase implements Ppu {
         const lcdEnabled = (this.reg[reg.lcdc] & lcdc.enable) !== 0;
 
         while (this.dmaInProgress && systemClocks > 0) {
-            const maxCyclesForConsumation = systemClocks > 640 - this.dmaCycle ? 640 - this.dmaCycle : systemClocks;
+            const oamDmaCyclesTotal = this.oamDmaCyclesTotal();
+
+            const maxCyclesForConsumation = systemClocks > oamDmaCyclesTotal - this.dmaCycle ? oamDmaCyclesTotal - this.dmaCycle : systemClocks;
             const consumed = lcdEnabled ? this.consumeClocks(maxCyclesForConsumation) : maxCyclesForConsumation;
 
             this.dmaCycle += consumed;
@@ -190,7 +192,7 @@ export abstract class PpuBase implements Ppu {
 
             // DMA takes 640 cycles -> execute DMA in cycle 640. Cycles are incremented after memory accesses are
             // executed, so this implies that the bus is available again in cycle 641.
-            if (this.dmaCycle >= 640) this.executeDma();
+            if (this.dmaCycle >= oamDmaCyclesTotal) this.executeDma();
         }
 
         if (!lcdEnabled) return;
@@ -217,6 +219,8 @@ export abstract class PpuBase implements Ppu {
     getMode(): ppuMode {
         return this.mode;
     }
+
+    protected abstract oamDmaCyclesTotal(): number;
 
     protected abstract initializeVram(): [Uint8Array, Uint16Array];
     protected abstract renderLine(): void;

@@ -807,6 +807,8 @@ export class Cpu {
     }
 
     private opStop(instruction: Instruction): void {
+        this.clock.notifyStop();
+
         this.tick(instruction.cycles);
 
         this.state.p = (this.state.p + instruction.len) & 0xffff;
