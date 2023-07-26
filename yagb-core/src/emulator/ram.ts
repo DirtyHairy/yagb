@@ -36,18 +36,23 @@ export class Ram {
             bus.map(i, this.wramBank1Read, this.wramBank1Write);
         }
 
-        if (this.mode === Mode.cgb) {
-            bus.map(cgbRegisters.svbk, this.svbkRead, this.svbkWrite);
-        }
-
         for (let i = 0xff80; i < 0xffff; i++) {
             bus.map(i, this.hiramRead, this.hiramWrite);
+        }
+
+        if (this.mode === Mode.cgb) {
+            bus.map(cgbRegisters.svbk, this.svbkRead, this.svbkWrite);
+
+            for (let i = cgbRegisters.undocumented_FF72; i <= cgbRegisters.undocumented_FF75; i++) {
+                bus.map(i, this.cgbUndocumentedScratchRead, this.cgbUndocumentedScratchWrite);
+            }
         }
     }
 
     reset(): void {
         this.svbk = 1;
 
+        this.cgbUndocumentedScratch.fill(0x00);
         this.wram.fill(0);
         this.hiram.fill(0);
 
@@ -55,7 +60,7 @@ export class Ram {
     }
 
     save(savestate: Savestate): void {
-        savestate.startChunk(SAVESTATE_VERSION).writeBuffer(this.wram).writeBuffer(this.hiram).write16(this.svbk);
+        savestate.startChunk(SAVESTATE_VERSION).writeBuffer(this.wram).writeBuffer(this.hiram).write16(this.svbk).writeBuffer(this.cgbUndocumentedScratch);
     }
 
     load(savestate: Savestate): void {
@@ -64,7 +69,13 @@ export class Ram {
         this.wram.set(savestate.readBuffer(this.wram.length));
         this.hiram.set(savestate.readBuffer(this.hiram.length));
 
-        this.svbk = version > 0 ? savestate.read16() : 1;
+        if (version > 0) {
+            this.svbk = version > 0 ? savestate.read16() : 1;
+            this.cgbUndocumentedScratch.set(savestate.readBuffer(this.cgbUndocumentedScratch.length));
+        } else {
+            this.svbk = 1;
+            this.cgbUndocumentedScratch.fill(0x00);
+        }
 
         this.updateBanks();
     }
@@ -104,6 +115,13 @@ export class Ram {
     private hiramRead: ReadHandler = (address) => this.hiram[address & 0x7f];
     private hiramWrite: WriteHandler = (address, value) => (this.hiram[address & 0x7f] = value);
 
+    private cgbUndocumentedScratchRead: ReadHandler = (address) =>
+        address === cgbRegisters.undocumented_FF75
+            ? this.cgbUndocumentedScratch[address - cgbRegisters.undocumented_FF72]
+            : this.cgbUndocumentedScratch[address - cgbRegisters.undocumented_FF72] | 0x8f;
+
+    private cgbUndocumentedScratchWrite: WriteHandler = (address, value) => (this.cgbUndocumentedScratch[address - cgbRegisters.undocumented_FF72] = value);
+
     private wramBanks!: Array<Uint8Array>;
 
     private wramBank0!: Uint8Array;
@@ -113,4 +131,6 @@ export class Ram {
 
     private wram: Uint8Array;
     private hiram = new Uint8Array(0x7f);
+
+    private cgbUndocumentedScratch = new Uint8Array(0x05);
 }

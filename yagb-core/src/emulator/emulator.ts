@@ -67,8 +67,7 @@ export class Emulator {
         this.infrared.install(this.bus);
         this.clock.install(this.bus);
         this.sampleQueue?.reset();
-        // CGBTODO
-        // unmapped.install();
+        unmapped.install();
 
         this.cpu.onExecute.addHandler(this.onExecuteHandler);
         this.onTrap = this.system.onTrap;

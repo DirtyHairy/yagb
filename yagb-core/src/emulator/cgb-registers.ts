@@ -12,6 +12,10 @@ export const enum cgbRegisters {
     obpi = 0xff6a,
     obpd = 0xff6b,
     svbk = 0xff70,
+    undocumented_FF72 = 0xff72,
+    undocumented_FF73 = 0xff73,
+    undocumented_FF74 = 0xff74,
+    undocumented_FF75 = 0xff75,
 }
 
 export function isCgbRegister(address: number): boolean {
