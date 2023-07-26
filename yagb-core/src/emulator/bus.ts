@@ -1,6 +1,7 @@
 import { hex16, hex8 } from '../helper/format';
 
 import { Event } from 'microevent.ts';
+import { Mode } from './mode';
 import { Savestate } from './savestate';
 import { System } from './system';
 
@@ -10,7 +11,7 @@ export type WriteHandler = (address: number, value: number) => void;
 const SAVESTATE_VERSION = 0x01;
 
 export class Bus {
-    constructor(private system: System) {
+    constructor(private mode: Mode, private system: System) {
         for (let i = 0; i < 0x10000; i++) {
             this.readMap[i] = this.invalidRead;
             this.writeMap[i] = this.invalidWrite;
@@ -34,7 +35,17 @@ export class Bus {
     read(address: number): number {
         this.onRead.dispatch(address);
 
-        if (this.locked && (address < 0xff80 || address === 0xffff)) return 0xff;
+        if (this.locked) {
+            if (this.mode === Mode.dmg) {
+                if (address < 0xff80 || address === 0xffff) return 0xff;
+            } else {
+                if (this.dmaBase < 0x8000) {
+                    if (address < 0x8000) return 0xff;
+                } else {
+                    if (address >= 0xc000 && address < 0xfe00) return 0xff;
+                }
+            }
+        }
 
         return this.readMap[address](address);
     }
@@ -42,7 +53,17 @@ export class Bus {
     write(address: number, value: number): void {
         this.onWrite.dispatch(address);
 
-        if (this.locked && (address < 0xff80 || address === 0xffff)) return;
+        if (this.locked) {
+            if (this.mode === Mode.dmg) {
+                if (address < 0xff80 || address === 0xffff) return;
+            } else {
+                if (this.dmaBase < 0x8000) {
+                    if (address < 0x8000) return;
+                } else {
+                    if (address >= 0xc000 && address < 0xfe00) return;
+                }
+            }
+        }
 
         this.writeMap[address](address, value);
     }
@@ -61,8 +82,13 @@ export class Bus {
         this.writeMap[address] = write;
     }
 
-    lock(): void {
+    lock(dmaBase: number): void {
+        this.dmaBase = dmaBase;
         this.locked = true;
+    }
+
+    getDmaBase(): number {
+        return this.dmaBase;
     }
 
     isLocked(): boolean {
@@ -75,6 +101,7 @@ export class Bus {
 
     reset(): void {
         this.locked = false;
+        this.dmaBase = 0x00;
     }
 
     private invalidRead: ReadHandler = (address) => {
@@ -94,4 +121,5 @@ export class Bus {
     private readonly writeMap = new Array<WriteHandler>(0x10000);
 
     private locked = false;
+    private dmaBase = 0x00;
 }

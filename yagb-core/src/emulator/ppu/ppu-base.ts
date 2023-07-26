@@ -412,7 +412,7 @@ export abstract class PpuBase implements Ppu {
 
         this.dmaCycle = 0;
         this.dmaInProgress = true;
-        this.bus.lock();
+        this.bus.lock(this.reg[reg.dma] % 0xe0 << 8);
     };
 
     protected cpu!: Cpu;

@@ -21,6 +21,7 @@ export interface Clock {
     notifyStop(): void;
 
     isDoubleSpeed(): boolean;
+    isSpeedSwitchInProgress(): boolean;
 
     // Unit: 1MHz (DMG), 2MHz (CGB)
     resetCpuCycles(): void;

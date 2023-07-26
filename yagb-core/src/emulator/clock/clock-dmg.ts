@@ -35,5 +35,9 @@ export class ClockDmg implements Clock {
         return false;
     }
 
+    isSpeedSwitchInProgress(): boolean {
+        return false;
+    }
+
     cpuCycles = 0;
 }

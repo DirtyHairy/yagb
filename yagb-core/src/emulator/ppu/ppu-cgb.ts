@@ -420,7 +420,7 @@ export class PpuCgb extends PpuBase {
     };
 
     private hdmaCopyBlock() {
-        if (this.hdmaMode === HdmaMode.off || this.cpu.state.halt) return;
+        if (this.hdmaMode === HdmaMode.off || this.cpu.state.halt || this.clock.isSpeedSwitchInProgress()) return;
 
         for (let index = 0; index < 0x10; index++) {
             this.vram[this.hdmaDestination + index] = this.bus.read(this.hdmaSource + index);

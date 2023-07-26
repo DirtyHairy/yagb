@@ -40,7 +40,7 @@ export class Emulator {
 
         this.mode = cartridge.cgbSupportLevel === CgbSupportLevel.none ? Mode.dmg : Mode.cgb;
 
-        this.bus = new Bus(this.system);
+        this.bus = new Bus(this.mode, this.system);
         this.interrupt = new Interrupt();
         this.ppu = createPpu(this.mode, this.system, this.interrupt);
         this.apu = new Apu();
@@ -151,13 +151,14 @@ export class Emulator {
     getTrace(count?: number): string {
         const trace = this.trace.getTrace();
         const busLocked = this.bus.isLocked();
+        const dmaBase = this.bus.getDmaBase();
         this.bus.unlock();
 
         const traceLines = (count === undefined ? trace : trace.slice(trace.length - count, trace.length))
             .map((address, index) => `${index + 1}. ${this.disassemblyLineAt(address)}`)
             .join('\n');
 
-        if (busLocked) this.bus.lock();
+        if (busLocked) this.bus.lock(dmaBase);
         return traceLines;
     }
 
@@ -197,6 +198,7 @@ export class Emulator {
     disassemble(count: number, address = this.cpu.state.p): Array<string> {
         const disassembledInstructions: Array<string> = [];
         const busLocked = this.bus.isLocked();
+        const dmaBase = this.bus.getDmaBase();
         this.bus.unlock();
 
         for (let i = 0; i < count; i++) {
@@ -207,7 +209,7 @@ export class Emulator {
             address = (address + instruction.len) & 0xffff;
         }
 
-        if (busLocked) this.bus.lock();
+        if (busLocked) this.bus.lock(dmaBase);
         return disassembledInstructions;
     }
 

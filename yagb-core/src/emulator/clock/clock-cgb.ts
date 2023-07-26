@@ -45,14 +45,20 @@ export class ClockCgb implements Clock {
         if (!this.speedSwitchPending) return;
 
         this.doubleSpeed = !this.doubleSpeed;
+        this.speedSwitchInProgress = true;
         this.incrementImpl(130996);
 
+        this.speedSwitchInProgress = false;
         this.dividerAccCycles = 0;
         this.speedSwitchPending = false;
     }
 
     isDoubleSpeed(): boolean {
         return this.doubleSpeed;
+    }
+
+    isSpeedSwitchInProgress(): boolean {
+        return this.speedSwitchInProgress;
     }
 
     private key1Read: ReadHandler = (_) => 0x7e | (this.doubleSpeed ? 0x80 : 0x00) | (this.speedSwitchPending ? 0x01 : 0x00);
@@ -92,4 +98,5 @@ export class ClockCgb implements Clock {
     private doubleSpeed = false;
 
     private speedSwitchPending = false;
+    private speedSwitchInProgress = false;
 }
