@@ -47,9 +47,8 @@ export class ClockCgb implements Clock {
         this.doubleSpeed = !this.doubleSpeed;
         this.incrementImpl(130996);
 
-        console.log(`switched to ${this.doubleSpeed ? 'double' : 'single'} speed`);
-
         this.dividerAccCycles = 0;
+        this.speedSwitchPending = false;
     }
 
     isDoubleSpeed(): boolean {
