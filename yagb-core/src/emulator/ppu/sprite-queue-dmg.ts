@@ -12,7 +12,7 @@ export class SpriteQueueDmg extends SpriteQueueBase {
     protected getPalette(flag: number): Uint32Array {
         return flag & 0x10 ? this.pal1 : this.pal0;
     }
-    protected recordSortIndex(indexInOam: number, indexOrderedByX: number): void {}
+    protected recordOamIndex(oamIndex: number, index: number): void {}
 
     private vram16: Uint16Array;
 }

@@ -1,5 +1,5 @@
 import { Bus, ReadHandler, WriteHandler } from '../bus';
-import { PpuBase, clockPenaltyForSprite } from './ppu-base';
+import { PpuBase, clockPenaltyForSprite, reg } from './ppu-base';
 
 import { COLOR_MAPPING } from './color-mapping';
 import { Cram } from './cram';
@@ -11,22 +11,6 @@ import { System } from '../system';
 import { cgbRegisters } from '../cgb-registers';
 import { hex16 } from '../../helper/format';
 import { ppuMode } from '../ppu';
-
-const enum reg {
-    base = 0xff40,
-    lcdc = 0x00,
-    stat = 0x01,
-    scy = 0x02,
-    scx = 0x03,
-    ly = 0x04,
-    lyc = 0x05,
-    dma = 0x06,
-    bgp = 0x07,
-    obp0 = 0x08,
-    obp1 = 0x09,
-    wy = 0x0a,
-    wx = 0x0b,
-}
 
 const enum lcdc {
     enable = 0x80,
@@ -260,14 +244,17 @@ export class PpuCgb extends PpuBase {
             if (firstRenderingSprite < nextPendingSprite) {
                 let spriteIndex = 0; // The index of the topmost non-transparent sprite in the list
                 let spriteValue = 0; // The color index of the lucky sprite
+                let selectedOamIndex = 0xff;
 
                 for (let index = firstRenderingSprite; index < nextPendingSprite; index++) {
                     const value = ((this.spriteQueue.data[index] & 0x8000) >>> 14) | ((this.spriteQueue.data[index] & 0x80) >>> 7);
+                    const oamIndex = this.spriteQueue.oamIndex[index];
 
                     // This sprite is the first non-transparent sprite? -> we have a winner
-                    if (value > 0 && spriteValue === 0) {
+                    if (value > 0 && oamIndex < selectedOamIndex) {
                         spriteIndex = index;
                         spriteValue = value;
+                        selectedOamIndex = oamIndex;
                     }
 
                     // Is this the last pixel?
@@ -282,7 +269,7 @@ export class PpuCgb extends PpuBase {
                 }
 
                 // What is the BG vs OBJ priority of this sprite?
-                if (this.spriteQueue.flag[spriteIndex] & 0x80) {
+                if ((this.reg[reg.lcdc] & lcdc.bgEnable) !== 0x00 && ((this.spriteQueue.flag[spriteIndex] & 0x80) !== 0x00 || (bgTileAttr & 0x80) !== 0x00)) {
                     // Sprite behind background
                     const bgValue = ((bgTileData & 0x8000) >>> 14) | ((bgTileData & 0x80) >>> 7);
                     this.backBuffer[pixelAddress++] =

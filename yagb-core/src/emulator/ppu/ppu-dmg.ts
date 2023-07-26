@@ -1,43 +1,9 @@
 import { Bus, WriteHandler } from '../bus';
-import { PpuBase, clockPenaltyForSprite } from './ppu-base';
+import { PpuBase, clockPenaltyForSprite, lcdc, reg } from './ppu-base';
 
 import { PALETTE_CLASSIC } from '../palette';
 import { Savestate } from '../savestate';
 import { SpriteQueueDmg } from './sprite-queue-dmg';
-
-const enum reg {
-    base = 0xff40,
-    lcdc = 0x00,
-    stat = 0x01,
-    scy = 0x02,
-    scx = 0x03,
-    ly = 0x04,
-    lyc = 0x05,
-    dma = 0x06,
-    bgp = 0x07,
-    obp0 = 0x08,
-    obp1 = 0x09,
-    wy = 0x0a,
-    wx = 0x0b,
-}
-
-const enum lcdc {
-    enable = 0x80,
-    windowTileMapArea = 0x40,
-    windowEnable = 0x20,
-    bgTileDataArea = 0x10,
-    bgTileMapArea = 0x08,
-    objSize = 0x04,
-    objEnable = 0x02,
-    bgEnable = 0x01,
-}
-
-const enum stat {
-    sourceLY = 0x40,
-    sourceModeOAM = 0x20,
-    sourceModeVblank = 0x10,
-    sourceModeHblank = 0x08,
-}
 
 const SAVESTATE_VERSION = 0x01;
 

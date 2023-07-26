@@ -68,7 +68,7 @@ export abstract class SpriteQueueBase {
         for (let i = 0; i < this.length; i++) {
             index = this.sortBuffer[index];
 
-            this.recordSortIndex(index, i);
+            this.recordOamIndex(index, i);
 
             const flag = this.oam[4 * index + 3];
             // Account for flipped y
@@ -89,7 +89,7 @@ export abstract class SpriteQueueBase {
 
     protected abstract readTileData(flag: number, offset: number): number;
     protected abstract getPalette(flag: number): Uint32Array;
-    protected abstract recordSortIndex(indexInOam: number, indexOrderedByX: number): void;
+    protected abstract recordOamIndex(oamIndex: number, index: number): void;
 
     length = 0;
     data = new Uint16Array(10);

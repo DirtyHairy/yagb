@@ -14,7 +14,11 @@ export class SpriteQueueCgb extends SpriteQueueBase {
     protected getPalette(flag: number): Uint32Array {
         return this.cram.getPalette(flag & 0x07);
     }
-    protected recordSortIndex(indexInOam: number, indexOrderedByX: number): void {}
+    protected recordOamIndex(oamIndex: number, index: number): void {
+        this.oamIndex[index] = oamIndex;
+    }
+
+    oamIndex = new Uint8Array(10);
 
     private vram16Banks: Array<Uint16Array>;
 }

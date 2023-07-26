@@ -8,7 +8,7 @@ import { Savestate } from '../savestate';
 import { System } from '../system';
 import { hex8 } from '../../helper/format';
 
-const enum reg {
+export const enum reg {
     base = 0xff40,
     lcdc = 0x00,
     stat = 0x01,
@@ -24,7 +24,7 @@ const enum reg {
     wx = 0x0b,
 }
 
-const enum lcdc {
+export const enum lcdc {
     enable = 0x80,
     windowTileMapArea = 0x40,
     windowEnable = 0x20,
@@ -35,7 +35,7 @@ const enum lcdc {
     bgEnable = 0x01,
 }
 
-const enum stat {
+export const enum stat {
     sourceLY = 0x40,
     sourceModeOAM = 0x20,
     sourceModeVblank = 0x10,
