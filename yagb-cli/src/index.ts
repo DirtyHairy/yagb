@@ -10,12 +10,14 @@ import { Emulator } from 'yagb-core/src/emulator/emulator';
 import { FileHandler } from 'yagb-core/src/helper/fileHandler';
 import { GamepadDriver } from './gamepad-driver';
 import { Repository } from './repository';
+import { boolval } from './helper/boolean';
 import { key } from 'yagb-core/src/emulator/joypad';
 import md5 from 'md5';
 
 const DEFAULT_VOLUME = 0.6;
 const CARTRIDGE_FILE_SIZE_LIMIT = 512 * 1024 * 1024;
 const KEY_AUDIO_WORKLET = 'audio-worklet';
+const KEY_CGB_SUPPORT = 'cgb-support';
 
 const fileHandler = new FileHandler();
 const audioDriver = new AudioDriver(localStorage.getItem(KEY_AUDIO_WORKLET) === '1');
@@ -68,9 +70,10 @@ async function loadCartridge(data: Uint8Array, name: string) {
     romHash = md5(data);
     const savedRam = await repository.getNvsData(romHash);
     const savestate = await repository.getSavestate(romHash);
+    const cgbSupport = localStorage.getItem(KEY_CGB_SUPPORT) === '1';
 
     try {
-        emulator = new Emulator(data, print, savedRam);
+        emulator = new Emulator(cgbSupport, data, print, savedRam);
     } catch (e) {
         print((e as Error).message);
         print('failed to initialize emulator');
@@ -134,10 +137,18 @@ async function onInit(): Promise<void> {
 
     if (localStorage.getItem(KEY_AUDIO_WORKLET) !== '1') {
         print('Audio uses the scriptprocessor driver.');
-        print("If you experience jitter or random pops and clicks,\ntry switching to the worklet driver with 'audio-worklet 1'\n");
+        print("If you experience jitter or random pops and clicks,\ntry switching to the audio worklet driver with 'audio-worklet on'\n");
     } else {
         print('Audio uses the audio worklet driver.');
-        print("If you experience jitter or random pops and clicks,\ntry switching to the scriptprocessor driver with 'audio-worklet 0'\n");
+        print("If you experience jitter or random pops and clicks,\ntry switching to the scriptprocessor driver with 'audio-worklet off'\n");
+    }
+
+    if (localStorage.getItem(KEY_CGB_SUPPORT) !== '1') {
+        print('GameBoy Color support is disabled.');
+        print("If you want play your cartridges in color mode, you can switch to GameBoy Color mode with 'cgb on'\n");
+    } else {
+        print('GameBoy Color support is enabled.');
+        print("If you want play your cartridges in classic mode, you can switch to GameBoy mode with 'cgb off'\n");
     }
 
     print("Type 'help' in order to show all commands.\n");
@@ -220,9 +231,9 @@ function getKey(code: string): key | undefined {
     }
 }
 
-function updatePrompt(speed?: number, hostSpeed?: number, isRunning = !!scheduler?.isRunning()) {
+function updatePrompt(speed?: number, hostSpeed?: number, isRunning = !!scheduler?.isRunning(), model = emulator?.getModel()) {
     terminal.set_prompt(
-        `\n${isRunning ? 'running' : 'stopped'}${speed !== undefined && isRunning ? ' gb@' + speed.toFixed(2) + 'x' : ''}${
+        `\n${isRunning ? 'running' : 'stopped'}${speed !== undefined && isRunning ? ' ' + model + '@' + speed.toFixed(2) + 'x' : ''}${
             hostSpeed !== undefined && isRunning ? ' host@' + hostSpeed.toFixed(2) + 'x' : ''
         } > `
     );
@@ -278,8 +289,9 @@ snapshot-save <name>                    Save a snapshot
 snapshot-load <name>                    Restore a snapshot
 snapshot-delete <name>                  Delete a snapshot
 snapshot-list                           List snapshots
-audio-worklet [1|0]                     Use scriptprocessor even if audio worklet is available.
+audio-worklet [on|off]                  Use scriptprocessor even if audio worklet is available.
                                         May reduce jitter for high sample rates.
+cgb [on|off]                            Switch GaneBoy Color support ON or OFF
 
 Keyboard controls (click the canvas to give it focus):
 
@@ -623,12 +635,20 @@ Keyboard controls (click the canvas to give it focus):
 
         repository.deleteSnapshot(romHash, name);
     },
-    'audio-worklet': function (toggle: string | number) {
+    'audio-worklet': function (toggle: string | number | boolean) {
         switch (toggle) {
-            case '1':
-            case '0':
             case 1:
+            case '1':
+            case 'on':
+            case 'true':
+            case true:
             case 0:
+            case '0':
+            case 'off':
+            case 'false':
+            case false:
+                toggle = boolval(toggle, false);
+
                 localStorage.setItem(KEY_AUDIO_WORKLET, toggle + '');
                 print('Changed audio driver. Please reload for the change to take effect.');
                 break;
@@ -646,10 +666,45 @@ Keyboard controls (click the canvas to give it focus):
             print('using script processor audio driver');
         }
     },
+    cgb: function (toggle?: string | number | boolean) {
+        if (typeof toggle === 'undefined') {
+            toggle = !(localStorage.getItem(KEY_CGB_SUPPORT) === '1');
+        }
+
+        switch (toggle) {
+            case 1:
+            case '1':
+            case 'on':
+            case 'true':
+            case true:
+            case 0:
+            case '0':
+            case 'off':
+            case 'false':
+            case false:
+                toggle = boolval(toggle, false);
+
+                localStorage.setItem(KEY_CGB_SUPPORT, toggle + '');
+                print('Changed GameBoy Color support Please reload for the change to take effect.');
+                break;
+
+            case undefined:
+                break;
+
+            default:
+                print('invalid setting');
+        }
+
+        if (localStorage.getItem(KEY_CGB_SUPPORT) === '1') {
+            print('GameBoy Color support: ON');
+        } else {
+            print('GameBoy Color support: OFF');
+        }
+    },
 };
 
 const terminal = $('#terminal').terminal(interpreter as JQueryTerminal.Interpreter, {
-    greetings: " ___\n|[_]|\n|+ ;|\n`---'\n",
+    greetings: " ___\n|[[;green;][_\\]]|\n|[[;white;]+] [[;red;];]|\n`---'\n",
     completion,
     exit: false,
     onInit: () => void onInit(),
@@ -700,6 +755,10 @@ function keyboardAction(e: KeyboardEvent): boolean {
 
         case 'l':
             interpreter.load();
+            return true;
+
+        case 'c':
+            interpreter.cgb();
             return true;
     }
 

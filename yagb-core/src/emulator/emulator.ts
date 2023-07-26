@@ -30,7 +30,7 @@ export interface BusTrap {
 }
 
 export class Emulator {
-    constructor(cartridgeImage: Uint8Array, printCb: (message: string) => void, savedRam?: Uint8Array) {
+    constructor(cgbSupport: boolean, cartridgeImage: Uint8Array, printCb: (message: string) => void, savedRam?: Uint8Array) {
         this.system = new System(printCb);
 
         const cartridge = createCartridge(cartridgeImage, this.system);
@@ -38,7 +38,7 @@ export class Emulator {
             throw new Error('bad cartridge image');
         }
 
-        this.mode = cartridge.cgbSupportLevel === CgbSupportLevel.none ? Mode.dmg : Mode.cgb;
+        this.mode = cgbSupport && cartridge.cgbSupportLevel !== CgbSupportLevel.none ? Mode.cgb : Mode.dmg;
 
         this.bus = new Bus(this.mode, this.system);
         this.interrupt = new Interrupt();
@@ -73,6 +73,10 @@ export class Emulator {
         this.onTrap = this.system.onTrap;
 
         this.reset(savedRam);
+    }
+
+    getModel(): string {
+        return this.mode === Mode.cgb ? 'cgb' : 'gb';
     }
 
     getClock(): number {
