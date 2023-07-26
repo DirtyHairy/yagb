@@ -4,6 +4,7 @@ import { PpuBase, clockPenaltyForSprite } from './ppu-base';
 import { COLOR_MAPPING } from './color-mapping';
 import { Cram } from './cram';
 import { Interrupt } from '../interrupt';
+import { REVERSE } from './tables';
 import { Savestate } from '../savestate';
 import { SpriteQueueCgb } from './sprite-queue-cgb';
 import { System } from '../system';
@@ -335,13 +336,19 @@ export class PpuCgb extends PpuBase {
         const attr = this.vramBanks[1][tileMapBase + (ny % 32) * 32 + (nx % 32)];
         const bank = this.vram16Banks[(attr >>> 3) & 0x01];
 
+        if (attr & 0x40) y = 7 - y;
+        let data: number;
+
         if (index >= 0x80) {
-            return bank[0x0400 + 8 * (index - 0x80) + y] | (attr << 16);
+            data = bank[0x0400 + 8 * (index - 0x80) + y];
         } else {
             const tileDataBase = this.reg[reg.lcdc] & lcdc.bgTileDataArea ? 0x0000 : 0x800;
-
-            return bank[tileDataBase + 8 * index + y] | (attr << 16);
+            data = bank[tileDataBase + 8 * index + y];
         }
+
+        if (attr & 0x20) data = (REVERSE[data >>> 8] << 8) | REVERSE[data & 0xff];
+
+        return data | (attr << 16);
     }
 
     private bgpiRead: ReadHandler = (_) => this.bgpi;
