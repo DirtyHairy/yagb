@@ -80,8 +80,6 @@ export class PpuDmg extends PpuBase {
         let bgTileNX = 0;
         let bgTileData = 0;
 
-        // Increment window line if window is enabled and has been triggered for this frame
-        if (windowEnable && this.windowTriggered) this.windowLine++;
         // Trigger window if current scanline matches wy
         if (windowY === this.scanline) this.windowTriggered = true;
         // Start with window active?
@@ -227,6 +225,9 @@ export class PpuDmg extends PpuBase {
                 }
             }
         }
+
+        // Increment window line if window is enabled and has been triggered for this frame
+        if (windowEnable && this.windowTriggered) this.windowLine++;
     }
 
     private backgroundTileData(window: boolean, nx: number, ny: number, y: number): number {

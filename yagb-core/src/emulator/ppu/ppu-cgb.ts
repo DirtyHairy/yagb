@@ -148,8 +148,6 @@ export class PpuCgb extends PpuBase {
         let bgTileData = 0;
         let bgTileAttr = 0;
 
-        // Increment window line if window is enabled and has been triggered for this frame
-        if (windowEnable && this.windowTriggered) this.windowLine++;
         // Trigger window if current scanline matches wy
         if (windowY === this.scanline) this.windowTriggered = true;
         // Start with window active?
@@ -301,6 +299,9 @@ export class PpuCgb extends PpuBase {
                 bgTileData <<= 1;
             }
         }
+
+        // Increment window line if window is enabled and has been triggered for this frame
+        if (windowEnable && this.windowTriggered) this.windowLine++;
     }
 
     protected onHblankStart() {
