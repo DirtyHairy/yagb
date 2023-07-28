@@ -308,6 +308,35 @@ export abstract class PpuBase implements Ppu {
                 }
 
             case ppuMode.vblank:
+                if (this.vblankLines < 9 && this.clockInMode + clocks >= (this.vblankLines + 1) * 456) {
+                    this.vblankLines++;
+                    this.scanline = 144 + this.vblankLines;
+
+                    this.updateStat();
+
+                    const consumed = this.vblankLines * 456 - this.clockInMode;
+                    this.clockInMode += consumed;
+
+                    if (!this.vblankFired) {
+                        this.interrupt.raise(irq.vblank);
+                        this.vblankFired = true;
+                    }
+
+                    return consumed;
+                }
+
+                if (this.vblankLines === 9 && this.clockInMode + clocks >= 9 * 456 + 12) {
+                    this.vblankLines++;
+                    this.scanline = 0;
+
+                    this.updateStat();
+
+                    const consumed = 9 * 456 + 12 - this.clockInMode;
+                    this.clockInMode += consumed;
+
+                    return consumed;
+                }
+
                 if (clocks + this.clockInMode >= 4560) {
                     const consumed = 4560 - this.clockInMode;
 
@@ -322,34 +351,16 @@ export abstract class PpuBase implements Ppu {
                     this.updateStat();
 
                     return consumed;
-                } else {
-                    this.clockInMode += clocks;
-
-                    if (!this.vblankFired && this.clockInMode >= 4) {
-                        this.interrupt.raise(irq.vblank);
-                        this.vblankFired = true;
-                    }
-
-                    if (this.clockInMode - this.vblankLines * 456 >= 456) this.vblankLines++;
-                    let scanline = 144 + this.vblankLines;
-
-                    // The duration of line 153 is so short that we might immediatelly skip over
-                    // it below -> make sure that we don't miss it in stat interrupt handling.
-                    if (scanline !== this.scanline) {
-                        this.scanline = scanline;
-                        this.updateStat();
-                    }
-
-                    // Emulate short line 153.
-                    if (scanline === 153 && this.clockInMode >= 9 * 456 + 12) scanline = 0;
-
-                    if (scanline !== this.scanline) {
-                        this.scanline = scanline;
-                        this.updateStat();
-                    }
-
-                    return clocks;
                 }
+
+                this.clockInMode += clocks;
+
+                if (!this.vblankFired && this.clockInMode >= 4) {
+                    this.interrupt.raise(irq.vblank);
+                    this.vblankFired = true;
+                }
+
+                return clocks;
         }
     }
 
