@@ -1,10 +1,11 @@
 import { Bus } from '../../src/emulator/bus';
+import { Mode } from '../../src/emulator/mode';
 import { System } from './../../src/emulator/system';
 
 describe('Bus', () => {
     function setup(): { bus: Bus } {
         const system = new System((msg) => console.log(msg));
-        const bus = new Bus(system);
+        const bus = new Bus(Mode.dmg, system);
 
         return { bus };
     }
@@ -40,7 +41,7 @@ describe('Bus', () => {
 
         const readSpy = jest.fn(() => 0x42);
         bus.map(0x0001, readSpy, () => undefined);
-        bus.lock();
+        bus.lock(0);
 
         expect(bus.read(0x0001)).toBe(0xff);
         expect(readSpy).not.toHaveBeenCalled();
@@ -51,7 +52,7 @@ describe('Bus', () => {
 
         const writeSpy = jest.fn(() => undefined);
         bus.map(0x0001, () => 0, writeSpy);
-        bus.lock();
+        bus.lock(0);
 
         bus.write(0x0001, 0x42);
         expect(writeSpy).not.toHaveBeenCalled();
@@ -63,7 +64,7 @@ describe('Bus', () => {
         const readSpy = jest.fn(() => 0x42);
         bus.map(0xff80, readSpy, () => undefined);
         bus.map(0xfffe, readSpy, () => undefined);
-        bus.lock();
+        bus.lock(0);
 
         expect(bus.read(0xff80)).toBe(0x42);
         expect(readSpy).toHaveBeenCalledTimes(1);
@@ -78,7 +79,7 @@ describe('Bus', () => {
         const writeSpy = jest.fn(() => undefined);
         bus.map(0xff80, () => 0, writeSpy);
         bus.map(0xfffe, () => 0, writeSpy);
-        bus.lock();
+        bus.lock(0);
 
         bus.write(0xff80, 0x42);
         expect(writeSpy).toHaveBeenCalledTimes(1);

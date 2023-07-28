@@ -1,6 +1,7 @@
 import { Interrupt, irq } from './../../src/emulator/interrupt';
 
 import { Bus } from './../../src/emulator/bus';
+import { Mode } from '../../src/emulator/mode';
 import { Serial } from './../../src/emulator/serial';
 import { System } from './../../src/emulator/system';
 
@@ -12,7 +13,7 @@ describe('serial out', () => {
         raiseSpy: jest.SpyInstance<void, [irq]>;
     } {
         const system = new System((msg) => console.log(msg));
-        const bus = new Bus(system);
+        const bus = new Bus(Mode.dmg, system);
         const interrupt = new Interrupt();
         const serial = new Serial(interrupt);
 

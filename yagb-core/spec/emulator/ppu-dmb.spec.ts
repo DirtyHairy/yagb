@@ -14,7 +14,7 @@ describe('PPU', () => {
         raiseSpy: jest.SpyInstance<void, [irq]>;
     } {
         const system = new System((msg) => console.log(msg));
-        const bus = new Bus(system);
+        const bus = new Bus(Mode.dmg, system);
         const interrupt = new Interrupt();
         const ppu = new PpuDmg(system, interrupt);
         const ram = new Ram(Mode.dmg);
@@ -126,7 +126,7 @@ describe('PPU', () => {
                 expect(ppu.getFrameIndex()).toBe(1);
             });
 
-            it('last line lasts only 56 cycles', () => {
+            it('last line lasts only 12 cycles', () => {
                 const { ppu, bus } = setup();
 
                 increment(ppu, 153 * 456);
@@ -134,7 +134,7 @@ describe('PPU', () => {
                 expect(ppu.getMode()).toBe(ppuMode.vblank);
                 expect(bus.read(0xff44)).toBe(153);
 
-                increment(ppu, 55);
+                increment(ppu, 11);
                 expect(bus.read(0xff44)).toBe(153);
 
                 increment(ppu, 1);
@@ -419,14 +419,14 @@ describe('PPU', () => {
         it('STAT does not trigger multiple times trough consecutive conditions (STAT blocking)', () => {
             const { bus, ppu, raiseSpy } = setup();
 
-            bus.write(0xff41, 0x48);
+            bus.write(0xff41, 0x60);
             bus.write(0xff45, 10);
-            ppu.cycle(9 * 456);
+            ppu.cycle(9 * 456 + 455);
             raiseSpy.mockReset();
 
             expect(raiseSpy).not.toHaveBeenCalled();
 
-            ppu.cycle(456);
+            ppu.cycle(10);
             expect(raiseSpy).toHaveBeenCalledTimes(1);
         });
 

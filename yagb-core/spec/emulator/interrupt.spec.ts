@@ -1,12 +1,13 @@
 import { Interrupt, irq } from '../../src/emulator/interrupt';
 
 import { Bus } from '../../src/emulator/bus';
+import { Mode } from '../../src/emulator/mode';
 import { System } from '../../src/emulator/system';
 
 describe('interrupts', () => {
     function setup(iflag: number, imask: number): Interrupt {
         const system = new System((msg) => console.log(msg));
-        const bus = new Bus(system);
+        const bus = new Bus(Mode.dmg, system);
         const interrupt = new Interrupt();
 
         interrupt.install(bus);
