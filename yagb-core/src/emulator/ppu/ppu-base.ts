@@ -283,9 +283,7 @@ export abstract class PpuBase implements Ppu {
                 if (clocks + this.clockInMode >= 204 - this.mode3ExtraClocks) {
                     const consumed = 204 - this.mode3ExtraClocks - this.clockInMode;
 
-                    this.scanline++;
-
-                    if (this.scanline === 144) {
+                    if (this.scanline === 143) {
                         this.mode = ppuMode.vblank;
                         this.vblankFired = false;
                         this.vblankLines = 0;
@@ -294,6 +292,9 @@ export abstract class PpuBase implements Ppu {
                     }
 
                     this.clockInMode = 0;
+                    this.updateStat();
+
+                    this.scanline++;
                     this.updateStat();
 
                     return consumed;
