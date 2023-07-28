@@ -83,6 +83,10 @@ export class Emulator {
         return this.cartridge.getNvData();
     }
 
+    getScanline(): number {
+        return this.ppu.getScanline();
+    }
+
     clearCartridgeRam(): void {
         this.cartridge.clearNvData();
     }
@@ -104,6 +108,25 @@ export class Emulator {
 
     getBreakpoints(): Array<number> {
         return Array.from(this.breakpoints).sort();
+    }
+
+    addScanlineTrap(line: number): void {
+        this.scanlineTraps.add(line);
+        this.updateHooks();
+    }
+
+    clearScanlineTrap(line: number): void {
+        this.scanlineTraps.delete(line);
+        this.updateHooks();
+    }
+
+    clearScahnlineTraps(): void {
+        this.scanlineTraps.clear();
+        this.updateHooks();
+    }
+
+    getScanlineTraps(): Array<number> {
+        return Array.from(this.scanlineTraps).sort();
     }
 
     addTrapWrite(address: number): void {
@@ -299,14 +322,20 @@ export class Emulator {
 
     private onAfterExecuteHandler = (p: number): void => {
         if (this.breakpoints.has(p)) this.system.trap(`hit breakpoint at ${hex16(p)}`);
+
+        const scanline = this.ppu.getScanline();
+        if (this.lastScanline !== scanline && this.scanlineTraps.has(scanline)) this.system.trap(`hit scanline trap at line ${scanline}`);
+
+        this.lastScanline = scanline;
     };
 
     private updateHooks(): void {
-        if (this.breakpoints.size > 0 && !this.cpu.onAfterExecute.isHandlerAttached(this.onAfterExecuteHandler)) {
+        if ((this.breakpoints.size > 0 || this.scanlineTraps.size > 0) && !this.cpu.onAfterExecute.isHandlerAttached(this.onAfterExecuteHandler)) {
             this.cpu.onAfterExecute.addHandler(this.onAfterExecuteHandler);
+            this.lastScanline = -1;
         }
 
-        if (this.breakpoints.size === 0) {
+        if (this.breakpoints.size === 0 && this.scanlineTraps.size === 0) {
             this.cpu.onAfterExecute.removeHandler(this.onAfterExecuteHandler);
         }
 
@@ -358,6 +387,8 @@ export class Emulator {
 
     private breakpoints = new Set<number>();
     private busTraps = new Map<number, BusTrap>();
+    private scanlineTraps = new Set<number>();
+    private lastScanline = -1;
 
     private savestate = new Savestate(new Uint8Array(1024 * 1024));
 }

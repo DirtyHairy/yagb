@@ -30,6 +30,7 @@ export interface Ppu {
     printState(): string;
     getFrameIndex(): number;
     getFrameData(): ArrayBuffer;
+    getScanline(): number;
 
     getMode(): ppuMode;
 }

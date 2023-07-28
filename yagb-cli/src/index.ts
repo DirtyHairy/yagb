@@ -257,6 +257,10 @@ breakpoint-add [address, ...]           Add a breakpoint
 breakpoint-clear <address>              Clear a breakpoint
 breakpoint-clear-all                    Clear all breakpoints
 breakpoint-list                         List breakpoints
+scanline-trap-add [line, ...]           Add a scanline trap
+scanline-trap-clear <line>              Clear a scanline trap
+scanline-trap-clear-all                 Clear all scanline traps
+scanline-trap-list                      List scanline traps
 trap-read-add <address, ...>            Add a read trap
 trap-write-add <address, ...>           Add a write trap
 trap-clear <address>                    Remove traps at address
@@ -382,6 +386,48 @@ Keyboard controls (click the canvas to give it focus):
         const breakpoints = emulator.getBreakpoints();
 
         print(breakpoints.length === 0 ? 'no breakpoints' : breakpoints.map((x) => `* ${hex16(x)}`).join('\n'));
+    },
+    'scanline-trap-add': function (...args: Array<string | number | undefined>) {
+        if (!assertEmulator(emulator)) return;
+
+        if (args.length === 0) {
+            args = [emulator.getScanline()];
+        }
+
+        args.forEach((scanline) => {
+            if (!emulator) return;
+
+            const scanlineInt = uintval(scanline);
+            if (scanlineInt === undefined) {
+                print(`invalid scanline ${scanline}`);
+                return;
+            }
+
+            emulator.addScanlineTrap(scanlineInt);
+        });
+    },
+    'scanline-trap-clear': function (address?: string) {
+        if (!assertEmulator(emulator)) return;
+
+        const scanline = uintval(address);
+        if (scanline === undefined) {
+            print('invalid scanline');
+            return;
+        }
+
+        emulator.clearScanlineTrap(scanline);
+    },
+    'scanline-trap-clear-all': function () {
+        if (!assertEmulator(emulator)) return;
+
+        emulator.clearScahnlineTraps();
+    },
+    'scanline-trap-list': function () {
+        if (!assertEmulator(emulator)) return;
+
+        const scanlines = emulator.getScanlineTraps();
+
+        print(scanlines.length === 0 ? 'no scanline traps' : scanlines.join('\n'));
     },
     'trap-read-add': function (...args: Array<string | number | undefined>) {
         if (!assertEmulator(emulator)) return;

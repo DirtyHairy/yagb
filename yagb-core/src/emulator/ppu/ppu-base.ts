@@ -220,6 +220,10 @@ export abstract class PpuBase implements Ppu {
         return this.mode;
     }
 
+    getScanline(): number {
+        return this.scanline;
+    }
+
     protected abstract oamDmaCyclesTotal(): number;
 
     protected abstract initializeVram(): [Uint8Array, Uint16Array];
@@ -329,11 +333,15 @@ export abstract class PpuBase implements Ppu {
                     if (this.clockInMode - this.vblankLines * 456 >= 456) this.vblankLines++;
                     let scanline = 144 + this.vblankLines;
 
-                    // Emulate short line 153. It is unclear how long this should be.
-                    // The no$gb docs say ~56 cycles, the cycle-exact docs say 4, the SameBoy source
-                    // says 12. 4 Kills Prehistorik Man, 12 makes it flicker, so we go with 56 until
-                    // we find reason to change it.
-                    if (scanline === 153 && this.clockInMode >= 9 * 456 + 56) scanline = 0;
+                    // The duration of line 153 is so short that we might immediatelly skip over
+                    // it below -> make sure that we don't miss it in stat interrupt handling.
+                    if (scanline !== this.scanline) {
+                        this.scanline = scanline;
+                        this.updateStat();
+                    }
+
+                    // Emulate short line 153.
+                    if (scanline === 153 && this.clockInMode >= 9 * 456 + 12) scanline = 0;
 
                     if (scanline !== this.scanline) {
                         this.scanline = scanline;
