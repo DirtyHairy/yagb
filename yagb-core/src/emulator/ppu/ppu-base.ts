@@ -140,6 +140,7 @@ export abstract class PpuBase implements Ppu {
 
         bus.map(reg.base + reg.lcdc, this.registerRead, this.lcdcWrite);
         bus.map(reg.base + reg.ly, this.lyRead, this.stubWrite);
+        bus.map(reg.base + reg.lyc, this.registerRead, this.lycWraite);
         bus.map(reg.base + reg.stat, this.statRead, this.statWrite);
         bus.map(reg.base + reg.dma, this.registerRead, this.dmaWrite);
         bus.map(reg.base + reg.bgp, this.registerRead, this.registerWrite);
@@ -433,6 +434,11 @@ export abstract class PpuBase implements Ppu {
 
     protected registerRead: ReadHandler = (address) => this.reg[address - reg.base];
     protected registerWrite: WriteHandler = (address, value) => (this.reg[address - reg.base] = value);
+
+    protected lycWraite: WriteHandler = (_, value) => {
+        this.reg[reg.lyc] = value;
+        this.updateStat();
+    };
 
     protected statWrite: WriteHandler = (_, value) => {
         this.reg[reg.stat] = value;
