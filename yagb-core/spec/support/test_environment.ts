@@ -43,7 +43,7 @@ export class TestEnvironment {
         this.serial = new Serial(this.interrupt);
         this.apu = new Apu();
         this.clock = new ClockDmg(this.ppu, this.timer, this.serial, this.apu);
-        this.bus = new Bus(this.system);
+        this.bus = new Bus(Mode.dmg, this.system);
         this.ram = new Ram(Mode.dmg);
         this.cpu = new Cpu(Mode.dmg, this.bus, this.clock, this.interrupt, this.system);
         this.cartridge = new Uint8Array(0x8000);

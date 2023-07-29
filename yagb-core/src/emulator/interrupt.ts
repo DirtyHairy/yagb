@@ -51,13 +51,13 @@ export class Interrupt {
     getNext(): irq {
         const flags = this.if & this.ie;
 
-        if (!(flags & 0x1f)) return 0;
+        if (!(flags & 0x1f)) return 0 as irq;
 
         for (let i = 0x01; i <= irq.joypad; i <<= 1) {
             if (flags & i) return i;
         }
 
-        return 0;
+        return 0 as irq;
     }
 
     printState(): string {

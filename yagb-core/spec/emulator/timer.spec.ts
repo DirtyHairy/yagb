@@ -1,6 +1,7 @@
 import { Interrupt, irq } from '../../src/emulator/interrupt';
 
 import { Bus } from '../../src/emulator/bus';
+import { Mode } from '../../src/emulator/mode';
 import { System } from '../../src/emulator/system';
 import { Timer } from '../../src/emulator/timer';
 
@@ -11,7 +12,7 @@ describe('Timer', () => {
         raiseSpy: jest.SpyInstance<void, [irq]>;
     } {
         const system = new System((msg) => console.log(msg));
-        const bus = new Bus(system);
+        const bus = new Bus(Mode.dmg, system);
         const interrupt = new Interrupt();
         const timer = new Timer(interrupt);
 
