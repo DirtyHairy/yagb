@@ -118,6 +118,8 @@ export class PpuCgb extends PpuBase {
     }
 
     protected lcdcWrite: WriteHandler = (_, value) => {
+        const oldStat = this.statRead(reg.base + reg.stat) & 0xfc;
+
         const oldValue = this.reg[reg.lcdc];
         this.reg[reg.lcdc] = value;
 
@@ -129,6 +131,7 @@ export class PpuCgb extends PpuBase {
             this.hdmaCopyBlock();
 
             this.backBuffer.fill(COLOR_MAPPING[0x7fff]);
+            this.frozenStat = oldStat;
             this.swapBuffers();
             this.startFrame();
         }

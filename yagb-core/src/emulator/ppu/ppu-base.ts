@@ -176,6 +176,8 @@ export abstract class PpuBase implements Ppu {
 
         this.windowTriggered = false;
         this.windowLine = 0;
+
+        this.frozenStat = 0;
     }
 
     cycle(systemClocks: number): void {
@@ -439,7 +441,7 @@ export abstract class PpuBase implements Ppu {
     };
 
     protected statRead: ReadHandler = () =>
-        (this.reg[reg.stat] & 0xf8) | (this.reg[reg.lyc] === this.scanline ? 0x04 : 0) | (this.reg[reg.lcdc] & lcdc.enable ? this.mode : 0);
+        this.reg[reg.lcdc] & lcdc.enable ? (this.reg[reg.stat] & 0xf8) | (this.reg[reg.lyc] === this.scanline ? 0x04 : 0) | this.mode : this.frozenStat;
 
     protected lyRead: ReadHandler = () => this.scanline;
 
@@ -485,4 +487,6 @@ export abstract class PpuBase implements Ppu {
 
     protected windowTriggered = false;
     protected windowLine = 0;
+
+    protected frozenStat = 0;
 }
