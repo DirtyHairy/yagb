@@ -371,6 +371,11 @@ export class PpuCgb extends PpuBase {
         }
     };
 
+    protected statWrite: WriteHandler = (_, value) => {
+        this.reg[reg.stat] = value;
+        this.updateStat();
+    };
+
     private invalidRead: ReadHandler = (address) => {
         this.system.log(`Invalid read from HDMA register ${hex16(address)}`);
 

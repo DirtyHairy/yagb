@@ -140,7 +140,7 @@ export abstract class PpuBase implements Ppu {
 
         bus.map(reg.base + reg.lcdc, this.registerRead, this.lcdcWrite);
         bus.map(reg.base + reg.ly, this.lyRead, this.stubWrite);
-        bus.map(reg.base + reg.stat, this.statRead, this.registerWrite);
+        bus.map(reg.base + reg.stat, this.statRead, this.statWrite);
         bus.map(reg.base + reg.dma, this.registerRead, this.dmaWrite);
         bus.map(reg.base + reg.bgp, this.registerRead, this.registerWrite);
         bus.map(reg.base + reg.obp0, this.registerRead, this.registerWrite);
@@ -378,6 +378,19 @@ export abstract class PpuBase implements Ppu {
         if (this.stat && !oldStat) this.interrupt.raise(irq.stat);
     }
 
+    protected updateStatFF(): void {
+        const oldStat = this.stat;
+
+        this.stat =
+            !!(this.reg[reg.lcdc] & lcdc.enable) &&
+            (!!(this.scanline === this.reg[reg.lyc]) ||
+                !!(this.mode === ppuMode.oamScan) ||
+                !!(this.mode === ppuMode.vblank) ||
+                !!(this.mode === ppuMode.hblank));
+
+        if (this.stat && !oldStat) this.interrupt.raise(irq.stat);
+    }
+
     protected executeDma(): void {
         this.bus.unlock();
         this.dmaInProgress = false;
@@ -417,8 +430,11 @@ export abstract class PpuBase implements Ppu {
         ((this.reg[reg.lcdc] & lcdc.enable) === 0 || (this.mode !== ppuMode.draw && this.mode !== ppuMode.oamScan)) && (this.oam[address & 0xff] = value);
 
     protected registerRead: ReadHandler = (address) => this.reg[address - reg.base];
-    protected registerWrite: WriteHandler = (address, value) => {
-        this.reg[address - reg.base] = value;
+    protected registerWrite: WriteHandler = (address, value) => (this.reg[address - reg.base] = value);
+
+    protected statWrite: WriteHandler = (_, value) => {
+        this.reg[reg.stat] = value;
+        this.updateStatFF();
         this.updateStat();
     };
 
