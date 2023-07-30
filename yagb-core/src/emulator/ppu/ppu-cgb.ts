@@ -328,14 +328,8 @@ export class PpuCgb extends PpuBase {
         const bank = this.vram16Banks[(attr >>> 3) & 0x01];
 
         if (attr & 0x40) y = 7 - y;
-        let data: number;
 
-        if (index >= 0x80) {
-            data = bank[0x0400 + 8 * (index - 0x80) + y];
-        } else {
-            const tileDataBase = this.reg[reg.lcdc] & lcdc.bgTileDataArea ? 0x0000 : 0x800;
-            data = bank[tileDataBase + 8 * index + y];
-        }
+        let data = this.reg[reg.lcdc] & lcdc.bgTileDataArea ? bank[8 * index + y] : bank[0x400 + ((128 + index) & 0xff) * 8 + y];
 
         if (attr & 0x20) data = (REVERSE[data >>> 8] << 8) | REVERSE[data & 0xff];
 

@@ -237,13 +237,7 @@ export class PpuDmg extends PpuBase {
         const tileMapBase = this.reg[reg.lcdc] & (window ? lcdc.windowTileMapArea : lcdc.bgTileMapArea) ? 0x1c00 : 0x1800;
         const index = this.vram[tileMapBase + (ny % 32) * 32 + (nx % 32)];
 
-        if (index >= 0x80) {
-            return this.vram16[0x0400 + 8 * (index - 0x80) + y];
-        } else {
-            const tildeDataBase = this.reg[reg.lcdc] & lcdc.bgTileDataArea ? 0x0000 : 0x800;
-
-            return this.vram16[tildeDataBase + 8 * index + y];
-        }
+        return this.reg[reg.lcdc] & lcdc.bgTileDataArea ? this.vram16[8 * index + y] : this.vram16[0x400 + ((128 + index) & 0xff) * 8 + y];
     }
 
     private updatePalette(target: Uint32Array, palette: number): void {
