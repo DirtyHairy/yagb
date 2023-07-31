@@ -42,7 +42,7 @@ export const enum stat {
     sourceModeHblank = 0x08,
 }
 
-const SAVESTATE_VERSION = 0x01;
+const SAVESTATE_VERSION = 0x02;
 
 export function clockPenaltyForSprite(scx: number, x: number): number {
     let tmp = (x + scx + 8) % 8;
@@ -93,10 +93,11 @@ export abstract class PpuBase implements Ppu {
             .write16(this.mode3ExtraClocks)
             .write16(this.windowLine)
             .write16(flag)
-            .write16(this.vblankLines);
+            .write16(this.vblankLines)
+            .write16(this.frozenStat);
     }
 
-    load(savestate: Savestate): void {
+    load(savestate: Savestate): number {
         const version = savestate.validateChunk(SAVESTATE_VERSION);
 
         this.clockInMode = savestate.read16();
@@ -121,8 +122,13 @@ export abstract class PpuBase implements Ppu {
         this.vblankLines = (this.clockInMode / 456) | 0;
         if (version >= 0x01) this.vblankLines = savestate.read16();
 
+        this.frozenStat = this.reg[reg.stat] & 0xf8;
+        if (version >= 0x02) this.frozenStat = savestate.read16();
+
         this.frame = 0;
         this.skipFrame = this.mode === ppuMode.vblank ? 0 : 1;
+
+        return version;
     }
 
     install(bus: Bus): void {

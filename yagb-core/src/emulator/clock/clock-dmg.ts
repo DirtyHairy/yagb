@@ -2,6 +2,7 @@ import { Apu } from '../apu';
 import { Bus } from '../bus';
 import { Clock } from '../clock';
 import { Ppu } from '../ppu';
+import { Savestate } from '../savestate';
 import { Serial } from '../serial';
 import { Timer } from '../timer';
 
@@ -13,6 +14,12 @@ export class ClockDmg implements Clock {
     }
 
     install(bus: Bus): void {}
+
+    save(savestate: Savestate): void {}
+
+    load(savestate: Savestate): void {
+        this.cpuCycles = 0;
+    }
 
     increment(cpuCycles: number) {
         this.ppu.cycle(4 * cpuCycles);

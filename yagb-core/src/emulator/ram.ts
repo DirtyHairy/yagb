@@ -69,12 +69,11 @@ export class Ram {
         this.wram.set(savestate.readBuffer(this.wram.length));
         this.hiram.set(savestate.readBuffer(this.hiram.length));
 
-        if (version > 0) {
+        this.svbk = 1;
+        this.cgbUndocumentedScratch.fill(0x00);
+        if (version > 0x00) {
             this.svbk = version > 0 ? savestate.read16() : 1;
             this.cgbUndocumentedScratch.set(savestate.readBuffer(this.cgbUndocumentedScratch.length));
-        } else {
-            this.svbk = 1;
-            this.cgbUndocumentedScratch.fill(0x00);
         }
 
         this.updateBanks();

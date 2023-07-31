@@ -14,6 +14,7 @@ import { Mode } from './mode';
 import { Ram } from './ram';
 import { SampleQueue } from './apu/sample-queue';
 import { Savestate } from './savestate';
+import { SavestateHeader } from './savestate-header';
 import { Serial } from './serial';
 import { System } from './system';
 import { Timer } from './timer';
@@ -256,6 +257,10 @@ export class Emulator {
         return this.ppu.getFrameData();
     }
 
+    getMode(): Mode {
+        return this.mode;
+    }
+
     keyDown(k: key): void {
         this.joypad.down(k);
     }
@@ -276,8 +281,11 @@ export class Emulator {
     }
 
     save(): Savestate {
+        const header = new SavestateHeader(this.mode);
+
         this.savestate.reset();
 
+        header.save(this.savestate);
         this.timer.save(this.savestate);
         this.serial.save(this.savestate);
         this.ram.save(this.savestate);
@@ -288,6 +296,7 @@ export class Emulator {
         this.apu.save(this.savestate);
         this.joypad.save(this.savestate);
         this.bus.save(this.savestate);
+        this.clock.save(this.savestate);
 
         return this.savestate;
     }
@@ -295,6 +304,11 @@ export class Emulator {
     load(data: Uint8Array): void {
         try {
             const savestate = new Savestate(data);
+            const header = SavestateHeader.load(savestate);
+
+            if (header.mode !== this.mode) {
+                throw new Error(`unable to load: savestate is for ${header.mode}, but emulator is running as ${this.mode}`);
+            }
 
             this.timer.load(savestate);
             this.serial.load(savestate);
@@ -306,6 +320,7 @@ export class Emulator {
             this.apu.load(savestate);
             this.joypad.load(savestate);
             this.bus.load(savestate);
+            this.clock.load(savestate);
 
             if (savestate.bytesRemaining() !== 0) {
                 throw new Error('savestate size mismatch');

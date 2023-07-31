@@ -41,15 +41,24 @@ export class PpuCgb extends PpuBase {
         this.switchBank(0);
 
         super.save(savestate);
-        savestate.write16(bank).writeBuffer(this.vramBanks[1]).write16(this.bgpi).writeBuffer(this.bcram.data).write16(this.obpi).writeBuffer(this.ocram.data);
+        savestate
+            .write16(bank)
+            .writeBuffer(this.vramBanks[1])
+            .write16(this.bgpi)
+            .writeBuffer(this.bcram.data)
+            .write16(this.obpi)
+            .writeBuffer(this.ocram.data)
+            .write16(this.hdmaMode)
+            .write16(this.hdmaSource)
+            .write16(this.hdmaDestination);
 
         this.switchBank(bank);
     }
 
-    load(savestate: Savestate): void {
+    load(savestate: Savestate): number {
         this.switchBank(0);
 
-        super.load(savestate);
+        const version = super.load(savestate);
 
         const bank = savestate.read16();
         this.vramBanks[1].set(savestate.readBuffer(this.vram.length));
@@ -57,11 +66,16 @@ export class PpuCgb extends PpuBase {
         this.bcram.load(savestate.readBuffer(0x40));
         this.obpi = savestate.read16();
         this.ocram.load(savestate.readBuffer(0x40));
+        this.hdmaMode = savestate.read16();
+        this.hdmaSource = savestate.read16();
+        this.hdmaDestination = savestate.read16();
 
         this.switchBank(bank);
 
         this.frontBuffer.fill(COLOR_MAPPING[0x7fff]);
         this.backBuffer.fill(COLOR_MAPPING[0x7fff]);
+
+        return version;
     }
 
     install(bus: Bus): void {

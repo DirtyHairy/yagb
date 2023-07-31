@@ -61,13 +61,12 @@ async function loadCartridge(data: Uint8Array, name: string) {
     audioDriver.stop();
     scheduler?.stop();
 
-    if (romHash) {
-        await repository.removeSavestate(romHash);
+    if (romHash && emulator) {
+        await repository.removeSavestate(romHash, emulator.getMode());
     }
 
     romHash = md5(data);
     const savedRam = await repository.getNvsData(romHash);
-    const savestate = await repository.getSavestate(romHash);
 
     try {
         emulator = new Emulator(data, print, savedRam);
@@ -79,9 +78,10 @@ async function loadCartridge(data: Uint8Array, name: string) {
         return;
     }
 
+    const savestate = await repository.getSavestate(romHash, emulator.getMode());
+
     try {
-        // CGBTODO
-        // if (savestate) emulator.load(savestate);
+        if (savestate) emulator.load(savestate);
     } catch (e) {
         console.error(e);
         print('failed to load savestate');
@@ -125,7 +125,7 @@ const onStatistics =
         const ram = emulator.getNvData();
         const savestate = emulator.save();
 
-        repository.saveState(romHash, savestate.getBuffer(), ram);
+        repository.saveState(romHash, savestate.getBuffer(), ram, emulator.getMode());
     };
 
 async function onInit(): Promise<void> {

@@ -1,3 +1,5 @@
+import { Mode, modeToString } from 'yagb-core/src/emulator/mode';
+
 import { Database } from './repository/database';
 import { Event } from 'microevent.ts';
 import { LastRom } from './repository/last-rom';
@@ -7,7 +9,9 @@ import { decodeBase64 } from './helper/base64';
 const STORAGE_KEY_YAGB_CARTERIDGE_DATA = 'yagb-cartridge-data';
 const STORAGE_KEY_YAGB_CARTERIDGE_NAME = 'yagb-cartridge-name';
 
-const SNAPSHOT_AUTO = 'autosave';
+function SNAPSHOT_AUTO(mode?: Mode) {
+    return mode !== undefined ? `autosave-${modeToString(mode)}` : 'autosave';
+}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function guard(): any {
@@ -50,7 +54,7 @@ export class Repository {
     }
 
     @guard()
-    saveState(romHash: string, savestate: Uint8Array, nvData: Uint8Array | undefined): Promise<void> {
+    saveState(romHash: string, savestate: Uint8Array, nvData: Uint8Array | undefined, mode: Mode): Promise<void> {
         let _savestate: Uint8Array;
         let _nvData: Uint8Array | undefined;
 
@@ -75,7 +79,7 @@ export class Repository {
         return this.saveStateMutex.runExclusive(() =>
             this.db.transaction('rw', this.db.snapshot, this.db.nvs, async () => {
                 await this.db.snapshot.put({
-                    name: SNAPSHOT_AUTO,
+                    name: SNAPSHOT_AUTO(mode),
                     rom: romHash,
                     data: _savestate,
                 });
@@ -89,8 +93,10 @@ export class Repository {
     }
 
     @guard()
-    removeSavestate(romHash: string): Promise<void> {
-        return this.saveStateMutex.runExclusive(() => this.db.snapshot.delete([romHash, SNAPSHOT_AUTO]));
+    async removeSavestate(romHash: string, mode: Mode): Promise<void> {
+        await this.saveStateMutex.runExclusive(() => this.db.snapshot.delete([romHash, SNAPSHOT_AUTO(mode)]));
+
+        if (mode === Mode.dmg) await this.db.snapshot.delete([romHash, SNAPSHOT_AUTO()]);
     }
 
     @guard()
@@ -114,8 +120,13 @@ export class Repository {
     }
 
     @guard()
-    async getSavestate(romHash: string): Promise<Uint8Array | undefined> {
-        return (await this.db.snapshot.get([romHash, SNAPSHOT_AUTO]))?.data as Uint8Array;
+    async getSavestate(romHash: string, mode: Mode): Promise<Uint8Array | undefined> {
+        const snapshot = await this.db.snapshot.get([romHash, SNAPSHOT_AUTO(mode)]);
+        if (snapshot) {
+            return snapshot.data;
+        }
+
+        return mode === Mode.dmg ? (await this.db.snapshot.get([romHash, SNAPSHOT_AUTO()]))?.data : undefined;
     }
 
     @guard()

@@ -5,11 +5,9 @@ import { PALETTE_CLASSIC } from '../palette';
 import { Savestate } from '../savestate';
 import { SpriteQueueDmg } from './sprite-queue-dmg';
 
-const SAVESTATE_VERSION = 0x01;
-
 export class PpuDmg extends PpuBase {
-    load(savestate: Savestate): void {
-        super.load(savestate);
+    load(savestate: Savestate): number {
+        const version = super.load(savestate);
 
         this.frontBuffer.fill(PALETTE_CLASSIC[4]);
         this.backBuffer.fill(PALETTE_CLASSIC[4]);
@@ -17,6 +15,8 @@ export class PpuDmg extends PpuBase {
         this.updatePalette(this.paletteOB0, this.reg[reg.obp0]);
         this.updatePalette(this.paletteOB1, this.reg[reg.obp1]);
         this.updatePalette(this.paletteBG, this.reg[reg.bgp]);
+
+        return version;
     }
 
     install(bus: Bus): void {

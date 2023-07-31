@@ -3,9 +3,12 @@ import { Bus, ReadHandler, WriteHandler } from '../bus';
 import { Apu } from '../apu';
 import { Clock } from '../clock';
 import { Ppu } from '../ppu';
+import { Savestate } from '../savestate';
 import { Serial } from '../serial';
 import { Timer } from '../timer';
 import { cgbRegisters } from '../cgb-registers';
+
+const SAVESTATE_VERSION = 0x00;
 
 export class ClockCgb implements Clock {
     constructor(private ppu: Ppu, private timer: Timer, private serial: Serial, private apu: Apu) {}
@@ -20,6 +23,21 @@ export class ClockCgb implements Clock {
 
     install(bus: Bus): void {
         bus.map(cgbRegisters.key1, this.key1Read, this.key1Write);
+    }
+
+    save(savestate: Savestate): void {
+        savestate.startChunk(SAVESTATE_VERSION).write16(this.dividerAccCycles).writeBool(this.doubleSpeed).writeBool(this.speedSwitchPending);
+    }
+
+    load(savestate: Savestate): void {
+        savestate.validateChunk(SAVESTATE_VERSION);
+
+        this.dividerAccCycles = savestate.read16();
+        this.doubleSpeed = savestate.readBool();
+        this.speedSwitchPending = savestate.readBool();
+
+        this.speedSwitchInProgress = false;
+        this.extraCpuCycles = 0;
     }
 
     increment(cpuCycles: number) {

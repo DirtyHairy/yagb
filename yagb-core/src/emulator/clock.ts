@@ -4,11 +4,15 @@ import { ClockCgb } from './clock/clock-cgb';
 import { ClockDmg } from './clock/clock-dmg';
 import { Mode } from './mode';
 import { Ppu } from './ppu';
+import { Savestate } from './savestate';
 import { Serial } from './serial';
 import { Timer } from './timer';
 
 export interface Clock {
     reset(): void;
+
+    save(savestate: Savestate): void;
+    load(savestate: Savestate): void;
 
     install(bus: Bus): void;
 

@@ -8,7 +8,7 @@ import { System } from './system';
 export type ReadHandler = (address: number) => number;
 export type WriteHandler = (address: number, value: number) => void;
 
-const SAVESTATE_VERSION = 0x01;
+const SAVESTATE_VERSION = 0x02;
 
 export class Bus {
     constructor(private mode: Mode, private system: System) {
@@ -18,18 +18,20 @@ export class Bus {
         }
     }
 
-    save(savestate: Savestate) {
+    save(savestate: Savestate): void {
         savestate.startChunk(SAVESTATE_VERSION).writeBool(this.locked);
     }
 
-    load(savestate: Savestate) {
+    load(savestate: Savestate): void {
         if (savestate.bytesRemaining() === 0) {
             this.locked = false;
             return;
         }
 
-        savestate.validateChunk(SAVESTATE_VERSION);
+        const version = savestate.validateChunk(SAVESTATE_VERSION);
         this.locked = savestate.readBool();
+
+        if (version > 0x01) this.dmaBase = 0x00;
     }
 
     read(address: number): number {
