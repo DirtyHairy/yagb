@@ -98,10 +98,11 @@ export class PpuCgb extends PpuBase {
     }
 
     reset(): void {
-        super.reset();
-
         this.switchBank(0);
 
+        super.reset();
+
+        this.vramBanks[1].fill(0);
         this.frontBuffer.fill(COLOR_MAPPING[0x7fff]);
         this.backBuffer.fill(COLOR_MAPPING[0x7fff]);
 
