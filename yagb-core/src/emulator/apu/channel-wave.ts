@@ -12,7 +12,8 @@ export const enum reg {
     nrX4_ctrl_freq_hi = 0x04,
 }
 
-const SAVESTATE_VERSION = 0x01;
+const SAVESTATE_VERSION = 0x02;
+const DAC_LATENCY_CYCLES = 100;
 
 export class ChannelWave {
     constructor(_reg: Uint8Array) {
@@ -27,7 +28,8 @@ export class ChannelWave {
             .writeBuffer(this.waveRam)
             .write16(this.counter)
             .write16(this.freqCtr)
-            .write16(this.samplePoint);
+            .write16(this.samplePoint)
+            .write32(this.cyclesSinceDacChange);
     }
 
     load(savestate: Savestate): void {
@@ -39,6 +41,7 @@ export class ChannelWave {
         this.counter = savestate.read16();
         this.freqCtr = savestate.read16();
         this.samplePoint = savestate.read16();
+        this.cyclesSinceDacChange = version >= 0x02 ? savestate.read32() : 0;
 
         if (version === 0) this.waveRam[0x0f] = 0;
     }
@@ -55,6 +58,7 @@ export class ChannelWave {
         this.freqCtr = 0;
         this.samplePoint = 0;
         this.sample = 0;
+        this.cyclesSinceDacChange = 0;
     }
 
     install(bus: Bus, base: number): void {
@@ -68,17 +72,38 @@ export class ChannelWave {
 
     cycle(cpuClocks: number, lengthCtrClocks: number): void {
         if ((this.reg[reg.nrX0_onoff] & 0x80) === 0) {
-            this.sample = 0;
+            // This is a *very* crude approximation to take into account DAC decay. It is a bad
+            // hack, but it should not hurt anyone, and it is enough to remove pops and clicks
+            // from Cannon Fodder.
+            if (this.cyclesSinceDacChange > DAC_LATENCY_CYCLES) {
+                this.sample = 0;
+            } else {
+                this.cyclesSinceDacChange += lengthCtrClocks;
+            }
+
+            return;
+        }
+
+        if (!this.isActive) {
+            // This is a *very* crude approximation to take into account DAC buildup. It is a bad
+            // hack, but it should not hurt anyone, and it is enough to remove pops and clicks
+            // from Cannon Fodder.
+            if (this.cyclesSinceDacChange > DAC_LATENCY_CYCLES) {
+                this.sample = 0x0f;
+            } else {
+                this.cyclesSinceDacChange += lengthCtrClocks;
+            }
+
             return;
         }
 
         this.sample = 0x0f;
-        if (!this.isActive) return;
 
         if (this.reg[reg.nrX4_ctrl_freq_hi] & 0x40) {
             this.counter += lengthCtrClocks;
             if (this.counter >= 256 - this.reg[reg.nrX1_length]) {
                 this.isActive = false;
+                this.cyclesSinceDacChange = DAC_LATENCY_CYCLES + 1;
 
                 return;
             }
@@ -110,8 +135,10 @@ export class ChannelWave {
 
     private readNRX0: ReadHandler = () => this.reg[reg.nrX0_onoff];
     private writeNRX0: WriteHandler = (_, value) => {
+        const oldValue = this.reg[reg.nrX0_onoff];
         this.reg[reg.nrX0_onoff] = value;
 
+        if ((value ^ oldValue) & 0x80) this.cyclesSinceDacChange = 0;
         if ((value & 0x80) === 0x00) this.isActive = false;
     };
 
@@ -136,4 +163,5 @@ export class ChannelWave {
     private counter = 0;
     private freqCtr = 0;
     private samplePoint = 0;
+    private cyclesSinceDacChange = 0;
 }
