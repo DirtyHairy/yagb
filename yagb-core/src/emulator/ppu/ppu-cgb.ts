@@ -72,9 +72,6 @@ export class PpuCgb extends PpuBase {
 
         this.switchBank(bank);
 
-        this.frontBuffer.fill(COLOR_MAPPING[0x7fff]);
-        this.backBuffer.fill(COLOR_MAPPING[0x7fff]);
-
         return version;
     }
 
@@ -103,8 +100,6 @@ export class PpuCgb extends PpuBase {
         super.reset();
 
         this.vramBanks[1].fill(0);
-        this.frontBuffer.fill(COLOR_MAPPING[0x7fff]);
-        this.backBuffer.fill(COLOR_MAPPING[0x7fff]);
 
         this.bcram.reset();
         this.ocram.reset();
@@ -115,7 +110,11 @@ export class PpuCgb extends PpuBase {
         this.hdmaRemaining = 0x00;
     }
 
-    protected oamDmaCyclesTotal(): number {
+    protected getBlankColor(): number {
+        return COLOR_MAPPING[0x7fff];
+    }
+
+    protected getOamDmaCyclesTotal(): number {
         return this.clock.isDoubleSpeed() ? 320 : 640;
     }
 
@@ -145,7 +144,7 @@ export class PpuCgb extends PpuBase {
         if (oldValue & ~this.reg[reg.lcdc] & lcdc.enable) {
             this.hdmaCopyBlock();
 
-            this.backBuffer.fill(COLOR_MAPPING[0x7fff]);
+            this.backBuffer.fill(this.getBlankColor());
             this.frozenStat = oldStat;
             this.swapBuffers();
             this.startFrame();

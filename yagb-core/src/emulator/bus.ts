@@ -38,14 +38,14 @@ export class Bus {
         this.onRead.dispatch(address);
 
         if (this.locked) {
-            if (this.mode === Mode.dmg) {
-                if (address < 0xff80 || address === 0xffff) return 0xff;
-            } else {
+            if (this.mode === Mode.cgb) {
                 if (this.dmaBase < 0x8000) {
                     if (address < 0x8000) return 0xff;
                 } else {
                     if (address >= 0xc000 && address < 0xfe00) return 0xff;
                 }
+            } else {
+                if (address < 0xff80 || address === 0xffff) return 0xff;
             }
         }
 
@@ -56,14 +56,14 @@ export class Bus {
         this.onWrite.dispatch(address);
 
         if (this.locked) {
-            if (this.mode === Mode.dmg) {
-                if (address < 0xff80 || address === 0xffff) return;
-            } else {
+            if (this.mode === Mode.cgb) {
                 if (this.dmaBase < 0x8000) {
                     if (address < 0x8000) return;
                 } else {
                     if (address >= 0xc000 && address < 0xfe00) return;
                 }
+            } else {
+                if (address < 0xff80 || address === 0xffff) return;
             }
         }
 

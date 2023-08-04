@@ -1,6 +1,7 @@
 import { Cartridge, CgbSupportLevel, createCartridge } from './cartridge';
 import { Clock, createClock } from './clock';
 import { Joypad, key } from './joypad';
+import { Mode, modeToString } from './mode';
 import { Ppu, createPpu } from './ppu';
 import { decodeInstruction, disassembleInstruction } from './instruction';
 
@@ -10,7 +11,6 @@ import { Cpu } from './cpu';
 import { Event } from 'microevent.ts';
 import { Infrared } from './infrared';
 import { Interrupt } from './interrupt';
-import { Mode } from './mode';
 import { Ram } from './ram';
 import { SampleQueue } from './apu/sample-queue';
 import { Savestate } from './savestate';
@@ -39,11 +39,11 @@ export class Emulator {
             throw new Error('bad cartridge image');
         }
 
-        this.mode = cartridge.cgbSupportLevel === CgbSupportLevel.none ? Mode.dmg : Mode.cgb;
+        this.mode = cartridge.cgbSupportLevel === CgbSupportLevel.none ? Mode.cgbcompat : Mode.cgb;
 
         this.bus = new Bus(this.mode, this.system);
         this.interrupt = new Interrupt();
-        this.ppu = createPpu(this.mode, this.system, this.interrupt);
+        this.ppu = createPpu(this.mode, this.system, this.interrupt, cartridgeImage);
         this.apu = new Apu();
         this.timer = new Timer(this.interrupt);
         this.serial = new Serial(this.interrupt);
@@ -77,7 +77,7 @@ export class Emulator {
     }
 
     getClock(): number {
-        return this.mode === Mode.dmg ? CLOCK_DMG : 2 * CLOCK_DMG;
+        return this.mode === Mode.cgb ? 2 * CLOCK_DMG : CLOCK_DMG;
     }
 
     getNvData(): Uint8Array | undefined {
@@ -307,7 +307,7 @@ export class Emulator {
             const header = SavestateHeader.load(savestate);
 
             if (header.mode !== this.mode) {
-                throw new Error(`unable to load: savestate is for ${header.mode}, but emulator is running as ${this.mode}`);
+                throw new Error(`unable to load: savestate is for ${modeToString(header.mode)}, but emulator is running as ${modeToString(this.mode)}`);
             }
 
             this.timer.load(savestate);

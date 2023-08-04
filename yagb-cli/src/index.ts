@@ -62,7 +62,7 @@ async function loadCartridge(data: Uint8Array, name: string) {
     scheduler?.stop();
 
     if (romHash && emulator) {
-        await repository.removeSavestate(romHash, emulator.getMode());
+        await repository.removeSavestate(romHash);
     }
 
     romHash = md5(data);

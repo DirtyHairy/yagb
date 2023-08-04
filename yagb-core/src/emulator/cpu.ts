@@ -77,7 +77,7 @@ export class Cpu {
     }
 
     reset() {
-        this.state.r16[r16.af] = this.mode === Mode.dmg ? 0x01b0 : 0x11b0;
+        this.state.r16[r16.af] = this.mode === Mode.cgb ? 0x11b0 : 0x01b0;
         this.state.r16[r16.bc] = 0x0013;
         this.state.r16[r16.de] = 0x00d8;
         this.state.r16[r16.hl] = 0x014d;

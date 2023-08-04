@@ -7,6 +7,7 @@ import { PpuCgb } from './ppu/ppu-cgb';
 import { PpuDmg } from './ppu/ppu-dmg';
 import { Savestate } from './savestate';
 import { System } from './system';
+import { determinePaletteIndex } from './ppu/palette-compat';
 
 export const enum ppuMode {
     hblank = 0,
@@ -35,13 +36,14 @@ export interface Ppu {
     getMode(): ppuMode;
 }
 
-export function createPpu(mode: Mode, system: System, interrupt: Interrupt): Ppu {
+export function createPpu(mode: Mode, system: System, interrupt: Interrupt, cartridge: Uint8Array): Ppu {
     switch (mode) {
         case Mode.cgb:
             return new PpuCgb(system, interrupt);
 
         case Mode.dmg:
-            return new PpuDmg(system, interrupt);
+        case Mode.cgbcompat:
+            return new PpuDmg(system, interrupt, mode, determinePaletteIndex(cartridge));
 
         default:
             throw new Error('unreachable');

@@ -96,7 +96,7 @@ export class Ram {
     }
 
     private wramSize(): number {
-        return (this.mode === Mode.dmg ? 8 : 32) * 1024;
+        return (this.mode === Mode.cgb ? 32 : 8) * 1024;
     }
 
     private svbkRead: ReadHandler = () => this.svbk | 0xf8;

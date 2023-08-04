@@ -1,16 +1,29 @@
-import { Mode, modeToString } from 'yagb-core/src/emulator/mode';
-
 import { Database } from './repository/database';
 import { Event } from 'microevent.ts';
 import { LastRom } from './repository/last-rom';
+import { Mode } from 'yagb-core/src/emulator/mode';
 import { Mutex } from 'async-mutex';
 import { decodeBase64 } from './helper/base64';
 
 const STORAGE_KEY_YAGB_CARTERIDGE_DATA = 'yagb-cartridge-data';
 const STORAGE_KEY_YAGB_CARTERIDGE_NAME = 'yagb-cartridge-name';
 
+function modeSuffix(mode: Mode): string {
+    switch (mode) {
+        case Mode.cgb:
+        case Mode.cgbcompat:
+            return 'cgb';
+
+        case Mode.dmg:
+            return 'dmg';
+
+        default:
+            throw new Error('unreachable');
+    }
+}
+
 function SNAPSHOT_AUTO(mode?: Mode) {
-    return mode !== undefined ? `autosave-${modeToString(mode)}` : 'autosave';
+    return mode !== undefined ? `autosave-${modeSuffix(mode)}` : 'autosave';
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -93,10 +106,14 @@ export class Repository {
     }
 
     @guard()
-    async removeSavestate(romHash: string, mode: Mode): Promise<void> {
-        await this.saveStateMutex.runExclusive(() => this.db.snapshot.delete([romHash, SNAPSHOT_AUTO(mode)]));
-
-        if (mode === Mode.dmg) await this.db.snapshot.delete([romHash, SNAPSHOT_AUTO()]);
+    async removeSavestate(romHash: string): Promise<void> {
+        await this.saveStateMutex.runExclusive(() =>
+            Promise.all([
+                this.db.snapshot.delete([romHash, SNAPSHOT_AUTO(Mode.cgb)]),
+                this.db.snapshot.delete([romHash, SNAPSHOT_AUTO(Mode.dmg)]),
+                this.db.snapshot.delete([romHash, SNAPSHOT_AUTO()]),
+            ])
+        );
     }
 
     @guard()

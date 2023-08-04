@@ -35,6 +35,7 @@ export interface Clock {
 export function createClock(mode: Mode, ppu: Ppu, timer: Timer, serial: Serial, apu: Apu) {
     switch (mode) {
         case Mode.dmg:
+        case Mode.cgbcompat:
             return new ClockDmg(ppu, timer, serial, apu);
 
         case Mode.cgb:

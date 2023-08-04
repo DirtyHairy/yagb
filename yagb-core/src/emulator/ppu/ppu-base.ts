@@ -128,6 +128,8 @@ export abstract class PpuBase implements Ppu {
         this.frame = 0;
         this.skipFrame = this.mode === ppuMode.vblank ? 0 : 1;
 
+        this.blankScreen();
+
         return version;
     }
 
@@ -185,13 +187,15 @@ export abstract class PpuBase implements Ppu {
         this.windowLine = 0;
 
         this.frozenStat = 0;
+
+        this.blankScreen();
     }
 
     cycle(systemClocks: number): void {
         const lcdEnabled = (this.reg[reg.lcdc] & lcdc.enable) !== 0;
 
         while (this.dmaInProgress && systemClocks > 0) {
-            const oamDmaCyclesTotal = this.oamDmaCyclesTotal();
+            const oamDmaCyclesTotal = this.getOamDmaCyclesTotal();
 
             const maxCyclesForConsumation = systemClocks > oamDmaCyclesTotal - this.dmaCycle ? oamDmaCyclesTotal - this.dmaCycle : systemClocks;
             const consumed = lcdEnabled ? this.consumeClocks(maxCyclesForConsumation) : maxCyclesForConsumation;
@@ -233,11 +237,14 @@ export abstract class PpuBase implements Ppu {
         return this.scanline;
     }
 
-    protected abstract oamDmaCyclesTotal(): number;
+    protected abstract getOamDmaCyclesTotal(): number;
 
     protected abstract initializeVram(): [Uint8Array, Uint16Array];
     protected abstract renderLine(): void;
+    protected abstract getBlankColor(): number;
+
     protected abstract lcdcWrite: WriteHandler;
+    protected abstract statWrite: WriteHandler;
 
     protected onHblankStart(): void {}
 
@@ -428,6 +435,13 @@ export abstract class PpuBase implements Ppu {
         this.windowLine = 0;
     }
 
+    protected blankScreen(): void {
+        const fillColor = this.getBlankColor();
+
+        this.frontBuffer.fill(fillColor);
+        this.backBuffer.fill(fillColor);
+    }
+
     protected vramRead: ReadHandler = (address) =>
         (this.reg[reg.lcdc] & lcdc.enable) === 0 || this.mode !== ppuMode.draw ? this.vram[address & 0x1fff] : 0xff;
     protected vramWrite: WriteHandler = (address, value) =>
@@ -443,12 +457,6 @@ export abstract class PpuBase implements Ppu {
 
     protected lycWraite: WriteHandler = (_, value) => {
         this.reg[reg.lyc] = value;
-        this.updateStat();
-    };
-
-    protected statWrite: WriteHandler = (_, value) => {
-        this.reg[reg.stat] = value;
-        this.updateStatFF();
         this.updateStat();
     };
 

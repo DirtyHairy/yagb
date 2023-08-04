@@ -1,6 +1,7 @@
 export const enum Mode {
     dmg = 0,
     cgb = 1,
+    cgbcompat = 2,
 }
 
 export function modeToString(mode: Mode): string {
@@ -10,6 +11,9 @@ export function modeToString(mode: Mode): string {
 
         case Mode.dmg:
             return 'dmg';
+
+        case Mode.cgbcompat:
+            return 'cgbcompat';
 
         default:
             throw new Error('unreachable');

@@ -1,20 +1,42 @@
 import { Bus, WriteHandler } from '../bus';
 import { PpuBase, clockPenaltyForSprite, lcdc, reg } from './ppu-base';
 
+import { COLOR_MAPPING } from './color-mapping';
+import { Interrupt } from '../interrupt';
+import { Mode } from '../mode';
 import { PALETTE_CLASSIC } from '../palette';
 import { Savestate } from '../savestate';
 import { SpriteQueueDmg } from './sprite-queue-dmg';
+import { System } from '../system';
+import { buildPaletteForIndex } from './palette-compat';
 
 export class PpuDmg extends PpuBase {
+    constructor(protected system: System, protected interrupt: Interrupt, private deviceMode: Mode, protected paletteIndex: number) {
+        super(system, interrupt);
+
+        if (deviceMode === Mode.cgbcompat) {
+            const paletteSet = buildPaletteForIndex(paletteIndex);
+
+            this.masterPaletteOB0 = paletteSet.obj0;
+            this.masterPaletteOB1 = paletteSet.obj1;
+            this.masterPaletteBG = paletteSet.bg;
+        } else {
+            this.masterPaletteOB0 = PALETTE_CLASSIC;
+            this.masterPaletteOB1 = PALETTE_CLASSIC;
+            this.masterPaletteBG = PALETTE_CLASSIC;
+        }
+
+        this.paletteOB0 = this.masterPaletteOB0.slice();
+        this.paletteOB1 = this.masterPaletteOB1.slice();
+        this.paletteBG = this.masterPaletteBG.slice();
+
+        this.spriteQueue = new SpriteQueueDmg(this.vram, this.oam, this.paletteOB0, this.paletteOB1);
+    }
+
     load(savestate: Savestate): number {
         const version = super.load(savestate);
 
-        this.frontBuffer.fill(PALETTE_CLASSIC[4]);
-        this.backBuffer.fill(PALETTE_CLASSIC[4]);
-
-        this.updatePalette(this.paletteOB0, this.reg[reg.obp0]);
-        this.updatePalette(this.paletteOB1, this.reg[reg.obp1]);
-        this.updatePalette(this.paletteBG, this.reg[reg.bgp]);
+        this.updatePalettes();
 
         return version;
     }
@@ -32,15 +54,14 @@ export class PpuDmg extends PpuBase {
     reset(): void {
         super.reset();
 
-        this.updatePalette(this.paletteBG, this.reg[reg.bgp]);
-        this.updatePalette(this.paletteOB0, this.reg[reg.obp0]);
-        this.updatePalette(this.paletteOB1, this.reg[reg.obp1]);
-
-        this.frontBuffer.fill(PALETTE_CLASSIC[4]);
-        this.backBuffer.fill(PALETTE_CLASSIC[4]);
+        this.updatePalettes();
     }
 
-    protected oamDmaCyclesTotal(): number {
+    protected getBlankColor(): number {
+        return this.deviceMode === Mode.cgbcompat ? COLOR_MAPPING[0x7fff] : PALETTE_CLASSIC[4];
+    }
+
+    protected getOamDmaCyclesTotal(): number {
         return 640;
     }
 
@@ -62,11 +83,18 @@ export class PpuDmg extends PpuBase {
         }
 
         if (oldValue & ~this.reg[reg.lcdc] & lcdc.enable) {
-            this.backBuffer.fill(PALETTE_CLASSIC[4]);
+            this.backBuffer.fill(this.getBlankColor());
             this.frozenStat = oldStat;
             this.swapBuffers();
             this.startFrame();
         }
+    };
+
+    protected statWrite: WriteHandler = (_, value) => {
+        this.reg[reg.stat] = value;
+
+        if (this.deviceMode === Mode.dmg) this.updateStatFF();
+        this.updateStat();
     };
 
     protected renderLine(): void {
@@ -240,37 +268,47 @@ export class PpuDmg extends PpuBase {
         return this.reg[reg.lcdc] & lcdc.bgTileDataArea ? this.vram16[8 * index + y] : this.vram16[0x400 + ((128 + index) & 0xff) * 8 + y];
     }
 
-    private updatePalette(target: Uint32Array, palette: number): void {
+    private updatePalette(target: Uint32Array, palette: number, master: Uint32Array): void {
         for (let i = 0; i < 4; i++) {
-            target[i] = PALETTE_CLASSIC[(palette >> (2 * i)) & 0x03];
+            target[i] = master[(palette >> (2 * i)) & 0x03];
         }
+    }
+
+    private updatePalettes() {
+        this.updatePalette(this.paletteOB0, this.reg[reg.obp0], this.masterPaletteOB0);
+        this.updatePalette(this.paletteOB1, this.reg[reg.obp1], this.masterPaletteOB1);
+        this.updatePalette(this.paletteBG, this.reg[reg.bgp], this.masterPaletteBG);
     }
 
     private bgpWrite: WriteHandler = (_, value) => {
         value &= 0xff;
         this.reg[reg.bgp] = value;
 
-        this.updatePalette(this.paletteBG, value);
+        this.updatePalette(this.paletteBG, value, this.masterPaletteBG);
     };
 
     private obp0Write: WriteHandler = (_, value) => {
         value &= 0xff;
         this.reg[reg.obp0] = value;
 
-        this.updatePalette(this.paletteOB0, value);
+        this.updatePalette(this.paletteOB0, value, this.masterPaletteOB0);
     };
 
     private obp1Write: WriteHandler = (_, value) => {
         value &= 0xff;
         this.reg[reg.obp1] = value;
 
-        this.updatePalette(this.paletteOB1, value);
+        this.updatePalette(this.paletteOB1, value, this.masterPaletteOB1);
     };
 
-    private paletteBG = PALETTE_CLASSIC.slice();
-    private paletteOB0 = PALETTE_CLASSIC.slice();
-    private paletteOB1 = PALETTE_CLASSIC.slice();
+    private paletteBG: Uint32Array;
+    private paletteOB0: Uint32Array;
+    private paletteOB1: Uint32Array;
 
-    private spriteQueue = new SpriteQueueDmg(this.vram, this.oam, this.paletteOB0, this.paletteOB1);
+    private masterPaletteBG: Uint32Array;
+    private masterPaletteOB0: Uint32Array;
+    private masterPaletteOB1: Uint32Array;
+
+    private spriteQueue: SpriteQueueDmg;
     private spriteCounter = new Uint8Array(10);
 }
