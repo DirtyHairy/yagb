@@ -39,10 +39,7 @@ export interface BusTrap {
 function determineMode(preferredModel: PreferredModel, supportLevel: CgbSupportLevel): Mode {
     switch (preferredModel) {
         case PreferredModel.auto:
-            if (supportLevel === CgbSupportLevel.cgbOnly) return Mode.cgb;
-            if (supportLevel === CgbSupportLevel.cgbCompatible) return Mode.cgbcompat;
-
-            return Mode.dmg;
+            return supportLevel === CgbSupportLevel.none ? Mode.dmg : Mode.cgb;
 
         case PreferredModel.dmg:
             return supportLevel === CgbSupportLevel.cgbOnly ? Mode.cgb : Mode.dmg;
