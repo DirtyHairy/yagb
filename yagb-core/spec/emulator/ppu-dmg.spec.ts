@@ -16,7 +16,7 @@ describe('PPU', () => {
         const system = new System((msg) => console.log(msg));
         const bus = new Bus(Mode.dmg, system);
         const interrupt = new Interrupt();
-        const ppu = new PpuDmg(system, interrupt);
+        const ppu = new PpuDmg(system, interrupt, Mode.dmg, 0);
         const ram = new Ram(Mode.dmg);
 
         ppu.install(bus);

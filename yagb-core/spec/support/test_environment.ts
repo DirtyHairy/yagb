@@ -38,7 +38,7 @@ export class TestEnvironment {
         });
 
         this.interrupt = new Interrupt();
-        this.ppu = new PpuDmg(this.system, this.interrupt);
+        this.ppu = new PpuDmg(this.system, this.interrupt, Mode.dmg, 0);
         this.timer = new Timer(this.interrupt);
         this.serial = new Serial(this.interrupt);
         this.apu = new Apu();
