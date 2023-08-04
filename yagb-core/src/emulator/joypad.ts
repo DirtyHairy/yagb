@@ -12,6 +12,7 @@ export const enum key {
     down,
     left,
     right,
+    invalid,
 }
 
 const SAVESTATE_VERSION = 0x01;

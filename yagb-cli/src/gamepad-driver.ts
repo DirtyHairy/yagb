@@ -42,7 +42,7 @@ function buttonMapping(index: number): key {
             return key.start;
 
         default:
-            return -1;
+            return key.invalid;
     }
 }
 
