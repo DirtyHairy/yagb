@@ -1,14 +1,15 @@
 import 'jquery.terminal';
 import 'jquery.terminal/css/jquery.terminal.min.css';
 
+import { Emulator, PreferredModel } from 'yagb-core/src/emulator/emulator';
 import { Scheduler, Statistics } from 'yagb-core/src/emulator/scheduler';
 import { hex16, hex8 } from 'yagb-core/src//helper/format';
 
 import $ from 'jquery';
 import { AudioDriver } from 'yagb-core/src/emulator/apu/audio-driver';
-import { Emulator } from 'yagb-core/src/emulator/emulator';
 import { FileHandler } from 'yagb-core/src/helper/fileHandler';
 import { GamepadDriver } from './gamepad-driver';
+import { Mode } from 'yagb-core/src/emulator/mode';
 import { Repository } from './repository';
 import { key } from 'yagb-core/src/emulator/joypad';
 import md5 from 'md5';
@@ -16,6 +17,7 @@ import md5 from 'md5';
 const DEFAULT_VOLUME = 0.6;
 const CARTRIDGE_FILE_SIZE_LIMIT = 512 * 1024 * 1024;
 const KEY_AUDIO_WORKLET = 'audio-worklet';
+const KEY_PREFERRED_MODEL = 'preferred-model';
 
 const fileHandler = new FileHandler();
 const audioDriver = new AudioDriver(localStorage.getItem(KEY_AUDIO_WORKLET) === '1');
@@ -28,6 +30,7 @@ let scheduler: Scheduler;
 let stateOnStep = false;
 let lastFrame = -1;
 let romHash = '';
+let cartName = '';
 
 function print(msg: string): void {
     terminal.echo(msg);
@@ -55,21 +58,31 @@ function floatval<T>(value: T, defaultValue?: number | undefined): number | unde
     return isNaN(parsed) || parsed < 0 ? defaultValue : parsed;
 }
 
+function getPreferredModelGlobal(): PreferredModel {
+    return (localStorage.getItem(KEY_PREFERRED_MODEL) as PreferredModel) ?? PreferredModel.auto;
+}
+
+async function reloadCartridge() {
+    if (emulator) await loadCartridge(emulator.getCartridgeImage(), cartName);
+}
+
 async function loadCartridge(data: Uint8Array, name: string) {
     const autostart = !!scheduler?.isRunning();
 
     audioDriver.stop();
     scheduler?.stop();
 
-    if (romHash && emulator) {
+    const oldHash = romHash;
+    romHash = md5(data);
+
+    if (oldHash && oldHash !== romHash && emulator) {
         await repository.removeSavestate(romHash);
     }
 
-    romHash = md5(data);
     const savedRam = await repository.getNvsData(romHash);
 
     try {
-        emulator = new Emulator(data, print, savedRam);
+        emulator = new Emulator(data, getPreferredModelGlobal(), print, savedRam);
     } catch (e) {
         print((e as Error).message);
         print('failed to initialize emulator');
@@ -78,6 +91,7 @@ async function loadCartridge(data: Uint8Array, name: string) {
         return;
     }
 
+    cartName = name;
     const savestate = await repository.getSavestate(romHash, emulator.getMode());
 
     try {
@@ -102,6 +116,7 @@ async function loadCartridge(data: Uint8Array, name: string) {
     updateCanvas();
     print(`loaded cartridge image: ${name}`);
     print(emulator.printCartridgeInfo());
+    print(`running as ${emulator.getMode() === Mode.dmg ? 'DMG' : 'CGB'}`);
 
     audioDriver.start(emulator.startAudio(audioDriver.getSampleRate()));
     if (autostart) scheduler.start();
@@ -148,6 +163,8 @@ async function onInit(): Promise<void> {
         print('Type "load" in order to load a cartridge image.');
         return;
     }
+
+    print(`preferred GameBoy model (global): ${getPreferredModelGlobal()}`);
 
     try {
         loadCartridge(lastRom.data, lastRom.name);
@@ -222,7 +239,7 @@ function getKey(code: string): key | undefined {
 
 function updatePrompt(speed?: number, hostSpeed?: number, isRunning = !!scheduler?.isRunning()) {
     terminal.set_prompt(
-        `\n${isRunning ? 'running' : 'stopped'}${speed !== undefined && isRunning ? ' gb@' + speed.toFixed(2) + 'x' : ''}${
+        `${isRunning ? 'running' : 'stopped'}${speed !== undefined && isRunning ? ' gb@' + speed.toFixed(2) + 'x' : ''}${
             hostSpeed !== undefined && isRunning ? ' host@' + hostSpeed.toFixed(2) + 'x' : ''
         } > `
     );
@@ -248,11 +265,23 @@ const interpreter = {
 help                                    Show help
 clear                                   Clear screen
 load                                    Load cartridge
+run                                     Run the emulator continuosly
+stop                                    Stop the emulator
+speed <speed>                           Set emulator speed
+reset                                   Reset system
+preferred-model-global <auto|dmg|cgb>   Change preferred GameBoy model (global value)
+wipe                                    Reset and remove nonvolatile data
+volume [volume0]                        Get or set volume (range 0 - 100)
+snapshot-save <name>                    Save a snapshot
+snapshot-load <name>                    Restore a snapshot
+snapshot-delete <name>                  Delete a snapshot
+snapshot-list                           List snapshots
+audio-worklet [1|0]                     Use scriptprocessor even if audio worklet is available.
+                                        May reduce jitter for high sample rates.
+
 disassemble [count] [address=p]         Disassemble count bytes at address
 step [count=1]                          Step count instructions
 state                                   Print state
-reset                                   Reset system
-wipe                                    Reset and remove nonvolatile data
 breakpoint-add [address, ...]           Add a breakpoint
 breakpoint-clear <address>              Clear a breakpoint
 breakpoint-clear-all                    Clear all breakpoints
@@ -270,16 +299,6 @@ trace [count]                           Prints trace
 dump address [count=16]                 Dump bus
 context                                 Show context summary (trace + disassembly + state)
 state-on-step [0|1]                     Print state on every step
-run                                     Run the emulator continuosly
-stop                                    Stop the emulator
-speed <speed>                           Set emulator speed
-volume [volume0]                        Get or set volume (range 0 - 100)
-snapshot-save <name>                    Save a snapshot
-snapshot-load <name>                    Restore a snapshot
-snapshot-delete <name>                  Delete a snapshot
-snapshot-list                           List snapshots
-audio-worklet [1|0]                     Use scriptprocessor even if audio worklet is available.
-                                        May reduce jitter for high sample rates.
 
 Keyboard controls (click the canvas to give it focus):
 
@@ -644,6 +663,28 @@ Keyboard controls (click the canvas to give it focus):
             print('using worklet audio driver');
         } else {
             print('using script processor audio driver');
+        }
+    },
+
+    'preferred-model-global': function (value?: string) {
+        switch (value) {
+            case PreferredModel.auto:
+            case PreferredModel.cgb:
+            case PreferredModel.dmg:
+                print(`preferred GameBoy model (global): ${value}`);
+                if (value === getPreferredModelGlobal()) return;
+
+                localStorage.setItem(KEY_PREFERRED_MODEL, value);
+                reloadCartridge();
+                break;
+
+            case undefined:
+                print(`preferred model (global): ${getPreferredModelGlobal()}`);
+                break;
+
+            default:
+                print(`invalid value: ${value}. Valid values are: auto, cgb, dmg`);
+                break;
         }
     },
 };

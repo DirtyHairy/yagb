@@ -24,14 +24,36 @@ import { hex16 } from '../helper/format';
 
 const CLOCK_DMG = 1048576;
 
+export const enum PreferredModel {
+    dmg = 'dmg',
+    cgb = 'cgb',
+    auto = 'auto',
+}
+
 export interface BusTrap {
     address: number;
     trapRead: boolean;
     trapWrite: boolean;
 }
 
+function determineMode(preferredModel: PreferredModel, supportLevel: CgbSupportLevel): Mode {
+    switch (preferredModel) {
+        case PreferredModel.auto:
+            if (supportLevel === CgbSupportLevel.cgbOnly) return Mode.cgb;
+            if (supportLevel === CgbSupportLevel.cgbCompatible) return Mode.cgbcompat;
+
+            return Mode.dmg;
+
+        case PreferredModel.dmg:
+            return supportLevel === CgbSupportLevel.cgbOnly ? Mode.cgb : Mode.dmg;
+
+        case PreferredModel.cgb:
+            return supportLevel === CgbSupportLevel.none ? Mode.cgbcompat : Mode.cgb;
+    }
+}
+
 export class Emulator {
-    constructor(cartridgeImage: Uint8Array, printCb: (message: string) => void, savedRam?: Uint8Array) {
+    constructor(private cartridgeImage: Uint8Array, preferredModel: PreferredModel, printCb: (message: string) => void, savedRam?: Uint8Array) {
         this.system = new System(printCb);
 
         const cartridge = createCartridge(cartridgeImage, this.system);
@@ -39,7 +61,7 @@ export class Emulator {
             throw new Error('bad cartridge image');
         }
 
-        this.mode = cartridge.cgbSupportLevel === CgbSupportLevel.none ? Mode.cgbcompat : Mode.cgb;
+        this.mode = determineMode(preferredModel, cartridge.cgbSupportLevel);
 
         this.bus = new Bus(this.mode, this.system);
         this.interrupt = new Interrupt();
@@ -128,6 +150,10 @@ export class Emulator {
 
     getScanlineTraps(): Array<number> {
         return Array.from(this.scanlineTraps).sort();
+    }
+
+    getCartridgeImage(): Uint8Array {
+        return this.cartridgeImage;
     }
 
     addTrapWrite(address: number): void {
