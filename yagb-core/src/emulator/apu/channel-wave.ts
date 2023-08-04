@@ -75,7 +75,7 @@ export class ChannelWave {
             // This is a *very* crude approximation to take into account DAC decay. It is a bad
             // hack, but it should not hurt anyone, and it is enough to remove pops and clicks
             // from Cannon Fodder.
-            if (this.cyclesSinceDacChange > DAC_LATENCY_CYCLES) {
+            if (this.cyclesSinceDacChange >= DAC_LATENCY_CYCLES) {
                 this.sample = 0;
             } else {
                 this.cyclesSinceDacChange += lengthCtrClocks;
@@ -88,7 +88,7 @@ export class ChannelWave {
             // This is a *very* crude approximation to take into account DAC buildup. It is a bad
             // hack, but it should not hurt anyone, and it is enough to remove pops and clicks
             // from Cannon Fodder.
-            if (this.cyclesSinceDacChange > DAC_LATENCY_CYCLES) {
+            if (this.cyclesSinceDacChange >= DAC_LATENCY_CYCLES) {
                 this.sample = 0x0f;
             } else {
                 this.cyclesSinceDacChange += lengthCtrClocks;
@@ -103,7 +103,7 @@ export class ChannelWave {
             this.counter += lengthCtrClocks;
             if (this.counter >= 256 - this.reg[reg.nrX1_length]) {
                 this.isActive = false;
-                this.cyclesSinceDacChange = DAC_LATENCY_CYCLES + 1;
+                this.cyclesSinceDacChange = DAC_LATENCY_CYCLES;
 
                 return;
             }
@@ -148,6 +148,7 @@ export class ChannelWave {
 
         if (value & 0x80 && this.reg[reg.nrX0_onoff] & 0x80) {
             this.isActive = true;
+            this.cyclesSinceDacChange = DAC_LATENCY_CYCLES;
             this.counter = 0;
             this.freqCtr = 0;
             this.samplePoint = 0;
