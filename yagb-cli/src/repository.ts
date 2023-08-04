@@ -4,6 +4,7 @@ import { LastRom } from './repository/last-rom';
 import { Mode } from 'yagb-core/src/emulator/mode';
 import { Mutex } from 'async-mutex';
 import { PreferredModel } from 'yagb-core/src/emulator/emulator';
+import { RomSettings } from './repository/romSettings';
 import { decodeBase64 } from './helper/base64';
 
 const STORAGE_KEY_YAGB_CARTERIDGE_DATA = 'yagb-cartridge-data';
@@ -171,6 +172,16 @@ export class Repository {
             console.error(e);
             return undefined;
         }
+    }
+
+    @guard()
+    async getRomSettings(romHash: string): Promise<RomSettings | undefined> {
+        return this.db.romSettings.get(romHash);
+    }
+
+    @guard()
+    async saveRomSettings(settings: RomSettings): Promise<void> {
+        await this.db.romSettings.put(settings);
     }
 
     private async getLastRomDB(): Promise<LastRom | undefined> {

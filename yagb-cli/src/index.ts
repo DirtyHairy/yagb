@@ -11,6 +11,7 @@ import { FileHandler } from 'yagb-core/src/helper/fileHandler';
 import { GamepadDriver } from './gamepad-driver';
 import { Mode } from 'yagb-core/src/emulator/mode';
 import { Repository } from './repository';
+import { RomSettings } from './repository/romSettings';
 import { key } from 'yagb-core/src/emulator/joypad';
 import md5 from 'md5';
 
@@ -75,10 +76,15 @@ async function loadCartridge(data: Uint8Array, name: string) {
         await repository.removeSavestate(romHash);
     }
 
+    const settings = await repository.getRomSettings(romHash);
     const savedRam = await repository.getNvsData(romHash);
 
+    if (settings?.preferredModel !== undefined) {
+        print(`preferred GameBoy model (ROM): ${settings.preferredModel}`);
+    }
+
     try {
-        emulator = new Emulator(data, preferredModel, print, savedRam);
+        emulator = new Emulator(data, settings?.preferredModel ?? preferredModel, print, savedRam);
     } catch (e) {
         print((e as Error).message);
         print('failed to initialize emulator');
@@ -267,6 +273,7 @@ stop                                    Stop the emulator
 speed <speed>                           Set emulator speed
 reset                                   Reset system
 preferred-model-global <auto|dmg|cgb>   Change preferred GameBoy model (global value)
+preferred-model <auto|dmg|cgb|default>  Change preferred GameBoy model per ROM
 wipe                                    Reset and remove nonvolatile data
 volume [volume0]                        Get or set volume (range 0 - 100)
 snapshot-save <name>                    Save a snapshot
@@ -678,11 +685,49 @@ Keyboard controls (click the canvas to give it focus):
                 break;
 
             case undefined:
-                print(`preferred model (global): ${preferredModel}`);
+                print(`preferred GameBoy model (global): ${preferredModel}`);
                 break;
 
             default:
                 print(`invalid value: ${value}. Valid values are: auto, cgb, dmg`);
+                break;
+        }
+
+        return '';
+    },
+
+    'preferred-model': async function (value?: string): Promise<string> {
+        if (!romHash) {
+            print('no ROM loaded');
+            return '';
+        }
+
+        const settings: RomSettings = (await repository.getRomSettings(romHash)) || { rom: romHash };
+
+        switch (value) {
+            case PreferredModel.auto:
+            case PreferredModel.cgb:
+            case PreferredModel.dmg:
+            case 'default': {
+                const preferredModelCurrent = settings?.preferredModel;
+                const preferredModel = value === 'default' ? undefined : value;
+
+                print(`preferred GameBoy model (ROM): ${value ?? 'default'}`);
+
+                if (preferredModel === preferredModelCurrent) return '';
+                await repository.saveRomSettings({ ...settings, preferredModel });
+
+                reloadCartridge();
+
+                break;
+            }
+
+            case undefined:
+                print(`preferred model GameBox (ROM): ${settings?.preferredModel ?? 'default'}`);
+                break;
+
+            default:
+                print(`invalid value: ${value}. Valid values are: auto, cgb, dmg, default`);
                 break;
         }
 

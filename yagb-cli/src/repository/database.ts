@@ -2,6 +2,7 @@ import { KVSItem, KVSKey } from './kvs';
 
 import { Dexie } from 'dexie';
 import { NvsEntry } from './nvs-entry';
+import { RomSettings } from './romSettings';
 import { Snapshot } from './snapshot';
 
 export class Database extends Dexie {
@@ -10,10 +11,11 @@ export class Database extends Dexie {
 
         this.requestPersistentStorage();
 
-        this.version(1).stores({
+        this.version(2).stores({
             kvs: 'key',
             nvs: 'rom',
             snapshot: '[rom+name], rom',
+            romSettings: 'rom',
         });
     }
 
@@ -38,4 +40,5 @@ export class Database extends Dexie {
     kvs!: Dexie.Table<KVSItem, KVSKey>;
     nvs!: Dexie.Table<NvsEntry, string>;
     snapshot!: Dexie.Table<Snapshot, [string, string]>;
+    romSettings!: Dexie.Table<RomSettings, string>;
 }
