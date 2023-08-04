@@ -1,3 +1,5 @@
+// The code below is ported from SameBoy and matches "modern accurate"
+
 export const COLOR_MAPPING = new Uint32Array(0x8000);
 
 const CHANNEL_LOOKUP = new Uint8Array([
