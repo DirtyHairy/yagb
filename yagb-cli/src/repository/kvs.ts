@@ -1,4 +1,5 @@
 import { LastRom } from './last-rom';
+import { PreferredModel } from 'yagb-core/src/emulator/emulator';
 
 export interface KVSItemLastRom {
     key: 'last-rom';
@@ -10,6 +11,11 @@ export interface KVSItemVolume {
     data: number;
 }
 
-export type KVSItem = KVSItemLastRom | KVSItemVolume;
+export interface KVSItemPreferredModel {
+    key: 'preferred-model';
+    data: PreferredModel;
+}
+
+export type KVSItem = KVSItemLastRom | KVSItemVolume | KVSItemPreferredModel;
 
 export type KVSKey = KVSItem['key'];

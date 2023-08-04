@@ -17,7 +17,6 @@ import md5 from 'md5';
 const DEFAULT_VOLUME = 0.6;
 const CARTRIDGE_FILE_SIZE_LIMIT = 512 * 1024 * 1024;
 const KEY_AUDIO_WORKLET = 'audio-worklet';
-const KEY_PREFERRED_MODEL = 'preferred-model';
 
 const fileHandler = new FileHandler();
 const audioDriver = new AudioDriver(localStorage.getItem(KEY_AUDIO_WORKLET) === '1');
@@ -31,6 +30,7 @@ let stateOnStep = false;
 let lastFrame = -1;
 let romHash = '';
 let cartName = '';
+let preferredModel: PreferredModel = PreferredModel.auto;
 
 function print(msg: string): void {
     terminal.echo(msg);
@@ -58,10 +58,6 @@ function floatval<T>(value: T, defaultValue?: number | undefined): number | unde
     return isNaN(parsed) || parsed < 0 ? defaultValue : parsed;
 }
 
-function getPreferredModelGlobal(): PreferredModel {
-    return (localStorage.getItem(KEY_PREFERRED_MODEL) as PreferredModel) ?? PreferredModel.auto;
-}
-
 async function reloadCartridge() {
     if (emulator) await loadCartridge(emulator.getCartridgeImage(), cartName);
 }
@@ -82,7 +78,7 @@ async function loadCartridge(data: Uint8Array, name: string) {
     const savedRam = await repository.getNvsData(romHash);
 
     try {
-        emulator = new Emulator(data, getPreferredModelGlobal(), print, savedRam);
+        emulator = new Emulator(data, preferredModel, print, savedRam);
     } catch (e) {
         print((e as Error).message);
         print('failed to initialize emulator');
@@ -164,7 +160,8 @@ async function onInit(): Promise<void> {
         return;
     }
 
-    print(`preferred GameBoy model (global): ${getPreferredModelGlobal()}`);
+    preferredModel = (await repository.getPreferredModel()) ?? PreferredModel.auto;
+    print(`preferred GameBoy model (global): ${preferredModel}`);
 
     try {
         loadCartridge(lastRom.data, lastRom.name);
@@ -666,26 +663,30 @@ Keyboard controls (click the canvas to give it focus):
         }
     },
 
-    'preferred-model-global': function (value?: string) {
+    'preferred-model-global': async function (value?: string): Promise<string> {
         switch (value) {
             case PreferredModel.auto:
             case PreferredModel.cgb:
             case PreferredModel.dmg:
                 print(`preferred GameBoy model (global): ${value}`);
-                if (value === getPreferredModelGlobal()) return;
+                if (value === preferredModel) return '';
 
-                localStorage.setItem(KEY_PREFERRED_MODEL, value);
+                preferredModel = value;
+                await repository.setPreferredModel(value);
+
                 reloadCartridge();
                 break;
 
             case undefined:
-                print(`preferred model (global): ${getPreferredModelGlobal()}`);
+                print(`preferred model (global): ${preferredModel}`);
                 break;
 
             default:
                 print(`invalid value: ${value}. Valid values are: auto, cgb, dmg`);
                 break;
         }
+
+        return '';
     },
 };
 

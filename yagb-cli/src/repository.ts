@@ -3,6 +3,7 @@ import { Event } from 'microevent.ts';
 import { LastRom } from './repository/last-rom';
 import { Mode } from 'yagb-core/src/emulator/mode';
 import { Mutex } from 'async-mutex';
+import { PreferredModel } from 'yagb-core/src/emulator/emulator';
 import { decodeBase64 } from './helper/base64';
 
 const STORAGE_KEY_YAGB_CARTERIDGE_DATA = 'yagb-cartridge-data';
@@ -64,6 +65,16 @@ export class Repository {
     @guard()
     async setVolume(volume: number): Promise<void> {
         await this.db.kvs.put({ key: 'volume', data: volume });
+    }
+
+    @guard()
+    async getPreferredModel(): Promise<PreferredModel | undefined> {
+        return (await this.db.kvs.get('preferred-model'))?.data as PreferredModel;
+    }
+
+    @guard()
+    async setPreferredModel(preferredModel: PreferredModel): Promise<void> {
+        await this.db.kvs.put({ key: 'preferred-model', data: preferredModel });
     }
 
     @guard()
