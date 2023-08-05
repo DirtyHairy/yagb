@@ -9,6 +9,22 @@ export interface CompatPaletteSet {
     bg: Uint32Array;
 }
 
+export const enum Palette {
+    right,
+    left,
+    up,
+    down,
+    a_right,
+    a_left,
+    a_up,
+    a_down,
+    b_right,
+    b_left,
+    b_up,
+    b_down,
+    default = -1,
+}
+
 export function determinePaletteIndex(cartridge: Uint8Array) {
     if (!isNintendo(cartridge)) return 0;
 
@@ -31,6 +47,62 @@ export function buildPaletteForIndex(index: number): CompatPaletteSet {
         obj1: buildPaletteAtOffset(offsetObj1),
         bg: buildPaletteAtOffset(offsetBg),
     };
+}
+
+export function buildCustomPalette(palette: Palette): CompatPaletteSet {
+    if (palette < 0 || palette >= 12) {
+        console.error(`invalid custom palette ${palette}`);
+        return buildPaletteForIndex(0);
+    }
+
+    return buildPaletteForIndex(CUSTOM_PALETTES[palette]);
+}
+
+export function paletteName(palette: Palette): string {
+    console.log(palette);
+    switch (palette) {
+        case Palette.right:
+            return 'right';
+
+        case Palette.left:
+            return 'left';
+
+        case Palette.up:
+            return 'up';
+
+        case Palette.down:
+            return 'down';
+
+        case Palette.a_right:
+            return 'a + right';
+
+        case Palette.a_left:
+            return 'a + left';
+
+        case Palette.a_up:
+            return 'a + up';
+
+        case Palette.a_down:
+            return 'a + down';
+
+        case Palette.b_right:
+            return 'b + right';
+
+        case Palette.b_left:
+            return 'b + left';
+
+        case Palette.b_up:
+            return 'b + up';
+
+        case Palette.b_down:
+            return 'b + down';
+
+        case Palette.default:
+            return 'ROM default';
+
+        default:
+            return 'invalid palette';
+    }
 }
 
 function isNintendo(cartridge: Uint8Array): boolean {
@@ -163,6 +235,22 @@ const PALETTE_DEFINITIONS = new Uint8Array([
     4, 28, 3, 6,
     4, 4, 28, 29,
 ]);
+
+// prettier-ignore
+const CUSTOM_PALETTES = [
+    1,
+    48,
+    5,
+    8,
+    0,
+    40,
+    43,
+    3,
+    6,
+    7,
+    28,
+    49,
+];
 
 // prettier-ignore
 const CHECKSUMS = new Uint8Array([

@@ -1,3 +1,5 @@
+import { Palette, determinePaletteIndex } from './ppu/palette-compat';
+
 import { Bus } from './bus';
 import { Clock } from './clock';
 import { Cpu } from './cpu';
@@ -7,7 +9,6 @@ import { PpuCgb } from './ppu/ppu-cgb';
 import { PpuDmg } from './ppu/ppu-dmg';
 import { Savestate } from './savestate';
 import { System } from './system';
-import { determinePaletteIndex } from './ppu/palette-compat';
 
 export const enum ppuMode {
     hblank = 0,
@@ -26,6 +27,9 @@ export interface Ppu {
     install(bus: Bus): void;
 
     reset(): void;
+
+    setPalette(palette: Palette): void;
+    getPalette(): Palette;
 
     cycle(systemClocks: number): void;
     printState(): string;

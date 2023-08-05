@@ -2,6 +2,7 @@ import 'jquery.terminal';
 import 'jquery.terminal/css/jquery.terminal.min.css';
 
 import { Emulator, PreferredModel } from 'yagb-core/src/emulator/emulator';
+import { Palette, paletteName } from 'yagb-core/src/emulator/ppu/palette-compat';
 import { Scheduler, Statistics } from 'yagb-core/src/emulator/scheduler';
 import { hex16, hex8 } from 'yagb-core/src//helper/format';
 
@@ -274,6 +275,7 @@ speed <speed>                           Set emulator speed
 reset                                   Reset system
 preferred-model-global <auto|dmg|cgb>   Change preferred GameBoy model (global value)
 preferred-model <auto|dmg|cgb|default>  Change preferred GameBoy model per ROM
+palette <0-11 | default>            Switch palette (DMG games on CGB only)
 wipe                                    Reset and remove nonvolatile data
 volume [volume0]                        Get or set volume (range 0 - 100)
 snapshot-save <name>                    Save a snapshot
@@ -732,6 +734,26 @@ Keyboard controls (click the canvas to give it focus):
         }
 
         return '';
+    },
+
+    palette: function (value?: string | number) {
+        if (!emulator) return;
+
+        if (emulator?.getMode() !== Mode.cgbcompat) {
+            print('Not applicable for this ROM and device');
+            return;
+        }
+
+        if (typeof value === 'string' && value === 'default') {
+            emulator.setPalette(Palette.default);
+        } else if (typeof value === 'number' && value >= 0 && value < 12) {
+            emulator.setPalette(value);
+        } else if (value !== undefined) {
+            print(`Invalid palette '${value}'. Valid values are 0-11 and default.`);
+            return;
+        }
+
+        print(`using palette: ${paletteName(emulator.getPalette())}`);
     },
 };
 

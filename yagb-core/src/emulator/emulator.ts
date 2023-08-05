@@ -11,6 +11,7 @@ import { Cpu } from './cpu';
 import { Event } from 'microevent.ts';
 import { Infrared } from './infrared';
 import { Interrupt } from './interrupt';
+import { Palette } from './ppu/palette-compat';
 import { Ram } from './ram';
 import { SampleQueue } from './apu/sample-queue';
 import { Savestate } from './savestate';
@@ -355,6 +356,14 @@ export class Emulator {
             this.reset();
             throw e;
         }
+    }
+
+    setPalette(palette: Palette): void {
+        this.ppu.setPalette(palette);
+    }
+
+    getPalette(): Palette {
+        return this.ppu.getPalette();
     }
 
     private disassemblyLineAt(address: number): string {

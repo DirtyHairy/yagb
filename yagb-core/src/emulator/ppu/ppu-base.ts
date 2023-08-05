@@ -4,6 +4,7 @@ import { Ppu, ppuMode } from '../ppu';
 
 import { Clock } from '../clock';
 import { Cpu } from '../cpu';
+import { Palette } from './palette-compat';
 import { Savestate } from '../savestate';
 import { System } from '../system';
 import { hex8 } from '../../helper/format';
@@ -42,7 +43,7 @@ export const enum stat {
     sourceModeHblank = 0x08,
 }
 
-const SAVESTATE_VERSION = 0x02;
+const SAVESTATE_VERSION = 0x03;
 
 export function clockPenaltyForSprite(scx: number, x: number): number {
     let tmp = (x + scx + 8) % 8;
@@ -235,6 +236,12 @@ export abstract class PpuBase implements Ppu {
 
     getScanline(): number {
         return this.scanline;
+    }
+
+    setPalette(palette: Palette): void {}
+
+    getPalette(): Palette {
+        return Palette.default;
     }
 
     protected abstract getOamDmaCyclesTotal(): number;

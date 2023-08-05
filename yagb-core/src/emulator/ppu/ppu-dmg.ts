@@ -1,4 +1,5 @@
 import { Bus, WriteHandler } from '../bus';
+import { Palette, buildCustomPalette, buildPaletteForIndex } from './palette-compat';
 import { PpuBase, clockPenaltyForSprite, lcdc, reg } from './ppu-base';
 
 import { COLOR_MAPPING } from './color-mapping';
@@ -8,14 +9,13 @@ import { PALETTE_CLASSIC } from '../palette';
 import { Savestate } from '../savestate';
 import { SpriteQueueDmg } from './sprite-queue-dmg';
 import { System } from '../system';
-import { buildPaletteForIndex } from './palette-compat';
 
 export class PpuDmg extends PpuBase {
-    constructor(protected system: System, protected interrupt: Interrupt, private deviceMode: Mode, protected paletteIndex: number) {
+    constructor(protected system: System, protected interrupt: Interrupt, private deviceMode: Mode, private defaultPaletteIndex: number) {
         super(system, interrupt);
 
         if (deviceMode === Mode.cgbcompat) {
-            const paletteSet = buildPaletteForIndex(paletteIndex);
+            const paletteSet = buildPaletteForIndex(defaultPaletteIndex);
 
             this.masterPaletteOB0 = paletteSet.obj0;
             this.masterPaletteOB1 = paletteSet.obj1;
@@ -33,8 +33,17 @@ export class PpuDmg extends PpuBase {
         this.spriteQueue = new SpriteQueueDmg(this.vram, this.oam, this.paletteOB0, this.paletteOB1);
     }
 
+    save(savestate: Savestate) {
+        super.save(savestate);
+
+        savestate.write16(this.selectedPalette);
+    }
+
     load(savestate: Savestate): number {
         const version = super.load(savestate);
+
+        this.selectedPalette = version >= 0x03 ? savestate.read16() : Palette.default;
+        this.setPalette(this.selectedPalette);
 
         this.updatePalettes();
 
@@ -55,6 +64,23 @@ export class PpuDmg extends PpuBase {
         super.reset();
 
         this.updatePalettes();
+    }
+
+    setPalette(palette: Palette): void {
+        if (this.deviceMode !== Mode.cgbcompat) return;
+
+        this.selectedPalette = palette;
+        const paletteSet = palette === Palette.default ? buildPaletteForIndex(this.defaultPaletteIndex) : buildCustomPalette(palette);
+
+        this.masterPaletteOB0 = paletteSet.obj0;
+        this.masterPaletteOB1 = paletteSet.obj1;
+        this.masterPaletteBG = paletteSet.bg;
+
+        this.updatePalettes();
+    }
+
+    getPalette(): Palette {
+        return this.selectedPalette;
     }
 
     protected getBlankColor(): number {
@@ -311,4 +337,6 @@ export class PpuDmg extends PpuBase {
 
     private spriteQueue: SpriteQueueDmg;
     private spriteCounter = new Uint8Array(10);
+
+    private selectedPalette = Palette.default;
 }
