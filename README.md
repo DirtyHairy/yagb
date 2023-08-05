@@ -2,10 +2,11 @@
 
 # YAGB - **Y**et **A**nother **G**ame**b**oy Emulator
 
-YAGB is a gameboy emulator that runs in your browser. It started as a fun project
-at a [company](https://mayflower.de) hackathon and evolved into a full-fledged
-emulator in about one month. It is written in TypeScript, and you can either run the
-[build on github.io](https://dirtyhairy.github.io/yagb) or build and run it from scratch.
+YAGB is a GameBoy / GameBoy Color emulator that runs in your browser. It started
+as a fun project at a [company](https://mayflower.de) hackathon and evolved into
+a full-fledged emulator in about one month. It is written in TypeScript, and you
+can either run the [build on github.io](https://dirtyhairy.github.io/yagb) or
+build and run it from scratch.
 
 # Usage
 
@@ -45,6 +46,23 @@ The interface is not yet suitable to run the emulator on mobile phones (as there
 is no way to control it), but we plan to add a more full-fleged web app with touch support
 eventually.
 
+# GameBoy Color emulation
+
+YAGB can emulate both the classic GameBoy (DMG) and the GameBoy Color (CGB).
+By default, games that support or require a CGB are run in CGB mode, and games
+withough CGB support are run on a DMG. This behavior can be switched by setting
+`prefer-model` to either
+
+* `auto`: the default
+* `cgb`: run all games in CGB mode
+* `dmg`: run all games that do not require a CGB in DMG mode
+
+DMG games running on a CGB will be colored with the respective compatibility palettes.
+YAGB does not emulate the boot ROM, so palette selection cannot be done during
+boot. Instead, pallettes can be swtiched with the `palette` CLI command, or by
+holding shift while performing the corresponding d-pad - A/B combos. Contrary to
+a real GameBoy Color, palettes can be switched at any point while the game is running.
+
 # Accuracy and performance
 
 YAGB was designed to be suitable for usage on smartphones without excessive
@@ -68,7 +86,7 @@ That said, YAGB passes the CPU tests in the [Blargg suite](https://github.com/re
 displays [mattcurrie's ACID2 test](https://github.com/mattcurrie/dmg-acid2) correctly
 and passes parts of the [Mooneye suite](https://github.com/Gekkio/mooneye-test-suite).
 Almost all games that we tried run flawlessly, including notrious oddballs like
-the Addams Family and Hook (not Road Rash though).
+the Addams Family, Hook and Road Rash though.
 
 # Building and runnning
 
