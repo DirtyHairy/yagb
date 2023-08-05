@@ -316,7 +316,8 @@ Keyboard controls (click the canvas to give it focus):
 * l: load cartridge
 * shift-space: reset
 * hold down shift to switch palettes for DMG games running in CGB
-  mode with d-pad and A/B combos
+  mode with d-pad and A/B combos. Shift-d switches to the default
+  palette.
 `);
     },
     load(): void {
