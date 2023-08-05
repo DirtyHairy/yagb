@@ -33,6 +33,7 @@ let lastFrame = -1;
 let romHash = '';
 let cartName = '';
 let preferredModel: PreferredModel = PreferredModel.auto;
+const shiftKeys = new Set<string>();
 
 function print(msg: string): void {
     terminal.echo(msg);
@@ -308,12 +309,14 @@ state-on-step [0|1]                     Print state on every step
 
 Keyboard controls (click the canvas to give it focus):
 
-* arrows: joypad, a/y: b, s/x: a, space: select, enter: start
+* arrows: d-pad, a/y/z: B, s/x: A, space: select, enter: start
 * shift-enter: run / stop
 * +/-: adjust volume
 * Page up / down: adjust speed
 * l: load cartridge
 * shift-space: reset
+* hold down shift to switch palettes for DMG games running in CGB
+  mode with d-pad and A/B combos
 `);
     },
     load(): void {
@@ -815,7 +818,84 @@ function keyboardAction(e: KeyboardEvent): boolean {
     return false;
 }
 
+function handleShiftKey(code: string): void {
+    if (emulator?.getMode() !== Mode.cgbcompat) return;
+
+    if (shiftKeys.size === 1 && (shiftKeys.has('S') || shiftKeys.has('X'))) {
+        switch (code) {
+            case 'ArrowRight':
+                interpreter.palette(Palette.a_right);
+                return;
+
+            case 'ArrowLeft':
+                interpreter.palette(Palette.a_left);
+                return;
+
+            case 'ArrowUp':
+                interpreter.palette(Palette.a_up);
+                return;
+
+            case 'ArrowDown':
+                interpreter.palette(Palette.a_down);
+                return;
+        }
+    }
+
+    if (shiftKeys.size === 1 && (shiftKeys.has('A') || shiftKeys.has('Y') || shiftKeys.has('Z'))) {
+        switch (code) {
+            case 'ArrowRight':
+                interpreter.palette(Palette.b_right);
+                return;
+
+            case 'ArrowLeft':
+                interpreter.palette(Palette.b_left);
+                return;
+
+            case 'ArrowUp':
+                interpreter.palette(Palette.b_up);
+                return;
+
+            case 'ArrowDown':
+                interpreter.palette(Palette.b_down);
+                return;
+        }
+    }
+
+    if (shiftKeys.size === 0) {
+        switch (code) {
+            case 'ArrowRight':
+                interpreter.palette(Palette.right);
+                return;
+
+            case 'ArrowLeft':
+                interpreter.palette(Palette.left);
+                return;
+
+            case 'ArrowUp':
+                interpreter.palette(Palette.up);
+                return;
+
+            case 'ArrowDown':
+                interpreter.palette(Palette.down);
+                return;
+
+            case 'D':
+                interpreter.palette('default');
+                return;
+        }
+    }
+}
+
 canvas.addEventListener('keydown', (e) => {
+    if (e.repeat) return;
+
+    if (e.shiftKey && e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Shift') {
+        handleShiftKey(e.key);
+        shiftKeys.add(e.key);
+
+        return;
+    }
+
     if (keyboardAction(e)) {
         e.preventDefault();
         return;
@@ -830,6 +910,11 @@ canvas.addEventListener('keydown', (e) => {
 });
 
 canvas.addEventListener('keyup', (e) => {
+    if (shiftKeys.has(e.key)) {
+        shiftKeys.delete(e.key);
+        return;
+    }
+
     const key = getKey(e.key);
 
     if (key !== undefined && emulator !== undefined) {

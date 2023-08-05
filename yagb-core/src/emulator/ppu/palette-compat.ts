@@ -59,7 +59,6 @@ export function buildCustomPalette(palette: Palette): CompatPaletteSet {
 }
 
 export function paletteName(palette: Palette): string {
-    console.log(palette);
     switch (palette) {
         case Palette.right:
             return 'right';
