@@ -239,7 +239,10 @@ export class Emulator {
     }
 
     printState(): string {
-        return `CPU:\n${this.cpu.printState()}\n\nIRQ:\n${this.interrupt.printState()}\n\nTimer:\n${this.timer.printState()}\n\nPPU:\n${this.ppu.printState()}\n\nCartridge:\n${this.cartridge.printState()}`;
+        let state = `CPU:\n${this.cpu.printState()}\n\nIRQ:\n${this.interrupt.printState()}\n\nTimer:\n${this.timer.printState()}\n\nPPU:\n${this.ppu.printState()}\n\nCartridge:\n${this.cartridge.printState()}`;
+        if (this.mode === Mode.cgb) state += `\n\nClock:\n${this.clock.printState()}`;
+
+        return state;
     }
 
     disassemble(count: number, address = this.cpu.state.p): Array<string> {

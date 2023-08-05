@@ -46,5 +46,9 @@ export class ClockDmg implements Clock {
         return false;
     }
 
+    printState(): string {
+        return '';
+    }
+
     cpuCycles = 0;
 }

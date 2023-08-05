@@ -79,6 +79,10 @@ export class ClockCgb implements Clock {
         return this.speedSwitchInProgress;
     }
 
+    printState(): string {
+        return `running at ${this.doubleSpeed ? 'double' : 'single'} speed`;
+    }
+
     private key1Read: ReadHandler = (_) => 0x7e | (this.doubleSpeed ? 0x80 : 0x00) | (this.speedSwitchPending ? 0x01 : 0x00);
     private key1Write: WriteHandler = (_, value) => (this.speedSwitchPending = (value & 0x01) !== 0);
 
