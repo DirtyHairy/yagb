@@ -276,7 +276,7 @@ speed <speed>                           Set emulator speed
 reset                                   Reset system
 preferred-model-global <auto|dmg|cgb>   Change preferred GameBoy model (global value)
 preferred-model <auto|dmg|cgb|default>  Change preferred GameBoy model per ROM
-palette <0-11 | default>            Switch palette (DMG games on CGB only)
+palette <0-11 | default>                Switch palette (DMG games on CGB only)
 wipe                                    Reset and remove nonvolatile data
 volume [volume0]                        Get or set volume (range 0 - 100)
 snapshot-save <name>                    Save a snapshot
