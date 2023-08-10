@@ -1,14 +1,14 @@
 import { Cartridge, CgbSupportLevel, createCartridge } from './cartridge';
 import { Clock, createClock } from './clock';
+import { Event, EventInterface } from 'microevent.ts';
 import { Joypad, key } from './joypad';
 import { Mode, modeToString } from './mode';
-import { Ppu, createPpu } from './ppu';
+import { Ppu, createPpu, ppuFrameOperation } from './ppu';
 import { decodeInstruction, disassembleInstruction } from './instruction';
 
 import { Apu } from './apu';
 import { Bus } from './bus';
 import { Cpu } from './cpu';
-import { Event } from 'microevent.ts';
 import { Infrared } from './infrared';
 import { Interrupt } from './interrupt';
 import { Palette } from './ppu/palette-compat';
@@ -94,6 +94,10 @@ export class Emulator {
         this.onTrap = this.system.onTrap;
 
         this.reset(savedRam);
+    }
+
+    get newFrameEvent(): EventInterface<ppuFrameOperation> {
+        return this.ppu.newFrameEvent;
     }
 
     getClock(): number {

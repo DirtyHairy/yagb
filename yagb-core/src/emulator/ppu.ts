@@ -3,6 +3,7 @@ import { Palette, determinePaletteIndex } from './ppu/palette-compat';
 import { Bus } from './bus';
 import { Clock } from './clock';
 import { Cpu } from './cpu';
+import { EventInterface } from 'microevent.ts';
 import { Interrupt } from './interrupt';
 import { Mode } from './mode';
 import { PpuCgb } from './ppu/ppu-cgb';
@@ -15,6 +16,11 @@ export const enum ppuMode {
     vblank = 1,
     oamScan = 2,
     draw = 3,
+}
+
+export const enum ppuFrameOperation {
+    blend,
+    replace,
 }
 
 export interface Ppu {
@@ -38,6 +44,8 @@ export interface Ppu {
     getScanline(): number;
 
     getMode(): ppuMode;
+
+    get newFrameEvent(): EventInterface<ppuFrameOperation>;
 }
 
 export function createPpu(mode: Mode, system: System, interrupt: Interrupt, cartridge: Uint8Array): Ppu {

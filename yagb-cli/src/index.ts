@@ -13,8 +13,10 @@ import { GamepadDriver } from './gamepad-driver';
 import { Mode } from 'yagb-core/src/emulator/mode';
 import { Repository } from './repository';
 import { RomSettings } from './repository/romSettings';
+import { VideoDriver } from './video-driver';
 import { key } from 'yagb-core/src/emulator/joypad';
 import md5 from 'md5';
+import { ppuFrameOperation } from 'yagb-core/src/emulator/ppu';
 
 const DEFAULT_VOLUME = 0.6;
 const CARTRIDGE_FILE_SIZE_LIMIT = 512 * 1024 * 1024;
@@ -22,6 +24,7 @@ const KEY_AUDIO_WORKLET = 'audio-worklet';
 
 const fileHandler = new FileHandler();
 const audioDriver = new AudioDriver(localStorage.getItem(KEY_AUDIO_WORKLET) === '1');
+const videoDriver = new VideoDriver(document.getElementById('canvas') as HTMLCanvasElement, 160, 144);
 const gamepadDriver = new GamepadDriver();
 
 const repository = new Repository();
@@ -107,7 +110,7 @@ async function loadCartridge(data: Uint8Array, name: string) {
 
     scheduler = new Scheduler(emulator);
     scheduler.onBeforeTimeslice.addHandler(() => emulator && gamepadDriver.update());
-    scheduler.onTimesliceComplete.addHandler(() => updateCanvas());
+    scheduler.onTimesliceComplete.addHandler(() => videoDriver.render());
     scheduler.onEmitStatistics.addHandler(onStatistics(romHash));
     scheduler.onStart.addHandler(() => audioDriver.continue());
     scheduler.onStop.addHandler(() => audioDriver.pause());
@@ -117,7 +120,12 @@ async function loadCartridge(data: Uint8Array, name: string) {
         updatePrompt(undefined, undefined, false);
     });
 
-    updateCanvas();
+    emulator.newFrameEvent.addHandler((operation) =>
+        operation === ppuFrameOperation.blend ? videoDriver.addFrameWithBlending(emulator!.getFrameData()) : videoDriver.addFrame(emulator!.getFrameData())
+    );
+    videoDriver.addFrame(emulator.getFrameData());
+    videoDriver.render();
+
     print(`loaded cartridge image: ${name}`);
     print(emulator.printCartridgeInfo());
     print(`running as ${emulator.getMode() === Mode.dmg ? 'DMG' : 'CGB'}`);
@@ -189,23 +197,6 @@ function assertEmulator(emulator: Emulator | undefined): emulator is Emulator {
     }
 
     return true;
-}
-
-function updateCanvas(): void {
-    if (!assertEmulator(emulator)) return;
-    if (emulator.getFrameIndex() === lastFrame) return;
-
-    const canvas: HTMLCanvasElement | null = document.getElementById('canvas') as HTMLCanvasElement;
-    const ctx = canvas?.getContext('2d');
-
-    if (!ctx) {
-        throw new Error('unable to retrieve rendering context');
-    }
-
-    const imageData = new ImageData(new Uint8ClampedArray(emulator.getFrameData()), 160, 144);
-
-    ctx.putImageData(imageData, 0, 0);
-    lastFrame = emulator.getFrameIndex();
 }
 
 function getKey(code: string): key | undefined {
@@ -340,7 +331,7 @@ Keyboard controls (click the canvas to give it focus):
         if (!assertEmulator(emulator)) return;
 
         const cycles = emulator.step(uintval(count, 1));
-        updateCanvas();
+        videoDriver.render();
 
         if (emulator.isTrap()) print(emulator.lastTrapMessage());
         print(`done in ${cycles} cycles\n`);
@@ -362,7 +353,7 @@ Keyboard controls (click the canvas to give it focus):
 
         emulator.reset();
         lastFrame = -1;
-        updateCanvas();
+        videoDriver.render();
         print('system reset');
     },
     wipe(): void {
@@ -371,7 +362,7 @@ Keyboard controls (click the canvas to give it focus):
         emulator.reset();
         emulator.clearCartridgeRam();
         lastFrame = -1;
-        updateCanvas();
+        videoDriver.render();
         print('system reset, nonvolatile data wiped');
     },
     'breakpoint-add': function (...args: Array<string | number | undefined>) {

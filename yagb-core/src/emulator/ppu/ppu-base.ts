@@ -1,9 +1,10 @@
 import { Bus, ReadHandler, WriteHandler } from '../bus';
 import { Interrupt, irq } from '../interrupt';
-import { Ppu, ppuMode } from '../ppu';
+import { Ppu, ppuFrameOperation, ppuMode } from '../ppu';
 
 import { Clock } from '../clock';
 import { Cpu } from '../cpu';
+import { Event } from 'microevent.ts';
 import { Palette } from './palette-compat';
 import { Savestate } from '../savestate';
 import { System } from '../system';
@@ -432,6 +433,8 @@ export abstract class PpuBase implements Ppu {
         this.frontBuffer = this.backBuffer;
         this.backBuffer = frontBuffer;
         this.frame = (this.frame + 1) | 0;
+
+        this.newFrameEvent.dispatch(ppuFrameOperation.blend);
     }
 
     protected startFrame(): void {
@@ -447,6 +450,8 @@ export abstract class PpuBase implements Ppu {
 
         this.frontBuffer.fill(fillColor);
         this.backBuffer.fill(fillColor);
+
+        this.newFrameEvent.dispatch(ppuFrameOperation.replace);
     }
 
     protected vramRead: ReadHandler = (address) =>
@@ -479,6 +484,8 @@ export abstract class PpuBase implements Ppu {
         this.dmaInProgress = true;
         this.bus.lock(this.reg[reg.dma] % 0xe0 << 8);
     };
+
+    readonly newFrameEvent = new Event<ppuFrameOperation>();
 
     protected cpu!: Cpu;
     protected clock!: Clock;
