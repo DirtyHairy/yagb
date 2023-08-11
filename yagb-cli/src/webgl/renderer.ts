@@ -3,16 +3,6 @@ import { fsh, vsh } from './shader';
 import GlProgram from './program';
 import { detect } from './capabilities';
 
-const enum FrameOperation {
-    blend,
-    replace,
-}
-
-interface PendingFrame {
-    operation: FrameOperation;
-    imageData: ImageData;
-}
-
 function createCoordinateBuffer(gl: WebGLRenderingContext, data: ArrayLike<number>): WebGLBuffer {
     const buffer = gl.createBuffer();
     if (!buffer) throw new Error('failed to create coordinate buffer');
@@ -39,13 +29,6 @@ function createTexture(gl: WebGLRenderingContext, width: number, height: number)
     return texture;
 }
 
-function createFramebuffer(gl: WebGLRenderingContext): WebGLFramebuffer {
-    const framebuffer = gl.createFramebuffer();
-    if (!framebuffer) throw new Error('failed to create framebuffer');
-
-    return framebuffer;
-}
-
 export class WebglRenderer {
     constructor(private gl: WebGLRenderingContext, private width: number, private height: number) {
         const capabilities = detect(gl);
@@ -57,44 +40,44 @@ export class WebglRenderer {
         this.vertexCoordinateBuffer = createCoordinateBuffer(gl, [1, 1, -1, 1, 1, -1, -1, -1]);
         this.textureCoordinateBuffer = createCoordinateBuffer(gl, [1, 1, 0, 1, 1, 0, 0, 0]);
 
-        this.previousFrame = createTexture(gl, width, height);
-        this.renderTarget = createTexture(gl, width, height);
-        this.currentFrame = createTexture(gl, width, height);
+        this.texturePreviousFrame = createTexture(gl, width, height);
+        this.textureCurrentFrame = createTexture(gl, width, height);
 
-        this.framebuffer = createFramebuffer(gl);
+        gl.disable(gl.BLEND);
     }
 
     addFrameWithBlending(imageData: ArrayBuffer): void {
-        this.pendingFrames.push({
-            operation: this.firstFrame ? FrameOperation.replace : FrameOperation.blend,
-            imageData: new ImageData(new Uint8ClampedArray(imageData).slice(), this.width, this.height),
-        });
+        if (!this.currentFrame) {
+            this.addFrame(imageData);
+            return;
+        }
 
-        this.firstFrame = false;
+        this.previousFrame = this.currentFrame;
+        this.currentFrame = new ImageData(new Uint8ClampedArray(imageData).slice(), this.width, this.height);
     }
 
     addFrame(imageData: ArrayBuffer): void {
-        this.pendingFrames.push({
-            operation: FrameOperation.replace,
-            imageData: new ImageData(new Uint8ClampedArray(imageData).slice(), this.width, this.height),
-        });
-
-        this.firstFrame = false;
+        this.previousFrame = this.currentFrame = new ImageData(new Uint8ClampedArray(imageData).slice(), this.width, this.height);
     }
 
-    setBlendRatio(blendRatio: number): void {
-        this.blendRatio = blendRatio;
+    setMergeFrames(mergeFrames: boolean): void {
+        this.mergeFrames = mergeFrames;
     }
 
     render(): void {
-        if (this.pendingFrames.length === 0) return;
+        if (this.mergeFrames) this.renderMergeFrames();
+        else this.renderSingleFrame();
+    }
+
+    private renderSingleFrame(): void {
+        if (!this.currentFrame) return;
+
         const gl = this.gl;
 
-        while (this.pendingFrames.length > 0) {
-            const { imageData, operation } = this.pendingFrames.shift()!;
-
-            this.renderFrame(imageData, operation);
-        }
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_2D, this.textureCurrentFrame);
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.currentFrame);
 
         this.programBlit.use();
         this.programBlit.uniform1i(fsh.blit.uniform.textureUnit, 0);
@@ -103,50 +86,43 @@ export class WebglRenderer {
         this.programBlit.bindVertexAttribArray(vsh.plain.attribute.textureCoordinate, this.textureCoordinateBuffer, 2, gl.FLOAT, false, 0, 0);
 
         gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, this.previousFrame);
+        gl.bindTexture(gl.TEXTURE_2D, this.textureCurrentFrame);
 
-        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-        gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
-
+        gl.disable(gl.BLEND);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     }
 
-    private renderFrame(data: ImageData, operation: FrameOperation): void {
+    private renderMergeFrames(): void {
+        if (!(this.currentFrame && this.previousFrame)) return;
+
         const gl = this.gl;
 
         gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, operation === FrameOperation.replace ? this.previousFrame : this.currentFrame);
+        gl.bindTexture(gl.TEXTURE_2D, this.texturePreviousFrame);
         gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, data);
-
-        if (operation === FrameOperation.replace) return;
-
-        this.programBlend.use();
-
-        this.programBlend.uniform1f(fsh.blend.uniform.blendRatio, this.blendRatio);
-        this.programBlend.uniform1i(fsh.blend.uniform.textureUnitNew, 0);
-        this.programBlend.uniform1i(fsh.blend.uniform.textureUnitPrevious, 1);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.previousFrame);
 
         gl.activeTexture(gl.TEXTURE1);
-        gl.bindTexture(gl.TEXTURE_2D, this.previousFrame);
+        gl.bindTexture(gl.TEXTURE_2D, this.textureCurrentFrame);
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.currentFrame);
+
+        this.programBlend.use();
+        this.programBlend.uniform1f(fsh.blend.uniform.blendRatio, this.blendRatio);
+        this.programBlend.uniform1i(fsh.blend.uniform.textureUnitNew, 1);
+        this.programBlend.uniform1i(fsh.blend.uniform.textureUnitPrevious, 0);
 
         this.programBlend.bindVertexAttribArray(vsh.plain.attribute.vertexPosition, this.vertexCoordinateBuffer, 2, gl.FLOAT, false, 0, 0);
         this.programBlend.bindVertexAttribArray(vsh.plain.attribute.textureCoordinate, this.textureCoordinateBuffer, 2, gl.FLOAT, false, 0, 0);
 
-        gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffer);
-        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.renderTarget, 0);
-
-        gl.viewport(0, 0, this.width, this.height);
+        gl.disable(gl.BLEND);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-
-        const renderTarget = this.renderTarget;
-        this.renderTarget = this.previousFrame;
-        this.previousFrame = renderTarget;
     }
 
-    private firstFrame = true;
-    private pendingFrames: Array<PendingFrame> = [];
+    private previousFrame: ImageData | undefined;
+    private currentFrame: ImageData | undefined;
     private blendRatio = 0.5;
+    private mergeFrames = true;
 
     private programBlit: GlProgram;
     private programBlend: GlProgram;
@@ -154,9 +130,6 @@ export class WebglRenderer {
     private vertexCoordinateBuffer: WebGLBuffer;
     private textureCoordinateBuffer: WebGLBuffer;
 
-    private renderTarget: WebGLTexture;
-    private currentFrame: WebGLTexture;
-    private previousFrame: WebGLTexture;
-
-    private framebuffer: WebGLFramebuffer;
+    private textureCurrentFrame: WebGLTexture;
+    private texturePreviousFrame: WebGLTexture;
 }

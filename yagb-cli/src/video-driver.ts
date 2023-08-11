@@ -22,8 +22,8 @@ export class VideoDriver {
         this.renderer?.render();
     }
 
-    setBlendRatio(blendRatio: number): void {
-        this.renderer?.setBlendRatio(blendRatio);
+    setMergeFrames(mergeFrames: boolean): void {
+        this.renderer?.setMergeFrames(mergeFrames);
     }
 
     private initialize(): void {
