@@ -79,6 +79,16 @@ export class Repository {
     }
 
     @guard()
+    async getMergeFrames(): Promise<boolean> {
+        return ((await this.db.kvs.get('merge-frames'))?.data as boolean) ?? true;
+    }
+
+    @guard()
+    async setMergeFrames(mergeFrames: boolean): Promise<void> {
+        await this.db.kvs.put({ key: 'merge-frames', data: mergeFrames });
+    }
+
+    @guard()
     saveState(romHash: string, savestate: Uint8Array, nvData: Uint8Array | undefined, mode: Mode): Promise<void> {
         let _savestate: Uint8Array;
         let _nvData: Uint8Array | undefined;

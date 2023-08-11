@@ -176,6 +176,10 @@ async function onInit(): Promise<void> {
         return;
     }
 
+    const mergeFrames = await repository.getMergeFrames();
+    videoDriver.setMergeFrames(mergeFrames);
+    print(`merge frames: ${mergeFrames ? 'enabled' : 'disabled'}`);
+
     preferredModel = (await repository.getPreferredModel()) ?? PreferredModel.auto;
     print(`preferred GameBoy model (global): ${preferredModel}`);
 
@@ -274,6 +278,7 @@ snapshot-save <name>                    Save a snapshot
 snapshot-load <name>                    Restore a snapshot
 snapshot-delete <name>                  Delete a snapshot
 snapshot-list                           List snapshots
+merge-frames [1|0]                      Merge consecutive frames to reduce flicker
 audio-worklet [1|0]                     Use scriptprocessor even if audio worklet is available.
                                         May reduce jitter for high sample rates.
 
@@ -666,7 +671,6 @@ Keyboard controls (click the canvas to give it focus):
             print('using script processor audio driver');
         }
     },
-
     'preferred-model-global': async function (value?: string): Promise<string> {
         switch (value) {
             case PreferredModel.auto:
@@ -692,7 +696,6 @@ Keyboard controls (click the canvas to give it focus):
 
         return '';
     },
-
     'preferred-model': async function (value?: string): Promise<string> {
         if (!romHash) {
             print('no ROM loaded');
@@ -730,7 +733,6 @@ Keyboard controls (click the canvas to give it focus):
 
         return '';
     },
-
     palette: function (value?: string | number) {
         if (!emulator) return;
 
@@ -749,6 +751,32 @@ Keyboard controls (click the canvas to give it focus):
         }
 
         print(`using palette: ${paletteName(emulator.getPalette())}`);
+    },
+    'merge-frames': async function (toggle: string | number): Promise<string> {
+        let mergeFrames = await repository.getMergeFrames();
+
+        switch (toggle) {
+            case '1':
+            case 1:
+                mergeFrames = true;
+                break;
+
+            case '0':
+            case 0:
+                mergeFrames = false;
+                break;
+
+            case undefined:
+                break;
+
+            default:
+                print('invalid setting');
+        }
+
+        videoDriver.setMergeFrames(mergeFrames);
+        print(`merge frames: ${mergeFrames ? 'enabled' : 'disabled'}`);
+
+        return '';
     },
 };
 

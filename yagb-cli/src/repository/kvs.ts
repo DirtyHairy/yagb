@@ -16,6 +16,11 @@ export interface KVSItemPreferredModel {
     data: PreferredModel;
 }
 
-export type KVSItem = KVSItemLastRom | KVSItemVolume | KVSItemPreferredModel;
+export interface KVSItemMergeFrames {
+    key: 'merge-frames';
+    data: boolean;
+}
+
+export type KVSItem = KVSItemLastRom | KVSItemVolume | KVSItemPreferredModel | KVSItemMergeFrames;
 
 export type KVSKey = KVSItem['key'];
