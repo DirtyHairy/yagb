@@ -57,7 +57,6 @@ export namespace fsh {
 
             varying vec2 v_TextureCoordinate;
 
-            uniform float u_blendRatio;
             uniform sampler2D u_Sampler_NewImage;
             uniform sampler2D u_Sampler_PreviousImage;
 
@@ -67,14 +66,13 @@ export namespace fsh {
                 vec4 previous = texture2D(u_Sampler_PreviousImage, v_TextureCoordinate);
 
                 gl_FragColor = vec4(
-                    mix(previous.rgb, new.rgb, u_blendRatio),
+                    mix(previous.rgb, new.rgb, 0.5),
                     1.0
                 );
             }
         `;
 
         export const enum uniform {
-            blendRatio = 'u_blendRatio',
             textureUnitNew = 'u_Sampler_NewImage',
             textureUnitPrevious = 'u_Sampler_PreviousImage',
         }

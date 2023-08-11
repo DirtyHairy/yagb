@@ -40,8 +40,7 @@ export class WebglRenderer {
         this.vertexCoordinateBuffer = createCoordinateBuffer(gl, [1, 1, -1, 1, 1, -1, -1, -1]);
         this.textureCoordinateBuffer = createCoordinateBuffer(gl, [1, 1, 0, 1, 1, 0, 0, 0]);
 
-        this.texturePreviousFrame = createTexture(gl, width, height);
-        this.textureCurrentFrame = createTexture(gl, width, height);
+        for (let i = 0; i < 2; i++) this.texturePool.push(createTexture(gl, width, height));
 
         gl.disable(gl.BLEND);
     }
@@ -52,12 +51,22 @@ export class WebglRenderer {
             return;
         }
 
+        if (this.texturePreviousFrame) this.texturePool.push(this.texturePreviousFrame);
+
         this.previousFrame = this.currentFrame;
+        this.texturePreviousFrame = this.textureCurrentFrame;
+
         this.currentFrame = new ImageData(new Uint8ClampedArray(imageData).slice(), this.width, this.height);
+        this.textureCurrentFrame = undefined;
     }
 
     addFrame(imageData: ArrayBuffer): void {
         this.previousFrame = this.currentFrame = new ImageData(new Uint8ClampedArray(imageData).slice(), this.width, this.height);
+
+        if (this.texturePreviousFrame) this.texturePool.push(this.texturePreviousFrame);
+        if (this.textureCurrentFrame) this.texturePool.push(this.textureCurrentFrame);
+
+        this.textureCurrentFrame = this.texturePreviousFrame = undefined;
     }
 
     setMergeFrames(mergeFrames: boolean): void {
@@ -74,10 +83,18 @@ export class WebglRenderer {
 
         const gl = this.gl;
 
-        gl.activeTexture(gl.TEXTURE1);
-        gl.bindTexture(gl.TEXTURE_2D, this.textureCurrentFrame);
-        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.currentFrame);
+        if (!this.textureCurrentFrame) {
+            this.textureCurrentFrame = this.texturePool.pop();
+            if (!this.textureCurrentFrame) throw new Error('texture pool empty');
+
+            gl.activeTexture(gl.TEXTURE0);
+            gl.bindTexture(gl.TEXTURE_2D, this.textureCurrentFrame);
+            gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.currentFrame);
+        } else {
+            gl.activeTexture(gl.TEXTURE0);
+            gl.bindTexture(gl.TEXTURE_2D, this.textureCurrentFrame);
+        }
 
         this.programBlit.use();
         this.programBlit.uniform1i(fsh.blit.uniform.textureUnit, 0);
@@ -97,18 +114,33 @@ export class WebglRenderer {
 
         const gl = this.gl;
 
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, this.texturePreviousFrame);
-        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.previousFrame);
+        if (!this.texturePreviousFrame) {
+            this.texturePreviousFrame = this.texturePool.pop();
+            if (!this.texturePreviousFrame) throw new Error('texture pool empty');
 
-        gl.activeTexture(gl.TEXTURE1);
-        gl.bindTexture(gl.TEXTURE_2D, this.textureCurrentFrame);
-        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.currentFrame);
+            gl.activeTexture(gl.TEXTURE0);
+            gl.bindTexture(gl.TEXTURE_2D, this.texturePreviousFrame);
+            gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.previousFrame);
+        } else {
+            gl.activeTexture(gl.TEXTURE0);
+            gl.bindTexture(gl.TEXTURE_2D, this.texturePreviousFrame);
+        }
+
+        if (!this.textureCurrentFrame) {
+            this.textureCurrentFrame = this.texturePool.pop();
+            if (!this.textureCurrentFrame) throw new Error('texture pool empty');
+
+            gl.activeTexture(gl.TEXTURE1);
+            gl.bindTexture(gl.TEXTURE_2D, this.textureCurrentFrame);
+            gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.currentFrame);
+        } else {
+            gl.activeTexture(gl.TEXTURE1);
+            gl.bindTexture(gl.TEXTURE_2D, this.textureCurrentFrame);
+        }
 
         this.programBlend.use();
-        this.programBlend.uniform1f(fsh.blend.uniform.blendRatio, this.blendRatio);
         this.programBlend.uniform1i(fsh.blend.uniform.textureUnitNew, 1);
         this.programBlend.uniform1i(fsh.blend.uniform.textureUnitPrevious, 0);
 
@@ -121,7 +153,6 @@ export class WebglRenderer {
 
     private previousFrame: ImageData | undefined;
     private currentFrame: ImageData | undefined;
-    private blendRatio = 0.5;
     private mergeFrames = true;
 
     private programBlit: GlProgram;
@@ -130,6 +161,8 @@ export class WebglRenderer {
     private vertexCoordinateBuffer: WebGLBuffer;
     private textureCoordinateBuffer: WebGLBuffer;
 
-    private textureCurrentFrame: WebGLTexture;
-    private texturePreviousFrame: WebGLTexture;
+    private textureCurrentFrame: WebGLTexture | undefined;
+    private texturePreviousFrame: WebGLTexture | undefined;
+
+    private texturePool: Array<WebGLTexture> = [];
 }
