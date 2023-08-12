@@ -2,7 +2,7 @@
 import { Capabilities } from './capabilities';
 
 function precisionFsh(capabilities: Capabilities): string {
-    return `precision ${capabilities.highpInVsh ? 'highp' : 'mediump'} float;`;
+    return `precision ${capabilities.highpInFsh ? 'highp' : 'mediump'} float;`;
 }
 
 function precisionVsh(capabilities: Capabilities): string {
