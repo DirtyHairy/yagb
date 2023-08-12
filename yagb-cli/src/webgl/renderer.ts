@@ -19,12 +19,13 @@ function createTexture(gl: WebGLRenderingContext, width: number, height: number)
 
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
 
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
 
     return texture;
 }
@@ -83,27 +84,13 @@ export class WebglRenderer {
 
         const gl = this.gl;
 
-        if (!this.textureCurrentFrame) {
-            this.textureCurrentFrame = this.texturePool.pop();
-            if (!this.textureCurrentFrame) throw new Error('texture pool empty');
-
-            gl.activeTexture(gl.TEXTURE0);
-            gl.bindTexture(gl.TEXTURE_2D, this.textureCurrentFrame);
-            gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.currentFrame);
-        } else {
-            gl.activeTexture(gl.TEXTURE0);
-            gl.bindTexture(gl.TEXTURE_2D, this.textureCurrentFrame);
-        }
+        this.textureCurrentFrame = this.prepareTexture(this.textureCurrentFrame, this.currentFrame, gl.TEXTURE0);
 
         this.programBlit.use();
         this.programBlit.uniform1i(fsh.blit.uniform.textureUnit, 0);
 
         this.programBlit.bindVertexAttribArray(vsh.plain.attribute.vertexPosition, this.vertexCoordinateBuffer, 2, gl.FLOAT, false, 0, 0);
         this.programBlit.bindVertexAttribArray(vsh.plain.attribute.textureCoordinate, this.textureCoordinateBuffer, 2, gl.FLOAT, false, 0, 0);
-
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, this.textureCurrentFrame);
 
         gl.disable(gl.BLEND);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -114,41 +101,36 @@ export class WebglRenderer {
 
         const gl = this.gl;
 
-        if (!this.texturePreviousFrame) {
-            this.texturePreviousFrame = this.texturePool.pop();
-            if (!this.texturePreviousFrame) throw new Error('texture pool empty');
-
-            gl.activeTexture(gl.TEXTURE0);
-            gl.bindTexture(gl.TEXTURE_2D, this.texturePreviousFrame);
-            gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.previousFrame);
-        } else {
-            gl.activeTexture(gl.TEXTURE0);
-            gl.bindTexture(gl.TEXTURE_2D, this.texturePreviousFrame);
-        }
-
-        if (!this.textureCurrentFrame) {
-            this.textureCurrentFrame = this.texturePool.pop();
-            if (!this.textureCurrentFrame) throw new Error('texture pool empty');
-
-            gl.activeTexture(gl.TEXTURE1);
-            gl.bindTexture(gl.TEXTURE_2D, this.textureCurrentFrame);
-            gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.currentFrame);
-        } else {
-            gl.activeTexture(gl.TEXTURE1);
-            gl.bindTexture(gl.TEXTURE_2D, this.textureCurrentFrame);
-        }
+        this.texturePreviousFrame = this.prepareTexture(this.texturePreviousFrame, this.previousFrame, gl.TEXTURE0);
+        this.textureCurrentFrame = this.prepareTexture(this.textureCurrentFrame, this.currentFrame, gl.TEXTURE1);
 
         this.programBlend.use();
-        this.programBlend.uniform1i(fsh.blend.uniform.textureUnitNew, 1);
         this.programBlend.uniform1i(fsh.blend.uniform.textureUnitPrevious, 0);
+        this.programBlend.uniform1i(fsh.blend.uniform.textureUnitNew, 1);
 
         this.programBlend.bindVertexAttribArray(vsh.plain.attribute.vertexPosition, this.vertexCoordinateBuffer, 2, gl.FLOAT, false, 0, 0);
         this.programBlend.bindVertexAttribArray(vsh.plain.attribute.textureCoordinate, this.textureCoordinateBuffer, 2, gl.FLOAT, false, 0, 0);
 
         gl.disable(gl.BLEND);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    }
+
+    private prepareTexture(texture: WebGLTexture | undefined, imageData: ImageData, textureUnit: number): WebGLTexture {
+        const gl = this.gl;
+
+        gl.activeTexture(textureUnit);
+
+        if (!texture) {
+            texture = this.texturePool.pop();
+            if (!texture) throw new Error('unable to obtain a texture from pool');
+
+            gl.bindTexture(gl.TEXTURE_2D, texture);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, imageData);
+        } else {
+            gl.bindTexture(gl.TEXTURE_2D, texture);
+        }
+
+        return texture;
     }
 
     private previousFrame: ImageData | undefined;
