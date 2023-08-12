@@ -171,7 +171,7 @@ async function onInit(): Promise<void> {
 
     const mergeFrames = await repository.getMergeFrames();
     videoDriver.setMergeFrames(mergeFrames);
-    print(`merge frames: ${mergeFrames ? 'enabled' : 'disabled'}`);
+    print(`frame merging ${mergeFrames ? 'enabled' : 'disabled'}`);
 
     preferredModel = (await repository.getPreferredModel()) ?? PreferredModel.auto;
     print(`preferred GameBoy model (global): ${preferredModel}`);
@@ -774,7 +774,7 @@ Keyboard controls (click the canvas to give it focus):
         }
 
         videoDriver.setMergeFrames(mergeFrames);
-        print(`merge frames: ${mergeFrames ? 'enabled' : 'disabled'}`);
+        print(`frame merging ${mergeFrames ? 'enabled' : 'disabled'}`);
 
         return '';
     },
