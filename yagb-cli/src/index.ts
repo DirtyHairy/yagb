@@ -169,19 +169,19 @@ async function onInit(): Promise<void> {
 
     print("Type 'help' in order to show all commands.\n");
 
-    const lastRom = await repository.getLastRom();
-
-    if (!lastRom) {
-        print('Type "load" in order to load a cartridge image.');
-        return;
-    }
-
     const mergeFrames = await repository.getMergeFrames();
     videoDriver.setMergeFrames(mergeFrames);
     print(`merge frames: ${mergeFrames ? 'enabled' : 'disabled'}`);
 
     preferredModel = (await repository.getPreferredModel()) ?? PreferredModel.auto;
     print(`preferred GameBoy model (global): ${preferredModel}`);
+
+    const lastRom = await repository.getLastRom();
+
+    if (!lastRom) {
+        print('Type "load" in order to load a cartridge image.');
+        return;
+    }
 
     try {
         loadCartridge(lastRom.data, lastRom.name);
