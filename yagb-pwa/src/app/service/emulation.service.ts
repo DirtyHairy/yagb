@@ -2,7 +2,7 @@ import { compressFrame, decompressFrame } from '../helper/frame';
 
 import { AudioDriver } from 'yagb-core/src/emulator/apu/audio-driver';
 import { Database } from './database.service';
-import { Emulator } from 'yagb-core/src/emulator/emulator';
+import { Emulator, PreferredModel } from 'yagb-core/src/emulator/emulator';
 import { Event } from 'microevent.ts';
 import { GameService } from './game.service';
 import { Injectable } from '@angular/core';
@@ -77,7 +77,7 @@ export class EmulationService {
                 throw new Error(`cannot happend: no ROM found for ${currentGame.romHash}`);
             }
 
-            this.emulator = new Emulator(romData, (x) => console.log(x));
+            this.emulator = new Emulator(romData, PreferredModel.auto, (x) => console.log(x));
             this.scheduler = new Scheduler(this.emulator);
             this.lastFrameIndex = this.emulator.getFrameIndex();
 
