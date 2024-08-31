@@ -62,9 +62,11 @@ function axisMapping(index: number): [key, key] | undefined {
 
 export class GamepadDriver {
     update(): void {
+        if (!navigator.getGamepads) return;
+
         this.newState.fill(0);
 
-        navigator.getGamepads().forEach((gamepad, i) => {
+        Array.from(navigator.getGamepads()).forEach((gamepad, i) => {
             if (gamepad) this.updateFromGamepad(gamepad, i);
             else this.mappings[i] = undefined;
         });
