@@ -54,7 +54,10 @@ export function clockPenaltyForSprite(scx: number, x: number): number {
 }
 
 export abstract class PpuBase implements Ppu {
-    constructor(protected system: System, protected interrupt: Interrupt) {
+    constructor(
+        protected system: System,
+        protected interrupt: Interrupt,
+    ) {
         const [vram, vram16] = this.initializeVram();
 
         this.vram = vram;
@@ -125,7 +128,7 @@ export abstract class PpuBase implements Ppu {
         if (version >= 0x01) this.vblankLines = savestate.read16();
 
         this.frozenStat = this.reg[reg.stat] & 0xf8;
-        if (version >= 0x02) this.frozenStat = savestate.read16();
+        if (version >= 0x02) this.frozenStat = savestate.read16() & 0x04;
 
         this.frame = 0;
         this.skipFrame = this.mode === ppuMode.vblank ? 0 : 1;
@@ -473,7 +476,7 @@ export abstract class PpuBase implements Ppu {
     };
 
     protected statRead: ReadHandler = () =>
-        this.reg[reg.lcdc] & lcdc.enable ? (this.reg[reg.stat] & 0xf8) | (this.reg[reg.lyc] === this.scanline ? 0x04 : 0) | this.mode : this.frozenStat;
+        (this.reg[reg.stat] & 0xf8) | (this.reg[reg.lcdc] & lcdc.enable ? (this.reg[reg.lyc] === this.scanline ? 0x04 : 0) | this.mode : this.frozenStat);
 
     protected lyRead: ReadHandler = () => this.scanline;
 

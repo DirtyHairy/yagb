@@ -30,7 +30,10 @@ const enum HdmaMode {
 }
 
 export class PpuCgb extends PpuBase {
-    constructor(protected system: System, protected interrupt: Interrupt) {
+    constructor(
+        protected system: System,
+        protected interrupt: Interrupt,
+    ) {
         super(system, interrupt);
 
         this.spriteQueue = new SpriteQueueCgb(this.vramBanks, this.oam, this.ocram);
@@ -132,7 +135,7 @@ export class PpuCgb extends PpuBase {
     }
 
     protected lcdcWrite: WriteHandler = (_, value) => {
-        const oldStat = this.statRead(reg.base + reg.stat) & 0xfc;
+        const oldStat = this.statRead(reg.base + reg.stat);
 
         const oldValue = this.reg[reg.lcdc];
         this.reg[reg.lcdc] = value;
@@ -145,7 +148,7 @@ export class PpuCgb extends PpuBase {
             this.hdmaCopyBlock();
 
             this.backBuffer.fill(this.getBlankColor());
-            this.frozenStat = oldStat;
+            this.frozenStat = oldStat & 0x04;
             this.swapBuffers();
             this.startFrame();
         }

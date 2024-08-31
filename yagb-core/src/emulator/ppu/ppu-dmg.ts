@@ -11,7 +11,12 @@ import { SpriteQueueDmg } from './sprite-queue-dmg';
 import { System } from '../system';
 
 export class PpuDmg extends PpuBase {
-    constructor(protected system: System, protected interrupt: Interrupt, private deviceMode: Mode, private defaultPaletteIndex: number) {
+    constructor(
+        protected system: System,
+        protected interrupt: Interrupt,
+        private deviceMode: Mode,
+        private defaultPaletteIndex: number,
+    ) {
         super(system, interrupt);
 
         if (deviceMode === Mode.cgbcompat) {
@@ -99,7 +104,7 @@ export class PpuDmg extends PpuBase {
     }
 
     protected lcdcWrite: WriteHandler = (_, value) => {
-        const oldStat = this.statRead(reg.base + reg.stat) & 0xfc;
+        const oldStat = this.statRead(reg.base + reg.stat);
 
         const oldValue = this.reg[reg.lcdc];
         this.reg[reg.lcdc] = value;
@@ -110,7 +115,7 @@ export class PpuDmg extends PpuBase {
 
         if (oldValue & ~this.reg[reg.lcdc] & lcdc.enable) {
             this.backBuffer.fill(this.getBlankColor());
-            this.frozenStat = oldStat;
+            this.frozenStat = oldStat & 0x04;
             this.swapBuffers();
             this.startFrame();
         }
